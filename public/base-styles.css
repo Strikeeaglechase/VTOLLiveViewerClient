@@ -1,0 +1,23 @@
+body,
+html {
+	height: 100%;
+	margin: 0px;
+}
+
+.overlay-main {
+	overflow: hidden;
+	position: absolute;
+	top: 0;
+	pointer-events: none;
+}
+
+.overlay-text {
+	font-family: monospace;
+	color: white;
+	position: relative;
+}
+
+.debug-overlay-text {
+	border-style: solid;
+	border-color: red;
+}

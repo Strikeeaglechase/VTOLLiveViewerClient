@@ -1,0 +1,52 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "esnext",
+		"strict": true,
+		"strictPropertyInitialization": false,
+		"allowJs": true,
+		"jsx": "preserve",
+		"importHelpers": true,
+		"moduleResolution": "node",
+		"experimentalDecorators": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"baseUrl": "src",
+		"types": [
+			"webpack-env"
+		],
+		"paths": {
+			"@/*": [
+				"src/*"
+			],
+			"tslib": [
+				"./node_modules/tslib/tslib.d.ts"
+			]
+		},
+		"lib": [
+			"esnext",
+			"dom",
+			"dom.iterable",
+			"scripthost"
+		],
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"src/**/*.vue",
+		"tests/**/*.ts",
+		"tests/**/*.tsx",
+		"src/viewer/meshLoader/OBJLoader.js",
+		"src/viewer/meshLoader/GLTFLoader.js",
+	],
+	"exclude": [
+		"node_modules"
+	],
+	"references": [
+		{
+			"path": "../common",
+		}
+	]
+}
