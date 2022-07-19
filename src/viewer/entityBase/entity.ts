@@ -472,7 +472,7 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this.debugName} has died`);
 		this.triggerDamage();
-		setTimeout(() => { this.remove(); }, damageFadeTime);
+		setTimeout(() => { this.remove(); }, damageFadeTime * 3);
 	}
 
 	protected updateDamage() {
