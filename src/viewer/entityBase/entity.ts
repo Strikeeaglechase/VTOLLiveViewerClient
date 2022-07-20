@@ -532,9 +532,8 @@ class Entity {
 		// 	else wasPrevLower = false;
 		// }
 
-		// Take a camel case string and return it as a sentence
-		function convert(inp: string): string {
-			return inp.replace(/([A-Z])/g, ' $1').replace(/^./, function (str) { return str.toUpperCase(); });
+		function convert(inp: string) {
+			return inp.replace(/([a-z][A-Z])/g, (str) => str[0] + " " + str[1].toUpperCase());
 		}
 
 		// If a string has a letter followed by a number, add a space before the number, but don't add a space between numbers
