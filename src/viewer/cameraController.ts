@@ -28,6 +28,7 @@ class CameraController {
 		this.frontRefPoint.position.set(0, 0, -10);
 
 		this.orbit = new OrbitControls(this.fakeCamera, this.domElement);
+		this.orbit.zoomSpeed = 1.5;
 
 		// Idfk what the defaults should be 
 		// this.orbit.mouseButtons.LEFT = 2;
@@ -42,6 +43,20 @@ class CameraController {
 
 		this.domElement.addEventListener("click", (e) => this.stopCurrentMove());
 		this.domElement.addEventListener("wheel", (e) => this.stopCurrentMove());
+
+		window.addEventListener("keydown", (e) => {
+			if (e.key == "Alt") {
+				this.orbit.mouseButtons.RIGHT = 0;
+				this.orbit.mouseButtons.LEFT = 2;
+			}
+		});
+
+		window.addEventListener("keyup", (e) => {
+			if (e.key == "Alt") {
+				this.orbit.mouseButtons.RIGHT = 2;
+				this.orbit.mouseButtons.LEFT = 0;
+			}
+		});
 	}
 
 	update() {
@@ -123,6 +138,7 @@ class CameraController {
 		this.lerpTarget = new THREE.Vector3(x, y, z);
 		this.doPosLerp = true;
 	}
+
 
 	stopCurrentMove() {
 		this.doPosLerp = false;
