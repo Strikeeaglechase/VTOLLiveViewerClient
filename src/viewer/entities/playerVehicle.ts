@@ -11,6 +11,7 @@ import { Entity } from "../entityBase/entity";
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
+	private throttle: number;
 
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry;
@@ -20,6 +21,7 @@ class PlayerVehicle extends Entity {
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInSidebar: true, showInBra: true });
 		this.tgp = new DesignatorLine(this, app, "#00ff00");
+		this.throttle = 1;
 	}
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
@@ -76,6 +78,7 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number) {
+		this.throttle = throttle;
 		this.updateMotion(pos, vel, accel, rot);
 	}
 

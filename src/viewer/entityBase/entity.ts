@@ -76,6 +76,8 @@ class Entity {
 	public iMeshId: number;
 	private iMeshOffsetObject: THREE.Object3D;
 
+	private engineOffsets: object | null;
+
 	protected _scale = 1;
 	public set scale(scale: number) {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
@@ -262,6 +264,8 @@ class Entity {
 
 		this.scaleDamper = this.app.meshLoader.getScaleDamper(this.type);
 
+		this.engineOffsets = this.app.meshLoader.getEngineOffsets(this.type);
+
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
 		if (this.hasOverlay) {
@@ -270,7 +274,6 @@ class Entity {
 				this.textOverlay = new TextOverlay(this.object, this.type).edit(this.id.toString()).offset(0, 10, 0);
 			}, 1500 + Math.random() * 1000);
 		}
-
 	}
 
 	protected async createMesh(): Promise<void> {

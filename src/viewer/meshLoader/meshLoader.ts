@@ -14,6 +14,7 @@ interface EntityMeshConfig {
 	scaleDamper?: number;
 	loadScale?: number;
 	color?: string;
+	engineOffsets: object | null;
 }
 
 interface IMeshOffsets {
@@ -27,24 +28,28 @@ const entityMeshs: EntityMeshConfig[] = [
 		path: "./assets/objects/output/vtolvr_FA-26.gltf",
 		position: new Vector(0, 0, -5),
 		rotation: new Vector(0, Math.PI, 0),
-		color: "#747474"
+		color: "#747474",
+		engineOffsets: [new Vector(-1, 0, -5), new Vector(1, 0, -5)]
 	},
 	{
 		key: "Vehicles/SEVTF",
 		path: "./assets/objects/output/vtolvr_F-45A.gltf",
 		position: new Vector(0, 0, -7.5),
+		engineOffsets: [new Vector(0, 0, -5)]
 	},
 	{
 		key: "Vehicles/VTOL4",
 		path: "./assets/objects/output/vtolvr_AV-42CAI.gltf",
 		position: new Vector(0, 0, -2.5),
 		loadScale: 0.5,
+		engineOffsets: [new Vector(-5, 0, 0), new Vector(5, 0, 0)]
 	},
 	{
 		key: "Vehicles/AH-94",
 		path: "./assets/objects/output/vtolvr_ah-94.gltf",
 		position: new Vector(0, -1, -2),
 		loadScale: 10,
+		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/AlliedCarrier",
@@ -52,6 +57,7 @@ const entityMeshs: EntityMeshConfig[] = [
 		scaleDamper: 0.1,
 		color: "#404040",
 		rotation: new Vector(0, 0, 0),
+		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/AlliedAAShip",
@@ -59,19 +65,22 @@ const entityMeshs: EntityMeshConfig[] = [
 		scaleDamper: 0.1,
 		color: "#404040",
 		rotation: new Vector(0, 0, 0),
+		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/EscortCruiser",
 		path: "./assets/objects/output/vtolvr_EscortCruiser.gltf",
 		scaleDamper: 0.1,
 		rotation: new Vector(0, 0, 0),
+		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/PatriotLauncher",
 		path: "./assets/objects/patriot_Launcher.obj",
 		rotation: new Vector(0, Math.PI / 2, 0),
 		position: new Vector(0, 0, -2),
-		loadScale: 1.5
+		loadScale: 1.5,
+		engineOffsets: []
 	},
 	{
 		key: "Vehicles/F117",
@@ -79,7 +88,8 @@ const entityMeshs: EntityMeshConfig[] = [
 		rotation: new Vector(0, 0, 0),
 		position: new Vector(0, 0, -3),
 		loadScale: 0.4,
-		// color: "#000000"
+		// color: "#000000",
+		engineOffsets: []
 	},
 ];
 
@@ -281,6 +291,13 @@ class MeshLoader {
 		if (!config || !config.scaleDamper) return 1;
 
 		return config.scaleDamper;
+	}
+
+	public getEngineOffsets(entityKey: string) {
+		const config = entityMeshs.find(em => em.key == entityKey);
+		if (!config || !config.scaleDamper) return null;
+
+		return config.engineOffsets;
 	}
 }
 
