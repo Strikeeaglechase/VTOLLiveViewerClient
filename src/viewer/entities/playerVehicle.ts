@@ -49,6 +49,12 @@ class PlayerVehicle extends Entity {
 		this.tgp.update();
 		this.lockLine.update();
 
+		// Sometimes player's don't get a team until after the spawn, lets check for that
+		if (this.hasFoundValidOwner && this.team != this.owner.team) {
+			console.warn(`Entity ${this.debugName} has team ${this.team} but owner ${this.owner.pilotName} has team ${this.owner.team}`);
+			this.setTeam(this.owner.team);
+		}
+
 		if (this.textOverlay) {
 			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
 			this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);

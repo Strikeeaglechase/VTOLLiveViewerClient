@@ -21,6 +21,14 @@ class SimpleUnitTrail {
 	};
 	private lastTrailTime = 0;
 
+	public updateColor(color: { r: number; g: number; b: number; }): void {
+		this.color = color;
+		if (this.hasInit) {
+			const mat = this.lineMesh.material as THREE.LineBasicMaterial;
+			mat.color.set(new THREE.Color(this.color.r, this.color.g, this.color.b));
+		}
+	}
+
 	public init(): void {
 		const lineMat = new THREE.LineBasicMaterial({ color: new THREE.Color(this.color.r, this.color.g, this.color.b) });
 		this.lineGeom = new THREE.BufferGeometry();

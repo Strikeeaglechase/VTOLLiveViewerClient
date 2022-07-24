@@ -12,7 +12,7 @@ import {
 import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/src/compression";
 import { getCookie } from "../../../VTOLLiveViewerCommon/src/cookieHelper";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/src/vector";
-import { IS_ALPHA, WS_URL } from "../config";
+import { IS_ALPHA, IS_DEV, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
@@ -215,6 +215,7 @@ class Application {
 
 	// Sets up a testing scene with a variety of entities
 	private async offlineTestSetup() {
+		await this.start();
 		this.game = new VTOLLobby("0");
 		this.game.players.push({
 			entityId: 1,
@@ -229,7 +230,7 @@ class Application {
 		let id = 1;
 		const aircraft = new PlayerVehicle(this);
 		await aircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
-		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 10, 1000), new Vector(0, 0, 0), new Vector(0, 0, 0));
+		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0));
 
 		const aircraft2 = new PlayerVehicle(this);
 		await aircraft2.spawn(id++, "0", "Vehicles/SEVTF", new Vector(20, 0, 0), new Vector(0, 0, 0), true);
@@ -322,6 +323,18 @@ class Application {
 		}
 		this.gameList.push(new VTOLLobby(id));
 		EventBus.$emit("lobbies", this.gameList);
+
+		if (IS_DEV && !this.game) {
+			setTimeout(() => {
+				if (!this.game) { // Make sure we didn't get a game in the meantime
+					const validGame = this.gameList.find(g => g.isConnected);
+					if (validGame) {
+						console.log(`Dev connecting to game ${validGame.name} (${validGame.id})`);
+						this.subscribe(validGame);
+					}
+				}
+			}, 250);
+		}
 	}
 
 	@RPC("out")

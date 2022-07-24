@@ -358,8 +358,7 @@ class Entity {
 		if (owner) {
 			this.owner = owner;
 			this.hasFoundValidOwner = true;
-			if (this.team == Team.Unknown && this.owner?.team != undefined) this.team = this.owner.team;
-			this.trail.color = trailColors[this.team];
+			this.setTeam(owner.team);
 		}
 	}
 
@@ -389,6 +388,11 @@ class Entity {
 		this.rotation.set(r.x, r.y, r.z);
 		this.velocity.set(-vel.x, vel.y, vel.z);
 		this.acceleration.set(-accel.x, accel.y, accel.z);
+	}
+
+	protected setTeam(team: Team) {
+		this.team = team;
+		this.trail.updateColor(trailColors[this.team]);
 	}
 
 	public update(dt: number): void {
@@ -522,16 +526,6 @@ class Entity {
 
 		// If there wasn't a mapping, try to convert myEntityName to My Entity Name
 		const name = identifier.substring(identifier.lastIndexOf("/") + 1);
-		// let str = "";
-		// let wasPrevLower = false;
-		// for (let i = 0; i < name.length; i++) {
-		// 	if (wasPrevLower && name[i].toUpperCase() == name[i] && alphaChars.includes(name[i])) str += " ";
-		// 	str += name[i];
-
-		// 	if (name[i].toLowerCase() == name[i]) wasPrevLower = true;
-		// 	else wasPrevLower = false;
-		// }
-
 		function convert(inp: string) {
 			return inp.replace(/([a-z][A-Z])/g, (str) => str[0] + " " + str[1].toUpperCase());
 		}
