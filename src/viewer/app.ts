@@ -156,7 +156,7 @@ class Application {
 		// workshopId: "built-in"
 		// });
 
-		this.offlineTestSetup();
+		// this.offlineTestSetup();
 		// this.quickTestSetup();
 
 		// EventBus.$emit("app", this);
