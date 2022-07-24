@@ -75,7 +75,7 @@ class PlayerVehicle extends Entity {
 	}
 
 	@RPC("in")
-	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
+	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number) {
 		this.updateMotion(pos, vel, accel, rot);
 	}
 
