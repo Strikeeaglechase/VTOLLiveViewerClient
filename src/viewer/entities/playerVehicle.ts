@@ -16,8 +16,6 @@ class PlayerVehicle extends Entity {
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry;
 
-	private lastTestingCMSDispense = 0;
-
 	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4"];
 
 	constructor(app: Application) {
@@ -62,12 +60,6 @@ class PlayerVehicle extends Entity {
 		if (this.textOverlay) {
 			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
 			this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
-		}
-
-		if (this.app.isOfflineTest && this.lastTestingCMSDispense + 6000 < Date.now()) {
-			this.app.flareManager.fireCm(this)
-
-			this.lastTestingCMSDispense = Date.now();
 		}
 	}
 

@@ -76,7 +76,7 @@ class Entity {
 	public iMeshId: number;
 	private iMeshOffsetObject: THREE.Object3D;
 
-	private engineOffsets: object | null;
+	private engineOffsets: Vector[];
 
 	protected _scale = 1;
 	public set scale(scale: number) {

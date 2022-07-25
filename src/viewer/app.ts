@@ -92,7 +92,7 @@ class Application {
 	public sceneManager = new SceneManager(this);
 	private mapLoader = new MapLoader(this.sceneManager);
 
-	isOfflineTest = false;
+	private isOfflineTest = false;
 
 	public entities: Entity[] = [];
 	public client: Client;

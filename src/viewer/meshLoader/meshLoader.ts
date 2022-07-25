@@ -14,7 +14,7 @@ interface EntityMeshConfig {
 	scaleDamper?: number;
 	loadScale?: number;
 	color?: string;
-	engineOffsets: object | null;
+	engineOffsets? : Vector[];
 }
 
 interface IMeshOffsets {
@@ -295,7 +295,7 @@ class MeshLoader {
 
 	public getEngineOffsets(entityKey: string) {
 		const config = entityMeshs.find(em => em.key == entityKey);
-		if (!config || !config.scaleDamper) return null;
+		if (!config || !config.engineOffsets) return null;
 
 		return config.engineOffsets;
 	}
