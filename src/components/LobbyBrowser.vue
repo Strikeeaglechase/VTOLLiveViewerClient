@@ -63,7 +63,7 @@
 
 				return g.name
 					.toLowerCase()
-					.startsWith(this.searchStr.toLowerCase());
+					.includes(this.searchStr.toLowerCase()) || g.missionName.toLowerCase().includes(this.searchStr.toLowerCase());
 			});
 		}
 	}
