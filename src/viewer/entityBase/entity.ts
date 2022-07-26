@@ -76,6 +76,8 @@ class Entity {
 	public iMeshId: number;
 	private iMeshOffsetObject: THREE.Object3D;
 
+	private engineOffsets: Vector[];
+
 	protected _scale = 1;
 	public set scale(scale: number) {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
@@ -262,6 +264,8 @@ class Entity {
 
 		this.scaleDamper = this.app.meshLoader.getScaleDamper(this.type);
 
+		this.engineOffsets = this.app.meshLoader.getEngineOffsets(this.type);
+
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
 		if (this.hasOverlay) {
@@ -270,7 +274,6 @@ class Entity {
 				this.textOverlay = new TextOverlay(this.object, this.type).edit(this.id.toString()).offset(0, 10, 0);
 			}, 1500 + Math.random() * 1000);
 		}
-
 	}
 
 	protected async createMesh(): Promise<void> {
@@ -521,7 +524,22 @@ class Entity {
 			"Vehicles/FA-26B": "F/A-26B",
 			"Vehicles/AH-94": "AH-94",
 			"Vehicles/VTOL4": "AV-42C",
+			"Weapons/Missiles/Maverick": "AGM-65",
+			"Weapons/Missiles/AIM-92": "Stinger", // From the AH-94
+			"Weapons/Missiles/APKWS": "Guided Rocket",
+			"Weapons/Missiles/HARM": "AGM-88",
+			"Weapons/Missiles/Hellfire": "AGM-114",
+			"Weapons/Missiles/MARM": "AGM-188",
+			"Weapons/Missiles/MK82": "MK-82",
+			"Weapons/Missiles/MK82HighDrag": "MK-82 [High Drag]",
+			"Weapons/Missiles/MK83": "MK-83",
+			"Weapons/Missiles/SB-1": "SB-1 Bomb",
+			"Weapons/Missiles/SideARM": "AGM-126",
+			"Weapons/Missiles/SubMissile": "Cluster Munition",
+			"Weapons/Missiles/SAMs/APCIRSAM" : "IR APC SAM",
+			"Weapons/Missiles/SAMs/SaawMissile" : "SAAW Missile",
 		};
+
 		if (map[identifier]) return map[identifier];
 
 		// If there wasn't a mapping, try to convert myEntityName to My Entity Name

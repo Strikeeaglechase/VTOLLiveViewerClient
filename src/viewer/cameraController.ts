@@ -28,6 +28,7 @@ class CameraController {
 		this.frontRefPoint.position.set(0, 0, -10);
 
 		this.orbit = new OrbitControls(this.fakeCamera, this.domElement);
+		this.orbit.minDistance = 20;
 		this.orbit.zoomSpeed = 1.5;
 
 		// Idfk what the defaults should be 

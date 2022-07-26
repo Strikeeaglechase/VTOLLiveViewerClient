@@ -92,6 +92,8 @@ class Application {
 	public sceneManager = new SceneManager(this);
 	private mapLoader = new MapLoader(this.sceneManager);
 
+	private isOfflineTest = false;
+
 	public entities: Entity[] = [];
 	public client: Client;
 	private messageHandler: MessageHandler;
@@ -215,6 +217,7 @@ class Application {
 
 	// Sets up a testing scene with a variety of entities
 	private async offlineTestSetup() {
+		this.isOfflineTest = true;
 		await this.start();
 		this.game = new VTOLLobby("0");
 		this.game.players.push({

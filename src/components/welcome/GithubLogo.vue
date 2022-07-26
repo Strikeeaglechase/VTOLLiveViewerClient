@@ -34,4 +34,11 @@
 	margin-right: 5px;
 	fill: #cdd9e5;
 }
+
+a {
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  max-height: 40px;
+}
 </style>

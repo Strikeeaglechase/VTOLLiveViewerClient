@@ -3,10 +3,11 @@ import * as THREE from "three";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
 import { Entity } from "../entityBase/entity";
 import { SceneManager } from "./sceneManager";
+import {MeshStandardMaterial} from "three";
 
 const FLARE_LT = 5 * 1000;
-const FLARE_DRAG = 0.995;
-const FLARE_GRAV = -20;
+const FLARE_DRAG = 0.95;
+const FLARE_GRAV = -9;
 
 interface Flare {
 	position: Vector;
@@ -19,14 +20,16 @@ interface Flare {
 class FlareManager {
 	private flares: Flare[] = [];
 	private freeFlares: Flare[] = [];
+	private scaleMult: number;
 
 	private geometry: THREE.SphereGeometry;
-	private material: THREE.MeshBasicMaterial;
+	private material: THREE.MeshStandardMaterial;
 
 	constructor(private scene: SceneManager) {
-		this.geometry = new THREE.SphereGeometry(2);
-		this.material = new THREE.MeshBasicMaterial({ color: "#ffe357", side: THREE.DoubleSide });
-
+		this.geometry = new THREE.SphereGeometry(1.5, 6, 6);
+		this.material = new THREE.MeshStandardMaterial({ color: "#000000", side: THREE.DoubleSide });
+		this.material.emissiveIntensity = 1;
+		this.material.emissive = new THREE.Color("#ffe357");
 	}
 
 	public update(dt: number) {
@@ -35,12 +38,29 @@ class FlareManager {
 			if (!flare.isAlive) return;
 
 			// TODO: Make flares move a bit to match vtol better
-			// flare.position = flare.position.add(flare.velocity.multiply(dt / 1000));
-			// flare.velocity = flare.velocity.multiply(FLARE_DRAG).add(new Vector(0, FLARE_GRAV * dt / 1000, 0));
-			// flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);
+			flare.velocity = flare.velocity.multiply(FLARE_DRAG).add(new Vector(0, FLARE_GRAV * dt / 1000, 0));
+			flare.position = flare.position.add(flare.velocity.multiply(dt / 1000));
+			flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);
+
+			const timeAlive = (now - flare.createdAt)
+
+			const amountThrough = 1-(timeAlive / FLARE_LT)
+
+			// Make flares still half size when fully faded
+			const amountThroughAdjusted = 1 - ((timeAlive / FLARE_LT) * 0.8)
+
+			flare.mesh.scale.set(1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult)
+
+			// It always is, this is just to make TS happy
+			if (flare.mesh.material instanceof MeshStandardMaterial) {
+				flare.mesh.material.transparent = true;
+				flare.mesh.material.opacity = amountThrough;
+			}
+
 			if (flare.createdAt + FLARE_LT < now) {
 				flare.mesh.visible = false;
 				flare.isAlive = false;
+				flare.mesh.scale.set(2, 2, 2)
 				this.freeFlares.push(flare);
 			}
 		});
@@ -49,6 +69,7 @@ class FlareManager {
 	}
 
 	public fireCm(entity: Entity) {
+		console.log("CMS")
 		// Try to reuse a flare, otherwise create a new one
 		if (this.freeFlares.length == 0) {
 			const mesh = new THREE.Mesh(this.geometry, this.material);
@@ -71,15 +92,14 @@ class FlareManager {
 			flare.velocity = entity.velocity.clone().multiply(0.99);
 			flare.createdAt = Date.now();
 			flare.isAlive = true;
+			flare.mesh.visible = true;
 			flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);
 			this.flares.push(flare);
 		}
 	}
 
 	public updateScale(scale: number) {
-		this.flares.forEach(flare => {
-			flare.mesh.scale.set(scale, scale, scale);
-		});
+		this.scaleMult = scale * 0.9;
 	}
 }
 
