@@ -1,5 +1,5 @@
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
 
@@ -9,6 +9,13 @@ class AIAirVehicle extends Entity {
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInBra: false, showInSidebar: false, useInstancedMesh: true });
+	}
+
+	// Protect AI team, don't want to inherit from host
+	protected setTeam(team: Team) {
+		if (this.team != Team.Unknown && this.team != team) return;
+
+		super.setTeam(team);
 	}
 
 	public update(dt: number): void {

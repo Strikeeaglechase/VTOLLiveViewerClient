@@ -94,6 +94,7 @@ class SceneManager {
 		});
 		// }
 
+		this.overlayElements.forEach(overlay => overlay.updateBoundingRect());
 		this.overlayElements.forEach(overlay => overlay.update(this.overlayElements));
 
 		this.lastCameraPos.copy(camPos);

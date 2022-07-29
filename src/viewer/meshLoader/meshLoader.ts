@@ -14,7 +14,7 @@ interface EntityMeshConfig {
 	scaleDamper?: number;
 	loadScale?: number;
 	color?: string;
-	engineOffsets? : Vector[];
+	engineOffsets?: Vector[];
 }
 
 interface IMeshOffsets {
@@ -49,7 +49,6 @@ const entityMeshs: EntityMeshConfig[] = [
 		path: "./assets/objects/output/vtolvr_ah-94.gltf",
 		position: new Vector(0, -1, -2),
 		loadScale: 10,
-		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/AlliedCarrier",
@@ -57,7 +56,6 @@ const entityMeshs: EntityMeshConfig[] = [
 		scaleDamper: 0.1,
 		color: "#404040",
 		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/AlliedAAShip",
@@ -65,14 +63,12 @@ const entityMeshs: EntityMeshConfig[] = [
 		scaleDamper: 0.1,
 		color: "#404040",
 		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/EscortCruiser",
 		path: "./assets/objects/output/vtolvr_EscortCruiser.gltf",
 		scaleDamper: 0.1,
 		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
 	},
 	{
 		key: "Units/Allied/PatriotLauncher",
@@ -80,7 +76,6 @@ const entityMeshs: EntityMeshConfig[] = [
 		rotation: new Vector(0, Math.PI / 2, 0),
 		position: new Vector(0, 0, -2),
 		loadScale: 1.5,
-		engineOffsets: []
 	},
 	{
 		key: "Vehicles/F117",
@@ -88,8 +83,6 @@ const entityMeshs: EntityMeshConfig[] = [
 		rotation: new Vector(0, 0, 0),
 		position: new Vector(0, 0, -3),
 		loadScale: 0.4,
-		// color: "#000000",
-		engineOffsets: []
 	},
 ];
 

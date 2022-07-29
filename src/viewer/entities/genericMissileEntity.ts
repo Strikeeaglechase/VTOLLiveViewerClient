@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/src/vector.js";
 import { addCommas, Application, msToKnots, mToFt } from "../app";
 import { Entity } from "../entityBase/entity";
@@ -30,8 +30,8 @@ class MissileEntity extends Entity {
 		this.ownerId = ownerId;
 		this.displayName = Entity.identifierToDisplayName(this.type);
 
-		if (path.includes("Allied")) this.team = Team.A;
-		if (path.includes("Enemy")) this.team = Team.B;
+		// if (path.includes("Allied")) this.team = Team.A;
+		// if (path.includes("Enemy")) this.team = Team.B;
 
 		this.tryFindOwner();
 
@@ -67,7 +67,7 @@ class MissileEntity extends Entity {
 		if (!this.isActive) return;
 
 		const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-		this.textOverlay.edit(`${this.displayName}\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+		this.textOverlay.edit(`${this.displayName} [${this.owner.pilotName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
 	}
 
 	@RPC("in")

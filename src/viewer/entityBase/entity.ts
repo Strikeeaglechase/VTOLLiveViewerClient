@@ -76,7 +76,7 @@ class Entity {
 	public iMeshId: number;
 	private iMeshOffsetObject: THREE.Object3D;
 
-	private engineOffsets: Vector[];
+	private engineOffsets: Vector[] | null;
 
 	protected _scale = 1;
 	public set scale(scale: number) {
@@ -268,12 +268,10 @@ class Entity {
 
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		if (this.hasOverlay) {
-			// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
-			setTimeout(() => {
-				this.textOverlay = new TextOverlay(this.object, this.type).edit(this.id.toString()).offset(0, 10, 0);
-			}, 1500 + Math.random() * 1000);
-		}
+		// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
+		setTimeout(() => {
+			this.maybeCreateTextOverlay(this.object);
+		}, 1500 + Math.random() * 1000);
 	}
 
 	protected async createMesh(): Promise<void> {
@@ -294,7 +292,7 @@ class Entity {
 
 		this.boundingBox.setFromObject(obj.children[0]);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		if (this.hasOverlay) this.textOverlay = new TextOverlay(obj.children[0], this.type).edit(this.id.toString()).offset(0, 10, 0);
+		this.maybeCreateTextOverlay(obj.children[0]);
 
 		this.mesh = obj;
 		this.meshProxyObject.add(this.mesh);
@@ -302,6 +300,14 @@ class Entity {
 		this.addObjectMeshToScene();
 
 		this.isCreatingMesh = false;
+	}
+
+	private maybeCreateTextOverlay(parent: THREE.Object3D) {
+		if (!this.hasOverlay) return;
+		this.textOverlay = new TextOverlay(parent, this.type).edit(this.id.toString()).offset(0, 10, 0);
+		this.textOverlay.onDblClick = () => {
+			this.focus();
+		};
 	}
 
 	// Returns the object that should be used for raycasting
@@ -394,6 +400,10 @@ class Entity {
 	}
 
 	protected setTeam(team: Team) {
+		if (this.team != Team.Unknown && this.team != team) {
+			console.warn(`Entity ${this.debugName} already has team ${this.team}, overwriting with ${team}`);
+		}
+
 		this.team = team;
 		this.trail.updateColor(trailColors[this.team]);
 	}
@@ -536,8 +546,8 @@ class Entity {
 			"Weapons/Missiles/SB-1": "SB-1 Bomb",
 			"Weapons/Missiles/SideARM": "AGM-126",
 			"Weapons/Missiles/SubMissile": "Cluster Munition",
-			"Weapons/Missiles/SAMs/APCIRSAM" : "IR APC SAM",
-			"Weapons/Missiles/SAMs/SaawMissile" : "SAAW Missile",
+			"Weapons/Missiles/SAMs/APCIRSAM": "IR APC SAM",
+			"Weapons/Missiles/SAMs/SaawMissile": "SAAW Missile",
 		};
 
 		if (map[identifier]) return map[identifier];

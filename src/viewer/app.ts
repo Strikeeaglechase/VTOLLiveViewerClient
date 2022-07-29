@@ -459,8 +459,15 @@ class Application {
 			const entity = validEntities.find(e => e.isInteractionMesh(intersections[0].object, intersections[0].instanceId));
 			if (entity) {
 				this.setFocusTo(entity);
+				return;
 			}
 		}
+
+		this.sceneManager.overlayElements.forEach(elm => {
+			if (elm.onDblClick && elm.isInBounds(e.clientX, e.clientY)) {
+				elm.onDblClick(e);
+			}
+		});
 	}
 
 	// Websocket debug
