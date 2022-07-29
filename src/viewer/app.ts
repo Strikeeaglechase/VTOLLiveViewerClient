@@ -108,6 +108,8 @@ class Application {
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;
 
+	private isUiHidden = false;
+
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
 	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit];
@@ -158,7 +160,7 @@ class Application {
 		// workshopId: "built-in"
 		// });
 
-		// this.offlineTestSetup();
+		this.offlineTestSetup();
 		// this.quickTestSetup();
 
 		// EventBus.$emit("app", this);
@@ -173,6 +175,7 @@ class Application {
 
 		this.stats.showPanel(0);
 		document.body.appendChild(this.stats.dom);
+		this.stats.dom.classList.add("ui");
 
 		Application.setState(ApplicationRunningState.running);
 
@@ -527,9 +530,42 @@ class Application {
 		this.sceneManager.handleResize();
 	}
 
+	private handleKeyDown(e: KeyboardEvent) {
+		if (Application.state != ApplicationRunningState.running) return;
+
+		if (e.key == "f") this.isUiHidden = !this.isUiHidden;
+		const elms = document.getElementsByClassName("ui");
+
+		for (const e of elms) {
+			const elm = e as HTMLDivElement;
+			if (this.isUiHidden) {
+				if (elm.style.display != "none") {
+					elm.setAttribute("prev-display", elm.style.display);
+					elm.style.display = "none";
+				}
+			} else {
+				if (elm.style.display == "none") {
+					elm.style.display = elm.getAttribute("prev-display") || "block";
+				}
+			}
+		}
+	}
+
+	// private handleKeyUp(e: KeyboardEvent) {
+	// 	if (e.key == "f") {
+	// 		const elms = document.getElementsByClassName("ui");
+	// 		for (const e of elms) {
+	// 			const elm = e as HTMLDivElement;
+
+	// 		}
+	// 	}
+	// }
+
 	private addWindowEventHandlers(): void {
 		window.addEventListener("resize", () => this.handleResize());
 		window.addEventListener("dblclick", (e) => this.handleMouseClick(e));
+		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
 	}
 }
 

@@ -1,8 +1,8 @@
 <template>
 	<div id="app">
 		<div id="main-container" v-show="isRunning()">
-			<Sidebar />
-			<UnitRange />
+			<Sidebar class="ui" />
+			<UnitRange class="ui" />
 		</div>
 		<div id="lobby-select-container" v-show="isLobbySelect()">
 			<LobbyBrowser />
