@@ -1,4 +1,4 @@
-export const IS_DEV = true;
+export const IS_DEV = false;
 if (IS_DEV) console.warn(`-- Headless Client Development mode enable --`);
 
 export const API_URL = IS_DEV ? "http://localhost:8010" : "https://api.vtolvr.live";
