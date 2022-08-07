@@ -256,7 +256,7 @@ class Application {
 		this.entities.push(missile);
 
 		const patriot = new AIGroundUnit(this);
-		patriot.spawn(id++, "0", "Units/Allied/PatriotLauncher", new Vector(40, 0, 0), new Vector(0, 0, 0), true);
+		patriot.spawn(id++, "0", "Units/Allied/AlliedBackstopSAM", new Vector(40, 0, 0), new Vector(0, 0, 0), true);
 		this.entities.push(patriot);
 
 		for (let i = 0; i < 1; i++) {

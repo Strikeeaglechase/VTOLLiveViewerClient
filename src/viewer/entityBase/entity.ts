@@ -82,7 +82,7 @@ class Entity {
 	public set scale(scale: number) {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
 
-		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1));
+		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
 		this.meshProxyObject.scale.setScalar(this._scale);
 		if (this.isFocus) {
 			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
@@ -91,6 +91,7 @@ class Entity {
 	}
 	public get scale() { return this._scale; }
 	protected scaleDamper = 1;
+	private iMeshLoadScale = 1;
 	protected baseScaleSize: number;
 
 	public get isFocus() {
@@ -254,6 +255,7 @@ class Entity {
 		this.iMesh = obj.mesh;
 		this.iMeshId = obj.id;
 
+		// TODO: This code needs refactoring, why so many methods to get scales and what not? Should just return config object.
 		// If there are mesh offsets, load them
 		const iMeshOffsets = this.app.meshLoader.getOffsets(this.type);
 		this.iMeshOffsetObject = new THREE.Object3D();
@@ -263,7 +265,7 @@ class Entity {
 		this.meshProxyObject.add(this.iMeshOffsetObject);
 
 		this.scaleDamper = this.app.meshLoader.getScaleDamper(this.type);
-
+		this.iMeshLoadScale = this.app.meshLoader.getScale(this.type);
 		this.engineOffsets = this.app.meshLoader.getEngineOffsets(this.type);
 
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
@@ -548,6 +550,7 @@ class Entity {
 			"Weapons/Missiles/SubMissile": "Cluster Munition",
 			"Weapons/Missiles/SAMs/APCIRSAM": "IR APC SAM",
 			"Weapons/Missiles/SAMs/SaawMissile": "SAAW Missile",
+			"Units/Allied/BSTOPRadar": "Backstop Radar"
 		};
 
 		if (map[identifier]) return map[identifier];
