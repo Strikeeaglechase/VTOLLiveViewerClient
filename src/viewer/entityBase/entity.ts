@@ -105,11 +105,12 @@ class Entity {
 	}
 
 	get debugName() {
-		return `${this.id} ${this.type} [${this.unitId}] Active: ${this.isActive}`;
+		return `${this.id} A:${this.isActive} ${this.type} [${this.unitId}]`;
 	}
 
+	private setActiveAt: number;
 	private _isActive = false;
-	public set isActive(v: boolean) { this._isActive = true; }
+	public set isActive(v: boolean) { this._isActive = v; }
 	public get isActive() { return this._isActive; }
 
 	public hasDied = false;
@@ -189,11 +190,41 @@ class Entity {
 		this.scene.add(this.damage.mesh);
 	}
 
+	protected async setInactive() {
+		if (!this.isActive) {
+			console.warn(`${this.debugName} is already inactive`);
+			return;
+		}
+
+		console.log(`Setting ${this.debugName} inactive`);
+
+		// This causes a memory leak! We need to free the components, this may be important for replay.
+		this.scene.remove(this.object);
+
+		this.object = new THREE.Object3D();
+		this.meshProxyObject = new THREE.Object3D();
+		this.object.add(this.meshProxyObject);
+
+		// Often there will be a motion update this frame as well, so defer updating this value until next
+		this.hasGotFirstPos = false;
+		this.hasDied = false;
+		this.isActive = false;
+
+		if (this.textOverlay) {
+			this.app.sceneManager.removeOverlay(this.textOverlay, this.textOverlay.cssObj);
+			this.textOverlayHasHadFirstUpdate = false;
+		}
+
+		if (this.hasTrail) this.trail.remove();
+	}
+
 	protected async setActive() {
 		if (this.isActive) {
 			console.warn(`Entity ${this.debugName} is already active`);
 			return;
 		}
+		this.setActiveAt = this.app.replayCurrentTime; // If this is a replay, knowing when we were set active is important for undoing it
+
 		// Some things might want to wait for active to become true, so create a promise they can wait for
 		let res: () => void;
 		this.activatingPromise = new Promise<void>(resolve => res = resolve);
@@ -384,8 +415,15 @@ class Entity {
 	}
 
 	protected updateMotion(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
+		// Make sure that if were were previously set active, we don't call this until we should have been set active
 		if (!this.hasGotFirstPos) {
-			this.onFirstPos();
+			if (this.setActiveAt) {
+				if (this.setActiveAt < this.app.replayCurrentTime) {
+					this.onFirstPos();
+				}
+			} else {
+				this.onFirstPos();
+			}
 		}
 		// If an entity uses onFirstPos to set active it will drop this update packet - this could be an issue
 		if (!this.isActive) return;
@@ -476,6 +514,11 @@ class Entity {
 		this.previousPosition.set(this.position);
 		this.previousVelocity.set(this.velocity);
 		this.previousScale = this._scale;
+
+		// Time has been set to before when we were active, deactivate
+		if (this.app.replayCurrentTime < this.setActiveAt) {
+			this.setInactive();
+		}
 	}
 
 	protected triggerDamage() {

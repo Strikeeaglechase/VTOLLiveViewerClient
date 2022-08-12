@@ -26,6 +26,8 @@ import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 
+const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8];
+
 const rad = (deg: number): number => deg * Math.PI / 180;
 const deg = (rad: number): number => rad * 180 / Math.PI;
 
@@ -81,32 +83,74 @@ class MessageHandler {
 enum ApplicationRunningState {
 	welcome = "welcome",
 	lobbySelect = "lobby_select",
+	replaySelect = "replay_select",
 	running = "running",
 	lobbyEnd = "lobby_end",
 }
+
+interface ReplaceRPCHandler {
+	className: string;
+	method: string;
+	handler: (app: Application, rpc: RPCPacket) => boolean | RPCPacket;
+}
+
+// Handles "undoing" RPCs when the replay is running in reverse
+// Can return false to prevent the RPC from executing, or can return a different RPC to execute
+const replaceRPCHandlers: ReplaceRPCHandler[] = [
+	{
+		className: "MessageHandler",
+		method: "NetInstantiate",
+		handler: (app: Application, rpc: RPCPacket) => {
+			const [id, ownerId, path, pos, rot, active] = rpc.args;
+			app.messageHandler.NetDestroy(id);
+			return false;
+		}
+	},
+	{
+		className: "MessageHandler",
+		method: "NetDestroy",
+		handler: (app: Application, rpc: RPCPacket) => {
+			const [id] = rpc.args;
+			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
+			if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);
+			else return spawnPacket;
+			return false;
+		}
+	}
+];
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
 class Application {
 	private container: HTMLDivElement;
+	public messageHandler: MessageHandler;
+	public client: Client;
 	public sceneManager = new SceneManager(this);
 	private mapLoader = new MapLoader(this.sceneManager);
+	public meshLoader: MeshLoader = new MeshLoader();
+	public bulletManager: BulletManager;
+	public flareManager: FlareManager;
 
-	private isOfflineTest = false;
+	// TODO: Move replay to its own class
+	public replayPackets: RPCPacket[] = [];
+	private onReplayChunk: (() => void) | null = null;
+	private isReplay = false;
+	private startedAt = 0;
+	private replayStartTime = 0;
+	public replayCurrentTime = 0;
+	private prevReplayTime = 0;
+	private replaySpeed = 7;
+	private get computedReplaySpeed(): number {
+		return REPLAY_SPEEDS[this.replaySpeed];
+	}
 
 	public entities: Entity[] = [];
-	public client: Client;
-	private messageHandler: MessageHandler;
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
 	public socket: WebSocket;
-
-	public meshLoader: MeshLoader = new MeshLoader();
-	public bulletManager: BulletManager;
-	public flareManager: FlareManager;
 
 	private isUiHidden = false;
 
@@ -126,8 +170,13 @@ class Application {
 	}
 
 	public static setState(state: ApplicationRunningState) {
+		if (state == ApplicationRunningState.lobbySelect && location.pathname == "/replay") {
+			state = ApplicationRunningState.replaySelect;
+			console.log(`Switching to replay select state rather than regular lobby select`);
+		}
 		Application.state = state;
 		EventBus.$emit("state", state);
+		console.log(`New application state: ${state}`);
 	}
 
 	public async init(): Promise<void> {
@@ -169,6 +218,7 @@ class Application {
 
 	public async start() {
 		console.log(`Application is starting!`);
+		this.startedAt = Date.now();
 		await this.sceneManager.init(this.container);
 		this.bulletManager = new BulletManager(this.sceneManager);
 		this.flareManager = new FlareManager(this.sceneManager);
@@ -220,7 +270,6 @@ class Application {
 
 	// Sets up a testing scene with a variety of entities
 	private async offlineTestSetup() {
-		this.isOfflineTest = true;
 		await this.start();
 		this.game = new VTOLLobby("0");
 		this.game.players.push({
@@ -288,12 +337,56 @@ class Application {
 		}, 250);
 	}
 
+	private runReplay(expectedDt: number): number {
+		if (expectedDt > 1000) {
+			console.warn(`Expected dt excessive ${expectedDt}`);
+			expectedDt = 1000 / 60;
+		}
+		// console.log(expectedDt, this.computedReplaySpeed, this.replayCurrentTime);
+		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
+
+		const newPackets = this.replayPackets.filter(p => {
+			const fromRecordingStart = (p.timestamp || Date.now()) - this.replayStartTime;
+
+			if (this.computedReplaySpeed > 0) {
+				return fromRecordingStart <= this.replayCurrentTime && fromRecordingStart > this.prevReplayTime;
+			} else if (this.computedReplaySpeed < 0) {
+				return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
+			}
+		});
+
+		let finalPackets: RPCPacket[] = [];
+		if (this.computedReplaySpeed < 0) {
+			newPackets.forEach(packet => {
+				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
+				if (handler) {
+					const res = handler.handler(this, packet);
+					if (!res) return;
+					if (typeof res == "object") finalPackets.push(res);
+					else finalPackets.push(packet);
+				} else {
+					finalPackets.push(packet);
+				}
+			});
+		} else {
+			finalPackets = newPackets;
+		}
+
+		finalPackets.forEach(packet => RPCController.handlePacket(packet));
+
+		this.prevReplayTime = this.replayCurrentTime;
+
+		return expectedDt * this.computedReplaySpeed;
+	}
 
 	private run(): void {
 		this.stats.begin();
 
 		const d = Date.now();
-		const dt = d - this.prevFrameTime;
+		let dt = d - this.prevFrameTime;
+		if (this.isReplay) {
+			dt = this.runReplay(dt);
+		}
 		this.prevFrameTime = d;
 
 		this.entities.forEach(entity => {
@@ -440,6 +533,34 @@ class Application {
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 	}
 
+	public requestReplay(replayId: string) {
+		Application.instance.client.replayGame(replayId);
+		return new Promise<void>(res => {
+			let count = 0;
+			this.onReplayChunk = () => {
+				count++;
+				if (count == this.client.expectedReplayChunks) {
+					res();
+					this.onReplayChunk = null;
+				}
+			};
+		});
+	}
+
+	public async beginReplay(id: string) {
+		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
+		this.isReplay = true;
+		if (!this.replayPackets[0].timestamp) {
+			console.error(`Replay packet 0 has no timestamp`);
+			return;
+		}
+		this.replayStartTime = this.replayPackets[0].timestamp;
+		this.messageHandler = new MessageHandler(id, this);
+		this.game = new VTOLLobby(id);
+		this.start();
+		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+	}
+
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {
 		const raycaster = new THREE.Raycaster();
 		const x = (screenX / window.innerWidth) * 2 - 1;
@@ -508,9 +629,22 @@ class Application {
 			const data = message.data as Blob;
 			const bytes = new Uint8Array(await data.arrayBuffer());
 			this.bytes += bytes.length;
-			RPCController.handlePacket(bytes);
-			const rpcs = decompressRpcPackets([...bytes]);
-			this.rpcs += rpcs.length;
+
+			const headerBytes = bytes.slice(0, "REPLAY".length);
+			const header = String.fromCharCode(...headerBytes);
+			if (header == "REPLAY") {
+				const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
+				this.replayPackets.push(...rpcs);
+				console.log(`Got replay chunk with ${rpcs.length} packets (${bytes.length} bytes)`);
+
+				if (this.onReplayChunk) this.onReplayChunk();
+				else console.warn(`Received replay chunk without onReplayChunk callback`);
+
+			} else {
+				RPCController.handlePacket(bytes);
+				const rpcs = decompressRpcPackets([...bytes]);
+				this.rpcs += rpcs.length;
+			}
 		}
 	}
 
@@ -530,10 +664,8 @@ class Application {
 		this.sceneManager.handleResize();
 	}
 
-	private handleKeyDown(e: KeyboardEvent) {
-		if (Application.state != ApplicationRunningState.running) return;
-
-		if (e.key == "f") this.isUiHidden = !this.isUiHidden;
+	private toggleUI() {
+		this.isUiHidden = !this.isUiHidden;
 		const elms = document.getElementsByClassName("ui");
 
 		for (const e of elms) {
@@ -549,6 +681,15 @@ class Application {
 				}
 			}
 		}
+	}
+
+	private handleKeyDown(e: KeyboardEvent) {
+		if (Application.state != ApplicationRunningState.running) return;
+
+		if (e.key == "f") this.toggleUI();
+		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);
+		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
+		console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
 	}
 
 	// private handleKeyUp(e: KeyboardEvent) {

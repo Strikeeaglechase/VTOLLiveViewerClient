@@ -5,7 +5,7 @@
 			<UnitRange class="ui" />
 		</div>
 		<div id="lobby-select-container" v-show="isLobbySelect()">
-			<LobbyBrowser />
+			<LobbyBrowser :state="state" />
 		</div>
 		<div id="welcome-page" v-show="isWelcome()">
 			<Welcome />
@@ -29,7 +29,6 @@
 		mounted() {
 			EventBus.$on("state", (state: ApplicationRunningState) => {
 				this.state = state;
-				console.log(this.state);
 			});
 		}
 
@@ -38,7 +37,10 @@
 		}
 
 		isLobbySelect() {
-			return this.state == ApplicationRunningState.lobbySelect;
+			return (
+				this.state == ApplicationRunningState.lobbySelect ||
+				this.state == ApplicationRunningState.replaySelect
+			);
 		}
 
 		isWelcome() {

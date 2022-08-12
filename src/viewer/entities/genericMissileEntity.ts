@@ -22,6 +22,11 @@ class MissileEntity extends Entity {
 		super(app);
 	}
 
+	protected async setInactive() {
+		super.setInactive();
+		this.fired = false;
+	}
+
 	public spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector): void {
 		this.position.set(-position.x, position.y, position.z);
 		this.rotation.set(rotation.multiply(Math.PI / 180));
@@ -56,6 +61,7 @@ class MissileEntity extends Entity {
 		group.children[0].rotateX(Math.PI / 2);
 		group.children[1].rotateY(Math.PI / 2);
 
+		console.log(`Created default mesh for missile`);
 		// this.scene.add(group);
 		// this.customTextOverlay = new TextOverlay(group).edit(this.type).offset(0, 0, 0);
 
@@ -70,19 +76,21 @@ class MissileEntity extends Entity {
 		this.textOverlay.edit(`${this.displayName} [${this.owner.pilotName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
 	}
 
+	protected async onFirstPos(): Promise<void> {
+		super.onFirstPos();
+		await this.setActive();
+		this.fired = true;
+		this.hasTrail = true;
+		this.meshProxyObject.visible = true;
+		this.textOverlay.combineId = null;
+
+		this.trail.color = new THREE.Color(255, 255, 255);
+		this.trail.init();
+	}
+
+	// TODO: Rename this RPC
 	@RPC("in")
 	public async SyncShit(syncedPos: Vector3, syncedRot: Vector3, syncedVel: Vector3, syncedAccel: Vector3): Promise<void> {
-		if (!this.fired) {
-			await this.setActive();
-			this.fired = true;
-			this.hasTrail = true;
-			this.meshProxyObject.visible = true;
-			this.textOverlay.combineId = null;
-
-			this.trail.color = new THREE.Color(255, 255, 255);
-			this.trail.init();
-		}
-
 		// Call some bitches - Dinner Plate
 		this.updateMotion(syncedPos, syncedVel, syncedAccel, syncedRot);
 	}

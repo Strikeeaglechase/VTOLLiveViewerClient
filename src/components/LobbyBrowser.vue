@@ -1,57 +1,58 @@
 <template>
 	<div>
 		<LobbySearch />
-		<div id="lobbyBrowser">
+		<div class="lobbyBrowser" v-if="isLobbySelect()">
 			<div v-for="game in getGames()" :key="game.id">
-				<LobbyEntry
-					:lobby="game"
-					:longestName="longestName"
-					:longestMission="longestMission"
-					:longestPlayers="longestPlayers"
-				/>
+				<LobbyEntry :lobby="game" />
+			</div>
+		</div>
+		<div class="lobbyBrowser" v-else>
+			<div v-for="game in getReplayRecordings()" :key="game.id">
+				<RecordedLobbyEntry :lobby="game" />
 			</div>
 		</div>
 	</div>
 </template>
 
 <script lang="ts">
-	import { Component, Vue } from "vue-property-decorator";
+	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { EventBus } from "../eventBus";
-	import { VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared";
+	import {
+		RecordedLobbyInfo,
+		VTOLLobby,
+	} from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import LobbyEntry from "./LobbyEntry.vue";
 	import LobbySearch from "./LobbySearch.vue";
+	import { Application, ApplicationRunningState } from "../viewer/app";
+	import { API_URL } from "../config";
+	import RecordedLobbyEntry from "./RecordedLobbyEntry.vue";
 
-	@Component({ components: { LobbyEntry, LobbySearch } })
+	@Component({ components: { LobbyEntry, LobbySearch, RecordedLobbyEntry } })
 	export default class LobbyBrowser extends Vue {
 		lobbies: VTOLLobby[] = [];
-		longestName = 10;
-		longestMission = 10;
-		longestPlayers = 10;
+		replayLobbies: RecordedLobbyInfo[] = [];
+
+		@Prop()
+		state: ApplicationRunningState;
 
 		searchStr = "";
 
-		mounted() {
+		async mounted() {
 			EventBus.$on("lobbies", (lobbies: VTOLLobby[]) => {
 				this.lobbies = lobbies;
 			});
 			EventBus.$on("lobby-search", (searchStr: string) => {
 				this.searchStr = searchStr;
 			});
+
+			if (location.pathname == "/replay") {
+				const req = await fetch(`${API_URL}/recordings`);
+				this.replayLobbies = await req.json();
+				console.log(this.replayLobbies);
+			}
 		}
 
 		getGames(): VTOLLobby[] {
-			this.lobbies.forEach((lobby) => {
-				if (lobby.name.length > this.longestName) {
-					this.longestName = lobby.name.length;
-				}
-				if (lobby.missionName.length > this.longestMission) {
-					this.longestMission = lobby.missionName.length;
-				}
-				const pText = `${lobby.playerCount} / ${lobby.maxPlayers}`;
-				if (pText.length > this.longestPlayers) {
-					this.longestPlayers = pText.length;
-				}
-			});
 			const resLobbies = this.lobbies.slice().sort((a, b) => {
 				return b.playerCount - a.playerCount;
 			});
@@ -61,10 +62,34 @@
 					return !g.isPrivate;
 				}
 
-				return g.name
-					.toLowerCase()
-					.includes(this.searchStr.toLowerCase()) || g.missionName.toLowerCase().includes(this.searchStr.toLowerCase());
+				return (
+					g.name.toLowerCase().includes(this.searchStr.toLowerCase()) ||
+					g.missionName
+						.toLowerCase()
+						.includes(this.searchStr.toLowerCase())
+				);
 			});
+		}
+
+		getReplayRecordings(): RecordedLobbyInfo[] {
+			const resLobbies = this.replayLobbies.slice().sort((a, b) => {
+				return b.startTime - a.startTime;
+			});
+
+			return resLobbies.filter((g) => {
+				return (
+					g.lobbyName
+						.toLowerCase()
+						.includes(this.searchStr.toLowerCase()) ||
+					g.missionName
+						.toLowerCase()
+						.includes(this.searchStr.toLowerCase())
+				);
+			});
+		}
+
+		isLobbySelect() {
+			return this.state == ApplicationRunningState.lobbySelect;
 		}
 	}
 </script>
@@ -73,7 +98,7 @@
 /* TODO CSS grid this so it's in a dynamic grid */
 
 @media only screen and (min-width: 3500px) {
-	#lobbyBrowser {
+	.lobbyBrowser {
 		width: 100%;
 
 		display: grid;
@@ -83,7 +108,7 @@
 }
 
 @media only screen and (min-width: 3000px) and (max-width: 3500px) {
-	#lobbyBrowser {
+	.lobbyBrowser {
 		width: 100%;
 
 		display: grid;
@@ -93,7 +118,7 @@
 }
 
 @media only screen and (min-width: 2100px) and (max-width: 3000px) {
-	#lobbyBrowser {
+	.lobbyBrowser {
 		width: 100%;
 
 		display: grid;
@@ -103,7 +128,7 @@
 }
 
 @media only screen and (min-width: 1262px) and (max-width: 2100px) {
-	#lobbyBrowser {
+	.lobbyBrowser {
 		width: 100%;
 
 		display: grid;
@@ -113,7 +138,7 @@
 }
 
 @media only screen and (max-width: 1262px) {
-	#lobbyBrowser {
+	.lobbyBrowser {
 		width: 100%;
 
 		display: grid;

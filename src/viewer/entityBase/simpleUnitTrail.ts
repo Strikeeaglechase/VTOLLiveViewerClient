@@ -70,6 +70,7 @@ class SimpleUnitTrail {
 	}
 
 	public remove(): void {
+		this.linePoints = [];
 		this.entity.scene.remove(this.lineMesh);
 	}
 }

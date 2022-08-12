@@ -37,7 +37,7 @@ class TextOverlay {
 	private outerElm: HTMLDivElement;
 	public elm: HTMLDivElement;
 	private textElm: HTMLParagraphElement;
-	private cssObj: CSS2DObject;
+	public cssObj: CSS2DObject;
 	private isVisible = false;
 
 	public text = "";
