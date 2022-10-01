@@ -525,7 +525,7 @@ class Entity {
 		if (!this.isActive) return;
 		if (!this.damage) this.setupDamageMesh();
 		this.damage.active = true;
-		this.damage.lastDamageAt = Date.now();
+		this.damage.lastDamageAt = Application.time;
 		this.damage.mesh.position.set(this.position.x, this.position.y, this.position.z);
 		this.damage.mesh.scale.set(this._scale, this._scale, this._scale);
 	}
@@ -539,12 +539,12 @@ class Entity {
 
 	protected updateDamage() {
 		if (!this.damage) return;
-		if (Date.now() - this.damage.lastDamageAt > damageFadeTime) {
+		if (Application.time - this.damage.lastDamageAt > damageFadeTime) {
 			this.damage.active = false;
 			this.damage.mesh.visible = false;
 		} else {
 			this.damage.mesh.visible = true;
-			this.damage.mat.opacity = 1 - (Date.now() - this.damage.lastDamageAt) / damageFadeTime;
+			this.damage.mat.opacity = 1 - (Application.time - this.damage.lastDamageAt) / damageFadeTime;
 		}
 	}
 

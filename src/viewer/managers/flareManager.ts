@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
+import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
 import { SceneManager } from "./sceneManager";
-import {MeshStandardMaterial} from "three";
 
 const FLARE_LT = 5 * 1000;
 const FLARE_DRAG = 0.95;
@@ -33,7 +33,7 @@ class FlareManager {
 	}
 
 	public update(dt: number) {
-		const now = Date.now();
+		const now = Application.time;
 		this.flares.forEach(flare => {
 			if (!flare.isAlive) return;
 
@@ -42,17 +42,17 @@ class FlareManager {
 			flare.position = flare.position.add(flare.velocity.multiply(dt / 1000));
 			flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);
 
-			const timeAlive = (now - flare.createdAt)
+			const timeAlive = (now - flare.createdAt);
 
-			const amountThrough = 1-(timeAlive / FLARE_LT)
+			const amountThrough = 1 - (timeAlive / FLARE_LT);
 
 			// Make flares still half size when fully faded
-			const amountThroughAdjusted = 1 - ((timeAlive / FLARE_LT) * 0.8)
+			const amountThroughAdjusted = 1 - ((timeAlive / FLARE_LT) * 0.8);
 
-			flare.mesh.scale.set(1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult)
+			flare.mesh.scale.set(1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult);
 
 			// It always is, this is just to make TS happy
-			if (flare.mesh.material instanceof MeshStandardMaterial) {
+			if (flare.mesh.material instanceof THREE.MeshStandardMaterial) {
 				flare.mesh.material.transparent = true;
 				flare.mesh.material.opacity = amountThrough;
 			}
@@ -60,7 +60,7 @@ class FlareManager {
 			if (flare.createdAt + FLARE_LT < now) {
 				flare.mesh.visible = false;
 				flare.isAlive = false;
-				flare.mesh.scale.set(2, 2, 2)
+				flare.mesh.scale.set(2, 2, 2);
 				this.freeFlares.push(flare);
 			}
 		});
@@ -69,7 +69,7 @@ class FlareManager {
 	}
 
 	public fireCm(entity: Entity) {
-		console.log("CMS")
+		console.log("CMS");
 		// Try to reuse a flare, otherwise create a new one
 		if (this.freeFlares.length == 0) {
 			const mesh = new THREE.Mesh(this.geometry, this.material);

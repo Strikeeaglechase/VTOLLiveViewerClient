@@ -57,7 +57,10 @@
 			);
 
 			this.joinBtnText = "Loading...";
-			await Application.instance.requestReplay(this.lobby.recordingId);
+			await Application.instance.requestReplay(
+				this.lobby.recordingId,
+				(n) => (this.joinBtnText = `${(n * 100).toFixed(0)}%`)
+			);
 			this.joinBtnText = "Starting";
 			Application.instance.beginReplay(this.lobby.lobbyId);
 		}

@@ -3,6 +3,7 @@
 
 import * as THREE from "three";
 
+import { Application } from "../app";
 import { Entity } from "./entity";
 
 const TRAIL_RATE = 1000 / 5;
@@ -156,7 +157,7 @@ class ChunkedUnitTrail {
 	private linePoints: THREE.Vector3[] = [];
 
 	private lastTrailTime = 0;
-	private lastChunkTime = Date.now();
+	private lastChunkTime = Application.time;
 	private currentChunk: TrailChunk;
 	private chunks: TrailChunk[] = [];
 	private isShown = true;
@@ -208,7 +209,7 @@ class ChunkedUnitTrail {
 	}
 
 	private extendTrail(a: THREE.Vector3, b: THREE.Vector3) {
-		this.lastTrailTime = Date.now();
+		this.lastTrailTime = Application.time;
 		this.currentChunk.extend(a, b);
 
 		this.linePoints.push(new THREE.Vector3(this.entity.position.x, this.entity.position.y, this.entity.position.z));
@@ -233,13 +234,14 @@ class ChunkedUnitTrail {
 		const a = this.offsetRefs[0].getWorldPosition(new THREE.Vector3());
 		const b = this.offsetRefs[1].getWorldPosition(new THREE.Vector3());
 
-		if (Date.now() - this.lastChunkTime > CHUNK_RATE) {
+		const t = Application.time;
+		if (t - this.lastChunkTime > CHUNK_RATE) {
 			this.currentChunk = new TrailChunk(this.entity, this.offsetRefs, this.color);
 			this.chunks.push(this.currentChunk);
 			this.currentChunk.extend(this.previousPoints[0], this.previousPoints[1]);
-			this.lastChunkTime = Date.now();
+			this.lastChunkTime = t;
 		}
-		if (Date.now() - this.lastTrailTime > TRAIL_RATE) this.extendTrail(a, b);
+		if (t - this.lastTrailTime > TRAIL_RATE) this.extendTrail(a, b);
 
 		this.linePoints[this.linePoints.length - 1]?.set(this.entity.position.x, this.entity.position.y, this.entity.position.z);
 		this.lineGeom.setFromPoints(this.linePoints);

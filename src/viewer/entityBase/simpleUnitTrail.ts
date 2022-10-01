@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { Application } from "../app";
 import { Entity } from "./entity";
 
 const MAX_LINE_TRAIL_LEN = 256 * 4;
@@ -42,13 +43,13 @@ class SimpleUnitTrail {
 	private extendTrail() {
 		this.linePoints.push(new THREE.Vector3(this.entity.position.x, this.entity.position.y, this.entity.position.z));
 		this.lineGeom.setFromPoints(this.linePoints);
-		this.lastTrailTime = Date.now();
+		this.lastTrailTime = Application.time;
 	}
 
 	public run(): void {
 		if (!this.hasInit) return;
 
-		if (Date.now() - this.lastTrailTime > TRAIL_RATE) this.extendTrail();
+		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail();
 
 		this.linePoints[this.linePoints.length - 1]?.set(this.entity.position.x, this.entity.position.y, this.entity.position.z);
 

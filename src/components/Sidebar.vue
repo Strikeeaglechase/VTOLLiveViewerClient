@@ -20,6 +20,7 @@
 		mounted() {
 			EventBus.$on("entities", (e: Entity[]) => {
 				this.entities = e;
+				console.log(`Sidebar: ${e.length} entities`);
 			});
 		}
 

@@ -26,7 +26,7 @@ import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 
-const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8];
+const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
 const rad = (deg: number): number => deg * Math.PI / 180;
 const deg = (rad: number): number => rad * 180 / Math.PI;
@@ -133,15 +133,25 @@ class Application {
 
 	// TODO: Move replay to its own class
 	public replayPackets: RPCPacket[] = [];
+	private groupedReplayPackets: RPCPacket[][] = [];
 	private onReplayChunk: (() => void) | null = null;
 	private isReplay = false;
-	private startedAt = 0;
 	private replayStartTime = 0;
+	private currentReplayChunkReceive = 0;
 	public replayCurrentTime = 0;
 	private prevReplayTime = 0;
 	private replaySpeed = 7;
 	private get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
+	}
+
+	public get time(): number {
+		if (this.isReplay) return this.replayCurrentTime;
+		return Date.now();
+	}
+
+	public static get time() {
+		return this.instance.time;
 	}
 
 	public entities: Entity[] = [];
@@ -175,6 +185,7 @@ class Application {
 			console.log(`Switching to replay select state rather than regular lobby select`);
 		}
 		Application.state = state;
+		Application.instance.state = state;
 		EventBus.$emit("state", state);
 		console.log(`New application state: ${state}`);
 	}
@@ -218,7 +229,6 @@ class Application {
 
 	public async start() {
 		console.log(`Application is starting!`);
-		this.startedAt = Date.now();
 		await this.sceneManager.init(this.container);
 		this.bulletManager = new BulletManager(this.sceneManager);
 		this.flareManager = new FlareManager(this.sceneManager);
@@ -337,6 +347,16 @@ class Application {
 		}, 250);
 	}
 
+	private packetIsInTimeframe(packet: RPCPacket) {
+		const fromRecordingStart = (packet.timestamp ?? Date.now()) - this.replayStartTime;
+
+		if (this.computedReplaySpeed > 0) {
+			return fromRecordingStart <= this.replayCurrentTime && fromRecordingStart > this.prevReplayTime;
+		} else if (this.computedReplaySpeed < 0) {
+			return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
+		}
+	}
+
 	private runReplay(expectedDt: number): number {
 		if (expectedDt > 1000) {
 			console.warn(`Expected dt excessive ${expectedDt}`);
@@ -345,35 +365,26 @@ class Application {
 		// console.log(expectedDt, this.computedReplaySpeed, this.replayCurrentTime);
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
 
-		const newPackets = this.replayPackets.filter(p => {
-			const fromRecordingStart = (p.timestamp || Date.now()) - this.replayStartTime;
-
-			if (this.computedReplaySpeed > 0) {
-				return fromRecordingStart <= this.replayCurrentTime && fromRecordingStart > this.prevReplayTime;
-			} else if (this.computedReplaySpeed < 0) {
-				return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
-			}
-		});
-
-		let finalPackets: RPCPacket[] = [];
-		if (this.computedReplaySpeed < 0) {
-			newPackets.forEach(packet => {
+		const packets: RPCPacket[] = [];
+		const currentPacketGroup = this.groupedReplayPackets[Math.floor(this.replayCurrentTime / 1000)] ?? [];
+		const prevPacketGroup = this.groupedReplayPackets[Math.floor(this.prevReplayTime / 1000)] ?? [];
+		[...currentPacketGroup, ...prevPacketGroup].forEach(packet => {
+			if (!this.packetIsInTimeframe(packet)) return;
+			if (this.computedReplaySpeed < 0) {
 				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
 				if (handler) {
 					const res = handler.handler(this, packet);
 					if (!res) return;
-					if (typeof res == "object") finalPackets.push(res);
-					else finalPackets.push(packet);
+					if (typeof res == "object") packets.push(res);
+					else packets.push(packet);
 				} else {
-					finalPackets.push(packet);
+					packets.push(packet);
 				}
-			});
-		} else {
-			finalPackets = newPackets;
-		}
-
-		finalPackets.forEach(packet => RPCController.handlePacket(packet));
-
+			} else {
+				packets.push(packet);
+			}
+		});
+		packets.forEach(packet => RPCController.handlePacket(packet));
 		this.prevReplayTime = this.replayCurrentTime;
 
 		return expectedDt * this.computedReplaySpeed;
@@ -445,9 +456,14 @@ class Application {
 	@RPC("out")
 	genNewAlphaKey(key: string, adminPassword: string) { }
 
+	// private tempEmit = true;
 	private addEntity(entity: Entity): void {
 		this.entities.push(entity);
 		EventBus.$emit("entities", this.entities);
+		// if (this.tempEmit) EventBus.$emit("entities", this.entities);
+		// else console.warn(`Temp emit go brrrr`);
+
+		// this.tempEmit = false;
 	}
 
 	public setFocusTo(entity: Entity): void {
@@ -533,16 +549,17 @@ class Application {
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 	}
 
-	public requestReplay(replayId: string) {
-		Application.instance.client.replayGame(replayId);
+	public requestReplay(replayId: string, onProgress?: (progress: number) => void) {
+		this.client.replayGame(replayId);
 		return new Promise<void>(res => {
-			let count = 0;
+			this.currentReplayChunkReceive = 0;
 			this.onReplayChunk = () => {
-				count++;
-				if (count == this.client.expectedReplayChunks) {
+				this.currentReplayChunkReceive++;
+				if (this.currentReplayChunkReceive == this.client.expectedReplayChunks) {
 					res();
 					this.onReplayChunk = null;
 				}
+				if (onProgress) onProgress(this.currentReplayChunkReceive / this.client.expectedReplayChunks);
 			};
 		});
 	}
@@ -550,11 +567,12 @@ class Application {
 	public async beginReplay(id: string) {
 		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
 		this.isReplay = true;
-		if (!this.replayPackets[0].timestamp) {
+		if (this.replayPackets[0].timestamp == undefined) {
 			console.error(`Replay packet 0 has no timestamp`);
 			return;
 		}
 		this.replayStartTime = this.replayPackets[0].timestamp;
+		this.replayCurrentTime = this.replayStartTime;
 		this.messageHandler = new MessageHandler(id, this);
 		this.game = new VTOLLobby(id);
 		this.start();
@@ -633,19 +651,38 @@ class Application {
 			const headerBytes = bytes.slice(0, "REPLAY".length);
 			const header = String.fromCharCode(...headerBytes);
 			if (header == "REPLAY") {
-				const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
-				this.replayPackets.push(...rpcs);
-				console.log(`Got replay chunk with ${rpcs.length} packets (${bytes.length} bytes)`);
-
-				if (this.onReplayChunk) this.onReplayChunk();
-				else console.warn(`Received replay chunk without onReplayChunk callback`);
-
+				this.handleReplayChunk(bytes);
 			} else {
 				RPCController.handlePacket(bytes);
 				const rpcs = decompressRpcPackets([...bytes]);
 				this.rpcs += rpcs.length;
 			}
 		}
+	}
+
+	private handleReplayChunk(bytes: Uint8Array) {
+		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
+		this.replayPackets.push(...rpcs);
+		console.log(`Got replay chunk ${this.currentReplayChunkReceive} with ${rpcs.length} packets (${bytes.length} bytes)`);
+
+		if (rpcs[0].timestamp == undefined) {
+			console.error(`Replay packet chunk ${this.currentReplayChunkReceive} packet 0 has no timestamp`);
+			// Interpolate timestamps
+			const msPerChunk = 30 * 1000;
+			const tsStep = msPerChunk / rpcs.length;
+			rpcs.forEach((rpc, idx) => {
+				rpc.timestamp = this.currentReplayChunkReceive * msPerChunk + tsStep * idx;
+			});
+		}
+
+		rpcs.forEach(rpc => {
+			const sec = Math.floor((rpc.timestamp ?? Date.now()) / 1000);
+			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
+			this.groupedReplayPackets[sec].push(rpc);
+		});
+
+		if (this.onReplayChunk) this.onReplayChunk();
+		else console.warn(`Received replay chunk without onReplayChunk callback`);
 	}
 
 	public getEntityByUnitId(unitId: number) {
