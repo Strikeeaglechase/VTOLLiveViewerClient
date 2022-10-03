@@ -8,7 +8,6 @@ const TRAIL_RATE = 1000 / 5;
 
 // TODO: This still gets expensive over time. Need to do chunking, possibly just an "active" and "inactive" chunk
 class SimpleUnitTrail {
-	constructor(private entity: Entity) { }
 	private lineMesh: THREE.Line;
 	private lineGeom: THREE.BufferGeometry;
 	private linePoints: THREE.Vector3[] = [];
@@ -21,6 +20,14 @@ class SimpleUnitTrail {
 		b: 255
 	};
 	private lastTrailTime = 0;
+
+	constructor(private entity: Entity) {
+		Application.instance.onTimeFlip((dir) => {
+			if (!this.hasInit) return;
+			if (dir < 0) this.retractTrail();
+			else this.extendTrail();
+		});
+	}
 
 	public updateColor(color: { r: number; g: number; b: number; }): void {
 		this.color = color;
@@ -37,6 +44,7 @@ class SimpleUnitTrail {
 		this.lineMesh.frustumCulled = false;
 		this.lineMesh.name = "Simple unit trail line";
 		this.entity.scene.add(this.lineMesh);
+		this.lastTrailTime = Application.time;
 		this.hasInit = true;
 	}
 
@@ -46,10 +54,17 @@ class SimpleUnitTrail {
 		this.lastTrailTime = Application.time;
 	}
 
+	private retractTrail() {
+		this.linePoints.pop();
+		this.lineGeom.setFromPoints(this.linePoints);
+		this.lastTrailTime = Application.time;
+	}
+
 	public run(): void {
 		if (!this.hasInit) return;
 
 		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail();
+		if (Application.time - this.lastTrailTime < -TRAIL_RATE) this.retractTrail(); // Handle replay rewind
 
 		this.linePoints[this.linePoints.length - 1]?.set(this.entity.position.x, this.entity.position.y, this.entity.position.z);
 

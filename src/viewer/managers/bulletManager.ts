@@ -62,7 +62,7 @@ class Bullet {
 	public update(dt: number): BulletReturnState {
 		if (!this.isAlive) return BulletReturnState.free;
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));
-		const futurePos = this.position.add(this.velocity.multiply(dt / 1000));
+		const futurePos = this.position.add(this.velocity.multiply(16.6 / 1000));
 
 		if (USE_BULLET_LINE) {
 			const pos = this.lineGeometry.attributes["position"].array as Float32Array;
@@ -89,7 +89,7 @@ class Bullet {
 			this.cylinder.position.set(this.position.x, this.position.y, this.position.z);
 		}
 
-		this.isAlive = this.firedAt + BULLET_MAX_LT > Application.time;
+		this.isAlive = this.firedAt + BULLET_MAX_LT > Application.time && Application.time >= this.firedAt;
 		if (!this.isAlive) {
 			this.despawn();
 			return BulletReturnState.dying;

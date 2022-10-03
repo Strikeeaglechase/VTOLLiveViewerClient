@@ -65,7 +65,7 @@ class MessageHandler {
 	NetDestroy(id: number) {
 		for (let i = 0; i < this.app.entities.length; i++) {
 			if (this.app.entities[i].id == id) {
-				// console.log(`Got despawn for ${id} - ${this.app.entities[i].displayName}`);
+				console.log(`Got despawn for ${this.app.entities[i]}`);
 				this.app.entities[i].remove();
 				this.app.entities.splice(i, 1);
 				return;
@@ -102,6 +102,7 @@ const replaceRPCHandlers: ReplaceRPCHandler[] = [
 		method: "NetInstantiate",
 		handler: (app: Application, rpc: RPCPacket) => {
 			const [id, ownerId, path, pos, rot, active] = rpc.args;
+			console.log(`Reversing NetInstantiate for ${id}`);
 			app.messageHandler.NetDestroy(id);
 			return false;
 		}
@@ -111,8 +112,20 @@ const replaceRPCHandlers: ReplaceRPCHandler[] = [
 		method: "NetDestroy",
 		handler: (app: Application, rpc: RPCPacket) => {
 			const [id] = rpc.args;
+			console.log(`Reversing NetDestroy for ${id}`);
 			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
 			if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);
+			else return spawnPacket;
+			return false;
+		}
+	},
+	{
+		className: "MissileEntity",
+		method: "Detonate",
+		handler: (app: Application, rpc: RPCPacket) => {
+			console.log(`Reversing Detonate for missile ${rpc.id}`);
+			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == rpc.id);
+			if (!spawnPacket) console.error(`Attempting to undo detonate for ${rpc.id} but no spawn packet found`);
 			else return spawnPacket;
 			return false;
 		}
@@ -138,11 +151,18 @@ class Application {
 	private isReplay = false;
 	private replayStartTime = 0;
 	private currentReplayChunkReceive = 0;
-	public replayCurrentTime = 0;
+	private replayCurrentTime = 0;
 	private prevReplayTime = 0;
+	private firstRealReplayDataTime = 0;
 	private replaySpeed = 7;
+	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
+	private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
 	private get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
+	}
+	public get timeDirection(): number {
+		if (!this.isReplay) return 1;
+		return this.computedReplaySpeed >= 0 ? 1 : -1;
 	}
 
 	public get time(): number {
@@ -161,6 +181,7 @@ class Application {
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
 	public socket: WebSocket;
+	private timeouts: { func: () => void; startAt: number; time: number; }[] = [];
 
 	private isUiHidden = false;
 
@@ -355,6 +376,8 @@ class Application {
 		} else if (this.computedReplaySpeed < 0) {
 			return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
 		}
+
+		return false;
 	}
 
 	private runReplay(expectedDt: number): number {
@@ -364,30 +387,49 @@ class Application {
 		}
 		// console.log(expectedDt, this.computedReplaySpeed, this.replayCurrentTime);
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
+		const curSec = Math.floor(this.replayCurrentTime / 1000);
+		const prevSec = Math.floor(this.prevReplayTime / 1000);
+		const currentPacketGroup = this.groupedReplayPackets[curSec] ?? [];
+		const prevPacketGroup = this.groupedReplayPackets[prevSec] ?? [];
 
-		const packets: RPCPacket[] = [];
-		const currentPacketGroup = this.groupedReplayPackets[Math.floor(this.replayCurrentTime / 1000)] ?? [];
-		const prevPacketGroup = this.groupedReplayPackets[Math.floor(this.prevReplayTime / 1000)] ?? [];
-		[...currentPacketGroup, ...prevPacketGroup].forEach(packet => {
-			if (!this.packetIsInTimeframe(packet)) return;
+		let packets: RPCPacket[];
+		if (curSec != prevSec) packets = [...currentPacketGroup, ...prevPacketGroup];
+		else packets = currentPacketGroup;
+		// if (this.computedReplaySpeed != 0) console.log(`${this.replayCurrentTime} - ${curSec}/${prevSec} - ${inTimeframePackets.length}/${packets.length}`);
+
+		const inTimeframePackets = packets.filter(packet => this.packetIsInTimeframe(packet));
+		this.runReplayOnPackets(inTimeframePackets);
+
+		this.prevReplayTime = this.replayCurrentTime;
+		return expectedDt * this.computedReplaySpeed;
+	}
+
+	private runReplayOnPackets(packets: RPCPacket[]) {
+		const resultPackets: RPCPacket[] = [];
+		packets.forEach(packet => {
 			if (this.computedReplaySpeed < 0) {
 				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
+				// if (packet.method == "NetDestroy") console.log(`Net destroy packet handled`);
 				if (handler) {
 					const res = handler.handler(this, packet);
 					if (!res) return;
-					if (typeof res == "object") packets.push(res);
-					else packets.push(packet);
+					if (typeof res == "object") resultPackets.push(res);
+					else resultPackets.push(packet);
 				} else {
-					packets.push(packet);
+					resultPackets.push(packet);
 				}
 			} else {
-				packets.push(packet);
+				resultPackets.push(packet);
 			}
 		});
-		packets.forEach(packet => RPCController.handlePacket(packet));
-		this.prevReplayTime = this.replayCurrentTime;
 
-		return expectedDt * this.computedReplaySpeed;
+		resultPackets.forEach(packet => {
+			const hit = this.packetHits[packet.pid as number];
+			hit.hits++;
+			hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
+
+			RPCController.handlePacket(packet);
+		});
 	}
 
 	private run(): void {
@@ -401,16 +443,24 @@ class Application {
 		this.prevFrameTime = d;
 
 		this.entities.forEach(entity => {
-			if (entity.isActive) entity.update(dt);
+			try {
+				if (entity.isActive) entity.update(dt);
+				else entity.runInactiveUpdate(dt);
+			} catch (e) {
+				console.error(`Exception in entity update for ${entity}`);
+				throw e;
+			}
 		});
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
+		this.runTimeouts();
 
 		this.gameList = this.gameList.filter(g => g.isOpen);
 
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
+
 
 		// Track websocket usage
 		if (debug_ws_usage && this.tick++ % 60 == 0) {
@@ -572,11 +622,19 @@ class Application {
 			return;
 		}
 		this.replayStartTime = this.replayPackets[0].timestamp;
-		this.replayCurrentTime = this.replayStartTime;
+		this.replayCurrentTime = 0;
 		this.messageHandler = new MessageHandler(id, this);
 		this.game = new VTOLLobby(id);
+
 		this.start();
+		this.runReplayOnPackets(this.groupedReplayPackets[0] ?? []);
+		this.groupedReplayPackets[0] = [];
+
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+		if (this.replayCurrentTime < this.firstRealReplayDataTime) {
+			this.replayCurrentTime = this.firstRealReplayDataTime;
+			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
+		}
 	}
 
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {
@@ -619,6 +677,7 @@ class Application {
 	private lMessages = 0;
 	private lBytes = 0;
 	private tick = 0;
+	private packetPid = 0;
 
 	public packets: RPCPacket[] = [];
 
@@ -662,6 +721,7 @@ class Application {
 
 	private handleReplayChunk(bytes: Uint8Array) {
 		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
+		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp ?? Date.now();
 		this.replayPackets.push(...rpcs);
 		console.log(`Got replay chunk ${this.currentReplayChunkReceive} with ${rpcs.length} packets (${bytes.length} bytes)`);
 
@@ -675,10 +735,21 @@ class Application {
 			});
 		}
 
+		// const sec = Math.floor(((rpcs[0].timestamp ?? Date.now()) - this.replayStartTime) / 1000);
+
+
 		rpcs.forEach(rpc => {
-			const sec = Math.floor((rpc.timestamp ?? Date.now()) / 1000);
+			const sec = Math.floor(((rpc.timestamp ?? Date.now()) - this.replayStartTime) / 1000);
 			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
 			this.groupedReplayPackets[sec].push(rpc);
+
+			if (sec != 0 && this.firstRealReplayDataTime == 0) {
+				this.firstRealReplayDataTime = (rpc.timestamp ?? Date.now()) - this.replayStartTime;
+				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime}`);
+			}
+
+			rpc.pid = this.packetPid++;
+			this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
 		});
 
 		if (this.onReplayChunk) this.onReplayChunk();
@@ -724,9 +795,19 @@ class Application {
 		if (Application.state != ApplicationRunningState.running) return;
 
 		if (e.key == "f") this.toggleUI();
+
+		const prevReplay = REPLAY_SPEEDS[this.replaySpeed];
 		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);
 		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
-		console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
+		// console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
+
+		if (prevReplay <= 0 && this.computedReplaySpeed > 0) {
+			this.onTimeFlipHandlers.forEach(handler => handler(1));
+		}
+
+		if (prevReplay >= 0 && this.computedReplaySpeed < 0) {
+			this.onTimeFlipHandlers.forEach(handler => handler(-1));
+		}
 	}
 
 	// private handleKeyUp(e: KeyboardEvent) {
@@ -744,6 +825,21 @@ class Application {
 		window.addEventListener("dblclick", (e) => this.handleMouseClick(e));
 		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
 		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
+	}
+
+	public onTimeFlip(handler: (newDir: number) => void): void {
+		this.onTimeFlipHandlers.push(handler);
+	}
+
+	private runTimeouts() {
+		const now = Application.time;
+		const timeouts = this.timeouts.filter(t => t.time + t.startAt <= now);
+		timeouts.forEach(t => t.func());
+		this.timeouts = this.timeouts.filter(t => t.time + t.startAt > now || now < t.startAt);
+	}
+
+	public setTimeout(handler: () => void, ms: number): void {
+		this.timeouts.push({ func: handler, time: ms, startAt: Application.time });
 	}
 }
 

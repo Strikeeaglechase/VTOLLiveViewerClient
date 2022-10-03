@@ -1,5 +1,6 @@
 import * as THREE from "three";
 
+import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Player, Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
@@ -35,7 +36,19 @@ type EntityConfig = Partial<{
 	useInstancedMesh: boolean;
 }>;
 
+// Used for storing replay data, the entity class may be removed but this data should be kept
+interface PersistentEntityData {
+	setActiveAt: number;
+	setInactiveAt: number;
+}
+
 class Entity {
+	static persistentData: Record<number, PersistentEntityData> = {};
+	private get persistentData(): PersistentEntityData {
+		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = { setActiveAt: 0, setInactiveAt: 0 };
+		return Entity.persistentData[this.id];
+	}
+
 	public position: Vector = new Vector();
 	public velocity: Vector = new Vector();
 	public rotation: Vector = new Vector();
@@ -108,9 +121,15 @@ class Entity {
 		return `${this.id} A:${this.isActive} ${this.type} [${this.unitId}]`;
 	}
 
-	private setActiveAt: number;
+	// private setActiveAt: number;
+	// private setInactiveAt: number;
+	// private spawnAt: number;
+
 	private _isActive = false;
-	public set isActive(v: boolean) { this._isActive = v; }
+	public set isActive(v: boolean) {
+		this._isActive = v;
+		console.log(`${this.debugName} is now ${v ? "active" : "inactive"}`);
+	}
 	public get isActive() { return this._isActive; }
 
 	public hasDied = false;
@@ -196,7 +215,8 @@ class Entity {
 			return;
 		}
 
-		console.log(`Setting ${this.debugName} inactive`);
+		console.log(`Setting ${this.debugName} inactive, time direction: ${this.app.timeDirection}`);
+		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
 
 		// This causes a memory leak! We need to free the components, this may be important for replay.
 		this.scene.remove(this.object);
@@ -223,7 +243,8 @@ class Entity {
 			console.warn(`Entity ${this.debugName} is already active`);
 			return;
 		}
-		this.setActiveAt = this.app.replayCurrentTime; // If this is a replay, knowing when we were set active is important for undoing it
+
+		if (!this.persistentData.setActiveAt) this.persistentData.setActiveAt = Application.time; // If this is a replay, knowing when we were set active is important for undoing it
 
 		// Some things might want to wait for active to become true, so create a promise they can wait for
 		let res: () => void;
@@ -417,8 +438,10 @@ class Entity {
 	protected updateMotion(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
 		// Make sure that if were were previously set active, we don't call this until we should have been set active
 		if (!this.hasGotFirstPos) {
-			if (this.setActiveAt) {
-				if (this.setActiveAt < this.app.replayCurrentTime) {
+			const activeAt = this.persistentData.setActiveAt;
+			const inactiveAt = this.persistentData.setInactiveAt;
+			if (activeAt) {
+				if (Application.time > activeAt && (!inactiveAt || Application.time < inactiveAt)) {
 					this.onFirstPos();
 				}
 			} else {
@@ -426,7 +449,10 @@ class Entity {
 			}
 		}
 		// If an entity uses onFirstPos to set active it will drop this update packet - this could be an issue
-		if (!this.isActive) return;
+		if (!this.isActive) {
+			// console.warn(`Entity ${this.debugName} got motion update while inactive`);
+			return;
+		}
 
 		// Handles the weird unity->threejs rotation
 		const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
@@ -449,8 +475,10 @@ class Entity {
 	}
 
 	public update(dt: number): void {
-		if (!this.hasFoundValidOwner) this.tryFindOwner();
-		if (!this.isActive) return;
+		if (!this.isActive) {
+			console.warn(`Entity ${this.debugName} is not active but update was called! Call runInactiveUpdate instead`);
+			return;
+		}
 
 		// Interpolate position using velocity
 		this.velocity = this.velocity.add(this.acceleration.multiply(dt / 1000));
@@ -516,8 +544,24 @@ class Entity {
 		this.previousScale = this._scale;
 
 		// Time has been set to before when we were active, deactivate
-		if (this.app.replayCurrentTime < this.setActiveAt) {
+		if (Application.time < this.persistentData.setActiveAt) {
 			this.setInactive();
+		}
+	}
+
+	public runInactiveUpdate(dt: number): void {
+		if (this.isActive) {
+			console.warn(`Entity ${this.debugName} is active but runInactiveUpdate was called! Call update instead`);
+			return;
+		}
+
+		if (!this.hasFoundValidOwner) this.tryFindOwner();
+		if (this.persistentData.setInactiveAt && Application.time < this.persistentData.setInactiveAt) {
+			this.setActive();
+		}
+
+		if (this.persistentData.setActiveAt && Application.time > this.persistentData.setActiveAt) {
+			this.setActive();
 		}
 	}
 
@@ -534,11 +578,12 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this.debugName} has died`);
 		this.triggerDamage();
-		setTimeout(() => { this.remove(); }, damageFadeTime * 3);
+		this.app.setTimeout(() => { this.setInactive(); }, damageFadeTime * 3);
 	}
 
 	protected updateDamage() {
 		if (!this.damage) return;
+
 		if (Application.time - this.damage.lastDamageAt > damageFadeTime) {
 			this.damage.active = false;
 			this.damage.mesh.visible = false;
@@ -546,14 +591,20 @@ class Entity {
 			this.damage.mesh.visible = true;
 			this.damage.mat.opacity = 1 - (Application.time - this.damage.lastDamageAt) / damageFadeTime;
 		}
+
+		if (Application.time < this.damage.lastDamageAt) {
+			this.damage.mesh.visible = false;
+		}
 	}
 
 	public async remove(): Promise<void> {
-		this.app.entities = this.app.entities.filter(e => e != this);
+		// this.app.entities = this.app.entities.filter(e => e != this);
 
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
 		if (this.activatingPromise) await this.activatingPromise;
+
+		RPCController.deregister(this);
 
 		if (!this.isActive) return;
 
@@ -611,6 +662,10 @@ class Entity {
 		}
 
 		return addSpace(convert(name));
+	}
+
+	toString() {
+		return this.debugName;
 	}
 }
 export { Entity };

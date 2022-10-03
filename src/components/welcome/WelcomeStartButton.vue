@@ -1,6 +1,6 @@
 <template>
 	<a href="javascript:void(0);" class="fancy-btn" v-on:click="handleClick()">
-		<p class="btn-txt">View Lobbies</p>
+		<p class="btn-txt">View {{ viewValue }}</p>
 	</a>
 </template>
 
@@ -14,6 +14,13 @@
 
 	@Component({})
 	export default class WelcomeStartButton extends Vue {
+		viewValue = "Lobbies";
+
+		mounted() {
+			this.viewValue =
+				location.pathname == "/replay" ? "Recordings" : "Lobbies";
+		}
+
 		handleClick() {
 			if (IS_ALPHA && !getCookie("alpha_key")) {
 				const key = prompt("Enter alpha key:");

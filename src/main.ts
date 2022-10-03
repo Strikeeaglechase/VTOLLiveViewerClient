@@ -1,5 +1,6 @@
 import Vue from "vue";
 
+import { RPCController } from "../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import App from "./App.vue";
 import { Application } from "./viewer/app";
 
@@ -11,11 +12,21 @@ new Vue({
 
 // Master entry point, load application once the window is loaded
 window.onload = () => {
+	// const log = console.log;
+	// console.log = (...args) => {
+	// 	log("[" + new Date().toISOString().substring(14, 22) + "]", ...args);
+	// };
+
 	const app = new Application();
 	app.init();
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.app = app;
 
+
+
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	//@ts-ignore
+	window.RPC = RPCController;
 };
 

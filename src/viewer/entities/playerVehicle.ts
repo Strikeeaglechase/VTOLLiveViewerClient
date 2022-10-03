@@ -48,8 +48,8 @@ class PlayerVehicle extends Entity {
 	public update(dt: number): void {
 		super.update(dt);
 
-		this.tgp.update();
-		this.lockLine.update();
+		if (this.tgp) this.tgp.update();
+		if (this.lockLine) this.lockLine.update();
 
 		// Sometimes player's don't get a team until after the spawn, lets check for that
 		if (this.hasFoundValidOwner && this.team != this.owner.team) {
