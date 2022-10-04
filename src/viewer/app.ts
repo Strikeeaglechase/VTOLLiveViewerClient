@@ -63,14 +63,13 @@ class MessageHandler {
 
 	@RPC("in")
 	NetDestroy(id: number) {
-		for (let i = 0; i < this.app.entities.length; i++) {
-			if (this.app.entities[i].id == id) {
-				console.log(`Got despawn for ${this.app.entities[i]}`);
-				this.app.entities[i].remove();
-				this.app.entities.splice(i, 1);
-				return;
-			}
+		const entity = this.app.getEntityById(id);
+		if (!entity) {
+			console.warn(`Got despawn for unknown entity ${id}`);
+			return;
 		}
+		console.log(`Got despawn for ${entity}`);
+		entity.remove();
 	}
 
 	@RPC("in")
@@ -129,6 +128,16 @@ const replaceRPCHandlers: ReplaceRPCHandler[] = [
 			else return spawnPacket;
 			return false;
 		}
+	},
+	{
+		className: "PlayerVehicle",
+		method: "SetLock",
+		handler: (app: Application, rpc: RPCPacket) => {
+			console.log(`Reversing SetLock for ${rpc.id} -> ${rpc.args[0]} (was ${rpc.args[1]})`);
+			const rpcCopy = JSON.parse(JSON.stringify(rpc));
+			rpcCopy.args[1] = !rpcCopy.args[1];
+			return rpcCopy;
+		}
 	}
 ];
 
@@ -156,7 +165,8 @@ class Application {
 	private firstRealReplayDataTime = 0;
 	private replaySpeed = 7;
 	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
-	private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
+	private previousReplayTimeDirection = 1;
+	// private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
 	private get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
@@ -175,6 +185,7 @@ class Application {
 	}
 
 	public entities: Entity[] = [];
+	private entitiesToDelete: Entity[] = [];
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;
@@ -424,11 +435,13 @@ class Application {
 		});
 
 		resultPackets.forEach(packet => {
-			const hit = this.packetHits[packet.pid as number];
-			hit.hits++;
-			hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
-
+			// const hit = this.packetHits[packet.pid as number];
+			// hit.hits++;
+			// hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
+			const untouchedTime = this.replayCurrentTime;
+			this.replayCurrentTime = (packet.timestamp ?? (this.replayCurrentTime + this.replayStartTime)) - this.replayStartTime;
 			RPCController.handlePacket(packet);
+			this.replayCurrentTime = untouchedTime;
 		});
 	}
 
@@ -451,6 +464,17 @@ class Application {
 				throw e;
 			}
 		});
+
+		this.entitiesToDelete.forEach(entity => {
+			console.log(`Finalizing entity delete ${entity}`);
+			const idx = this.entities.indexOf(entity);
+			if (idx == -1) {
+				console.error(`Entity to delete not found in entities list!`);
+				return;
+			}
+			this.entities.splice(idx, 1);
+		});
+		this.entitiesToDelete = [];
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
@@ -749,7 +773,7 @@ class Application {
 			}
 
 			rpc.pid = this.packetPid++;
-			this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
+			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
 		});
 
 		if (this.onReplayChunk) this.onReplayChunk();
@@ -766,6 +790,10 @@ class Application {
 
 	public getEntityByPlayerName(name: string) {
 		return this.entities.find(e => e.hasFoundValidOwner && e.owner.entityId == e.id && e.owner.pilotName == name);
+	}
+
+	public finalDeleteEntity(entity: Entity) {
+		this.entitiesToDelete.push(entity);
 	}
 
 	private handleResize(): void {
@@ -801,12 +829,18 @@ class Application {
 		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
 		// console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
 
-		if (prevReplay <= 0 && this.computedReplaySpeed > 0) {
-			this.onTimeFlipHandlers.forEach(handler => handler(1));
-		}
-
-		if (prevReplay >= 0 && this.computedReplaySpeed < 0) {
-			this.onTimeFlipHandlers.forEach(handler => handler(-1));
+		// if (prevReplay < 0 && this.computedReplaySpeed > 0) {
+		// 	this.onTimeFlipHandlers.forEach(handler => handler(1));
+		// }
+		// 
+		// if (prevReplay > 0 && this.computedReplaySpeed < 0) {
+		// 	this.onTimeFlipHandlers.forEach(handler => handler(-1));
+		// }
+		if (this.computedReplaySpeed != 0) {
+			if (this.timeDirection != this.previousReplayTimeDirection) {
+				this.onTimeFlipHandlers.forEach(handler => handler(this.timeDirection));
+				this.previousReplayTimeDirection = this.timeDirection;
+			}
 		}
 	}
 

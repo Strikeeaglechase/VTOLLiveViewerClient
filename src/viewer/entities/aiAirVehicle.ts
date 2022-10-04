@@ -24,7 +24,7 @@ class AIAirVehicle extends Entity {
 
 	protected onFirstPos(): void {
 		super.onFirstPos();
-		this.setActive();
+		this.setActive(`AI aircraft got first position`);
 	}
 
 	@RPC("in")
@@ -44,7 +44,7 @@ class AIAirVehicle extends Entity {
 
 	@RPC("in")
 	Spawn() {
-		this.setActive();
+		this.setActive(`AI got spawn RPC`);
 	}
 }
 

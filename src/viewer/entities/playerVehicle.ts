@@ -26,7 +26,7 @@ class PlayerVehicle extends Entity {
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
 		super.spawn(id, ownerId, path, position, rotation, isActive);
-		await this.setActive();
+		await this.setActive(`Player vehicle spawned`);
 		this.showInSidebar = true;
 		this.textOverlay.combineId = null;
 
@@ -100,6 +100,8 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	SetLock(actorId: number, isLocked: boolean) {
+		if (!this.lockLine) return;
+		console.log(`${this} SetLock ${actorId} ${isLocked}`);
 		const actor = this.app.getEntityByUnitId(actorId);
 		if (!actor) return console.error(`Unable to find ActorId ${actorId} for SetLock ${isLocked}`);
 

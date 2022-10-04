@@ -20,7 +20,7 @@ interface Flare {
 class FlareManager {
 	private flares: Flare[] = [];
 	private freeFlares: Flare[] = [];
-	private scaleMult: number;
+	private scaleMult = 85;
 
 	private geometry: THREE.SphereGeometry;
 	private material: THREE.MeshStandardMaterial;
@@ -81,7 +81,7 @@ class FlareManager {
 			this.flares.push({
 				position: entity.position.clone(),
 				velocity: entity.velocity.clone().multiply(0.99),
-				createdAt: Date.now(),
+				createdAt: Application.time,
 				isAlive: true,
 				mesh: mesh
 			});
@@ -90,7 +90,7 @@ class FlareManager {
 			if (!flare) throw new Error("FlareManager: flare is null");
 			flare.position = entity.position.clone();
 			flare.velocity = entity.velocity.clone().multiply(0.99);
-			flare.createdAt = Date.now();
+			flare.createdAt = Application.time;
 			flare.isAlive = true;
 			flare.mesh.visible = true;
 			flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);

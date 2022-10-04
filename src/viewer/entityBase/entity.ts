@@ -209,13 +209,13 @@ class Entity {
 		this.scene.add(this.damage.mesh);
 	}
 
-	protected async setInactive() {
+	protected async setInactive(reason: string) {
+		console.log(`Setting ${this.debugName} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
 		if (!this.isActive) {
 			console.warn(`${this.debugName} is already inactive`);
 			return;
 		}
 
-		console.log(`Setting ${this.debugName} inactive, time direction: ${this.app.timeDirection}`);
 		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
 
 		// This causes a memory leak! We need to free the components, this may be important for replay.
@@ -236,9 +236,20 @@ class Entity {
 		}
 
 		if (this.hasTrail) this.trail.remove();
+
+		if (this.damage) this.destroyDamageMesh();
 	}
 
-	protected async setActive() {
+	private destroyDamageMesh() {
+		this.scene.remove(this.damage.mesh);
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-ignore
+		this.damage = null;
+		console.log(`Removed damage mesh for entity ${this.debugName}`);
+	}
+
+	protected async setActive(reason: string) {
+		console.log(`Setting ${this.debugName} active because ${reason}`);
 		if (this.isActive) {
 			console.warn(`Entity ${this.debugName} is already active`);
 			return;
@@ -253,11 +264,10 @@ class Entity {
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
 
-		console.log(`Setting ${this.debugName} active`);
 
 		this.object.name = "Entity Mesh";
 		// this.scene.add(this.object);
-		if (this.hasTrail) this.trail.init();
+		// if (this.hasTrail) this.trail.init();
 		this.isActive = true;
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -545,7 +555,7 @@ class Entity {
 
 		// Time has been set to before when we were active, deactivate
 		if (Application.time < this.persistentData.setActiveAt) {
-			this.setInactive();
+			this.setInactive(`Time is before the activation time (${this.persistentData.setActiveAt})`);
 		}
 	}
 
@@ -556,12 +566,15 @@ class Entity {
 		}
 
 		if (!this.hasFoundValidOwner) this.tryFindOwner();
-		if (this.persistentData.setInactiveAt && Application.time < this.persistentData.setInactiveAt) {
-			this.setActive();
-		}
 
-		if (this.persistentData.setActiveAt && Application.time > this.persistentData.setActiveAt) {
-			this.setActive();
+		const activeAt = this.persistentData.setActiveAt;
+		const inactiveAt = this.persistentData.setInactiveAt;
+		// if (inactiveAt && Application.time < inactiveAt) {
+		// 	this.setActive();
+		// }
+
+		if (activeAt && Application.time > activeAt && (!inactiveAt || Application.time < inactiveAt)) {
+			this.setActive(`Is currently inactive, but past the activeAt time (${activeAt}) and before the inactiveAt time (${inactiveAt}). Time: ${Application.time}`);
 		}
 	}
 
@@ -578,7 +591,7 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this.debugName} has died`);
 		this.triggerDamage();
-		this.app.setTimeout(() => { this.setInactive(); }, damageFadeTime * 3);
+		this.app.setTimeout(() => { this.setInactive(`Entity died`); }, damageFadeTime * 3);
 	}
 
 	protected updateDamage() {
@@ -598,19 +611,24 @@ class Entity {
 	}
 
 	public async remove(): Promise<void> {
-		// this.app.entities = this.app.entities.filter(e => e != this);
+		console.log(`Removing entity ${this.debugName}`);
 
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
-		if (this.activatingPromise) await this.activatingPromise;
+		if (this.activatingPromise) {
+			console.log(`Waiting for entity ${this.debugName} to finish activating before removing`);
+			await this.activatingPromise;
+			console.log(`Entity ${this.debugName} finished activating, can now remove`);
+		}
 
+		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
 		RPCController.deregister(this);
-
+		this.app.finalDeleteEntity(this); // Queue a request to remove entity from list
 		if (!this.isActive) return;
 
 		this.trail.remove();
 		this.scene.remove(this.baseLine);
-		if (this.damage) this.scene.remove(this.damage.mesh);
+		if (this.damage) this.destroyDamageMesh();
 
 		if (this.useInstancedMesh && this.iMesh) {
 			const obj = new THREE.Object3D();

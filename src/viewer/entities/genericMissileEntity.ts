@@ -22,8 +22,8 @@ class MissileEntity extends Entity {
 		super(app);
 	}
 
-	protected async setInactive() {
-		super.setInactive();
+	protected async setInactive(reason: string) {
+		super.setInactive(reason);
 		this.fired = false;
 	}
 
@@ -78,14 +78,14 @@ class MissileEntity extends Entity {
 
 	protected async onFirstPos(): Promise<void> {
 		super.onFirstPos();
-		await this.setActive();
+		if (!this.isActive) await this.setActive(`Missile received first position`);
 		this.fired = true;
 		this.hasTrail = true;
 		this.meshProxyObject.visible = true;
 		this.textOverlay.combineId = null;
 
 		this.trail.color = new THREE.Color(255, 255, 255);
-		this.trail.init();
+		this.trail.reset();
 	}
 
 	// TODO: Rename this RPC
