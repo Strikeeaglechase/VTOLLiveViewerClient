@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Player, Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
@@ -7,6 +8,7 @@ import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { TextOverlay } from "../textOverlayHandler";
+import { EquipManager } from "./equipManager";
 import { SimpleUnitTrail } from "./simpleUnitTrail";
 
 const len = 7;
@@ -96,11 +98,7 @@ class Entity {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
 
 		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
-		this.meshProxyObject.scale.setScalar(this._scale);
-		if (this.isFocus) {
-			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
-			this.app.flareManager.updateScale(this._scale);
-		}
+		this.onScaleUpdate();
 	}
 	public get scale() { return this._scale; }
 	protected scaleDamper = 1;
@@ -131,6 +129,10 @@ class Entity {
 		console.log(`${this.debugName} is now ${v ? "active" : "inactive"}`);
 	}
 	public get isActive() { return this._isActive; }
+	public get isActivating() {
+		return !!this.activatingPromise;
+	}
+	private activatingPromise: Promise<void> | null = null;
 
 	public hasDied = false;
 
@@ -148,6 +150,8 @@ class Entity {
 	private isCreatingMesh = false;
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
+	public equipManager: EquipManager = new EquipManager(this);
+
 	public static spawnFor: string[] | RegExp = [];
 
 	protected boundingBox: THREE.Box3;
@@ -155,8 +159,6 @@ class Entity {
 
 	protected textOverlay: TextOverlay;
 	private textOverlayHasHadFirstUpdate = false;
-
-	private activatingPromise: Promise<void> | null = null;
 
 	private __name: string;
 
@@ -170,6 +172,10 @@ class Entity {
 		this.hasBaseLine = config.hasBaseLine ?? this.hasBaseLine;
 		this.hasOverlay = config.hasOverlay ?? this.hasOverlay;
 		this.useInstancedMesh = config.useInstancedMesh ?? this.useInstancedMesh;
+
+		if (!this.showInBra && !this.showInSidebar) {
+			markRaw(this);
+		}
 
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
@@ -252,6 +258,11 @@ class Entity {
 		console.log(`Setting ${this.debugName} active because ${reason}`);
 		if (this.isActive) {
 			console.warn(`Entity ${this.debugName} is already active`);
+			return;
+		}
+
+		if (this.isActivating) {
+			console.warn(`Entity ${this.debugName} is already activating`);
 			return;
 		}
 
@@ -445,6 +456,14 @@ class Entity {
 		this.trail.reset();
 	}
 
+	protected onScaleUpdate() {
+		this.meshProxyObject.scale.setScalar(this._scale);
+		if (this.isFocus) {
+			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
+			this.app.flareManager.updateScale(this._scale);
+		}
+	}
+
 	protected updateMotion(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
 		// Make sure that if were were previously set active, we don't call this until we should have been set active
 		if (!this.hasGotFirstPos) {
@@ -534,6 +553,8 @@ class Entity {
 		}
 		if (this.damage && this.damage.active) this.updateDamage();
 
+		if (this.equipManager) this.equipManager.update(dt);
+
 		if (this.textOverlay) {
 			if (!this.previousPosition.equals(this.position) || !this.previousVelocity.equals(this.previousVelocity) || !this.textOverlayHasHadFirstUpdate) {
 				const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
@@ -569,11 +590,14 @@ class Entity {
 
 		const activeAt = this.persistentData.setActiveAt;
 		const inactiveAt = this.persistentData.setInactiveAt;
-		// if (inactiveAt && Application.time < inactiveAt) {
-		// 	this.setActive();
-		// }
 
-		if (activeAt && Application.time > activeAt && (!inactiveAt || Application.time < inactiveAt)) {
+		if (
+			this.app.isReplay && // This check shouldn't be needed but seems to fix odd bug
+			!this.isActivating && // Activation can take a bit, make sure we aren't mid activation
+			activeAt && // We have an activation time
+			Application.time > activeAt && // Time is after activation time
+			(!inactiveAt || Application.time < inactiveAt) // Either we don't have an inactive time or time is before inactive time
+		) {
 			this.setActive(`Is currently inactive, but past the activeAt time (${activeAt}) and before the inactiveAt time (${inactiveAt}). Time: ${Application.time}`);
 		}
 	}
@@ -649,8 +673,8 @@ class Entity {
 			"Vehicles/AH-94": "AH-94",
 			"Vehicles/VTOL4": "AV-42C",
 			"Weapons/Missiles/Maverick": "AGM-65",
-			"Weapons/Missiles/AIM-92": "Stinger", // From the AH-94
-			"Weapons/Missiles/APKWS": "Guided Rocket",
+			"Weapons/Missiles/AIM-92": "AIM-92", // From the AH-94
+			"Weapons/Missiles/APKWS": "PGM-27",
 			"Weapons/Missiles/HARM": "AGM-88",
 			"Weapons/Missiles/Hellfire": "AGM-114",
 			"Weapons/Missiles/MARM": "AGM-188",

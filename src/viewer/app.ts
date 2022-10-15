@@ -18,6 +18,7 @@ import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
 import { GunEntity } from "./entities/gunEntity";
+import { HardpointEntity } from "./entities/hardpointEntity";
 import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
 import { BulletManager } from "./managers/bulletManager";
@@ -157,7 +158,7 @@ class Application {
 	public replayPackets: RPCPacket[] = [];
 	private groupedReplayPackets: RPCPacket[][] = [];
 	private onReplayChunk: (() => void) | null = null;
-	private isReplay = false;
+	public isReplay = false;
 	private replayStartTime = 0;
 	private currentReplayChunkReceive = 0;
 	private replayCurrentTime = 0;
@@ -198,7 +199,7 @@ class Application {
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
-	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit];
+	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit, HardpointEntity];
 
 	public static instance: Application;
 	public static state: ApplicationRunningState = ApplicationRunningState.welcome;
@@ -364,7 +365,7 @@ class Application {
 		const cam = this.sceneManager.cameraController.fakeCamera;
 		setTimeout(async () => {
 			cam.position.set(-2, 57, -90);
-			this.setFocusTo(aircraft);
+			aircraft.focus();
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 
@@ -435,6 +436,7 @@ class Application {
 		});
 
 		resultPackets.forEach(packet => {
+			// console.log(`(${packet.id}) ${packet.className}.${packet.method}`);
 			// const hit = this.packetHits[packet.pid as number];
 			// hit.hits++;
 			// hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
@@ -541,6 +543,8 @@ class Application {
 	}
 
 	public setFocusTo(entity: Entity): void {
+		console.log(`Setting focus to ${entity}`);
+		EventBus.$emit("focused-entity", entity);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
@@ -570,7 +574,7 @@ class Application {
 
 	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isAcitve: boolean) {
 		// Resolve the class that handles this type of entity 
-		let EntityClass;
+		let EntityClass = null;
 		for (let i = 0; i < this.spawnables.length; i++) {
 			const eClass = this.spawnables[i];
 			if (Array.isArray(eClass.spawnFor)) {
@@ -579,18 +583,25 @@ class Application {
 					EntityClass = eClass;
 					break;
 				}
-			} else {
-				const v = eClass.spawnFor.test(path.trim());
-				if (v) {
-					EntityClass = eClass;
-					break;
+			}
+		}
+
+		if (EntityClass == null) {
+			for (let i = 0; i < this.spawnables.length; i++) {
+				const eClass = this.spawnables[i];
+				if (!Array.isArray(eClass.spawnFor)) {
+					const v = eClass.spawnFor.test(path.trim());
+					if (v) {
+						EntityClass = eClass;
+						break;
+					}
 				}
 			}
 		}
 
 		if (!EntityClass) {
 			// We don't care about HPEquips and Rearm points so don't log errors for that
-			if (!path.startsWith("HPEquips") && !path.includes("Rearm")) console.warn(`Unable to locate entity handler for ${path}`);
+			if (!path.includes("Rearm")) console.error(`Unable to locate entity handler for ${path}`);
 			return;
 		}
 
@@ -648,13 +659,24 @@ class Application {
 		this.replayStartTime = this.replayPackets[0].timestamp;
 		this.replayCurrentTime = 0;
 		this.messageHandler = new MessageHandler(id, this);
-		this.game = new VTOLLobby(id);
+		let game = this.gameList.find(g => g.id == id);
+		if (!game) {
+			// TODO: Research this more, seems like sometimes we have an existing game entry? Inconsistent behavior bad
+			console.warn(`Unable to find game with ID ${id}`);
+			game = new VTOLLobby(id);
+		}
+		this.game = game;
 
-		this.start();
-		this.runReplayOnPackets(this.groupedReplayPackets[0] ?? []);
+		await this.start();
+
+		const initPacketes = this.groupedReplayPackets[0] ?? [];
+		console.log(`Handling ${initPacketes.length} init packets`);
+		this.runReplayOnPackets(initPacketes);
 		this.groupedReplayPackets[0] = [];
 
+		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+		console.log(`Got mission info!`);
 		if (this.replayCurrentTime < this.firstRealReplayDataTime) {
 			this.replayCurrentTime = this.firstRealReplayDataTime;
 			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
@@ -682,7 +704,7 @@ class Application {
 		if (intersections.length > 0) {
 			const entity = validEntities.find(e => e.isInteractionMesh(intersections[0].object, intersections[0].instanceId));
 			if (entity) {
-				this.setFocusTo(entity);
+				entity.focus();
 				return;
 			}
 		}

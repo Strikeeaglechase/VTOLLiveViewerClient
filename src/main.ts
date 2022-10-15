@@ -1,4 +1,4 @@
-import Vue from "vue";
+import Vue, { markRaw } from "vue";
 
 import { RPCController } from "../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import App from "./App.vue";
@@ -25,7 +25,7 @@ window.onload = () => {
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.app = app;
-
+	markRaw(app);
 
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment

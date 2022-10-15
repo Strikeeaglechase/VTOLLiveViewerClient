@@ -57,7 +57,7 @@ class FlareManager {
 				flare.mesh.material.opacity = amountThrough;
 			}
 
-			if (flare.createdAt + FLARE_LT < now) {
+			if (flare.createdAt + FLARE_LT < now || now < flare.createdAt) {
 				flare.mesh.visible = false;
 				flare.isAlive = false;
 				flare.mesh.scale.set(2, 2, 2);

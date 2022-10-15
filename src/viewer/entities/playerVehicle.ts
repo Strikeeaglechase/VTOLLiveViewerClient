@@ -45,6 +45,12 @@ class PlayerVehicle extends Entity {
 		this.meshProxyObject.add(this.playerHeadLine);
 	}
 
+	protected override onScaleUpdate(): void {
+		super.onScaleUpdate();
+		// Keep head the same size by scaling with the inverse of the scale
+		if (this.playerHeadLine) this.playerHeadLine.scale.set(1 / this.scale, 1 / this.scale, 1 / this.scale);
+	}
+
 	public update(dt: number): void {
 		super.update(dt);
 
@@ -120,6 +126,11 @@ class PlayerVehicle extends Entity {
 	@RPC("in")
 	Die() {
 		this.triggerDeath();
+	}
+
+	@RPC("in")
+	SetFuel(tank: number, fuel: number) {
+		console.log(`${this} SetFuel ${tank} ${fuel}`);
 	}
 }
 

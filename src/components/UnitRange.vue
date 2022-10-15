@@ -1,5 +1,5 @@
 <template>
-	<div id="data" v-show="currentFocus != null">
+	<div id="data">
 		<h3 v-if="currentFocus != null">
 			{{ currentFocus.owner.pilotName }} [{{ currentFocus.displayName }}]
 			A: {{ comma(Math.floor(mToFt(currentFocus.position.y))) }}ft H:
@@ -28,18 +28,30 @@
 				<!-- {{ isLockedBy(entity) }} -->
 			</p>
 		</div>
+		<!-- <div>
+			<br />
+			<EquipsViewer />
+		</div> -->
 	</div>
 </template>
 
 <script lang="ts">
 	import { Component, Vue } from "vue-property-decorator";
 	import { EventBus } from "../eventBus";
-	import { deg, ftToMi, msToKnots, mToFt, addCommas } from "../viewer/app";
+	import {
+		deg,
+		ftToMi,
+		msToKnots,
+		mToFt,
+		addCommas,
+		Application,
+	} from "../viewer/app";
 	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
 	import { Entity } from "../viewer/entityBase/entity";
 	import EntityComponent from "./Entity.vue";
+	import EquipsViewer from "./EquipsViewer.vue";
 
-	@Component({ components: { EntityComponent } })
+	@Component({ components: { EntityComponent, EquipsViewer } })
 	export default class UnitRange extends Vue {
 		entities: Entity[] = [];
 		currentFocus: Entity | null = null;
@@ -52,43 +64,40 @@
 			EventBus.$on("entities", (e: Entity[]) => {
 				this.entities = e;
 			});
+			EventBus.$on("focused-entity", (entity: Entity) => {
+				this.currentFocus = entity;
+			});
 		}
 
 		getDataEntities(
 			e: Entity[]
 		): { entity: Entity; isLockingUs: boolean; isLocking: boolean }[] {
 			if (e.length == 0) return [];
-			const cur = e[0].app.currentFocus;
-			this.currentFocus = cur;
-			if (!cur) {
-				// this.incomingLocks.clear();
-				// this.outgoingLock = null;
+			if (this.currentFocus == null) return [];
+			if (Application.instance.currentFocus != this.currentFocus) {
+				console.error(
+					`currentFocus is not the same as Application.instance.currentFocus`
+				);
 				return [];
 			}
 
-			// this.incomingLocks.clear();
-			// this.outgoingLock = null;
-			// if (cur instanceof PlayerVehicle) {
-			// 	const incomingLocks = cur.getLockingMe();
-			// 	incomingLocks.forEach((l) => this.incomingLocks.add(l.id));
-			// 	this.outgoingLock = cur.lockLine.lockedEntity?.id ?? null;
-			// }
+			const focus = this.currentFocus as Entity;
 
 			const valid = e.filter((entity) => {
 				// If showInBra and on other team
-				if (entity.showInBra && entity.team != cur.team) return true;
+				if (entity.showInBra && entity.team != focus.team) return true;
 
 				// If focus is locked onto them
 				if (
-					cur instanceof PlayerVehicle &&
-					cur.lockLine?.isLockedTo(entity)
+					focus instanceof PlayerVehicle &&
+					focus.lockLine?.isLockedTo(entity)
 				)
 					return true;
 
 				// If they are locked onto focus
 				if (
 					entity instanceof PlayerVehicle &&
-					entity.lockLine?.isLockedTo(cur)
+					entity.lockLine?.isLockedTo(focus)
 				)
 					return true;
 				return false;
@@ -99,10 +108,10 @@
 				.sort((a, b) => {
 					let d1 = distCache[a.id]
 						? distCache[a.id]
-						: a.position.distanceTo(cur.position);
+						: a.position.distanceTo(focus.position);
 					let d2 = distCache[b.id]
 						? distCache[b.id]
-						: b.position.distanceTo(cur.position);
+						: b.position.distanceTo(focus.position);
 					distCache[a.id] = d1;
 					distCache[b.id] = d2;
 
@@ -114,10 +123,10 @@
 						entity: entity,
 						isLockingUs:
 							entity instanceof PlayerVehicle &&
-							entity.lockLine?.isLockedTo(cur), //this.isLockedBy(entity),
+							entity.lockLine?.isLockedTo(focus), //this.isLockedBy(entity),
 						isLocking:
-							cur instanceof PlayerVehicle &&
-							cur.lockLine?.isLockedTo(entity),
+							this.currentFocus instanceof PlayerVehicle &&
+							this.currentFocus.lockLine?.isLockedTo(entity),
 					};
 				});
 		}
