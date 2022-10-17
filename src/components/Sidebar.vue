@@ -63,5 +63,6 @@
 	height: 100%;
 	right: 0;
 	position: fixed;
+	pointer-events: none;
 }
 </style>

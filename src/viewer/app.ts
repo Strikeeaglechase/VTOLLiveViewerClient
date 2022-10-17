@@ -572,7 +572,7 @@ class Application {
 			});
 	}
 
-	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isAcitve: boolean) {
+	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean) {
 		// Resolve the class that handles this type of entity 
 		let EntityClass = null;
 		for (let i = 0; i < this.spawnables.length; i++) {
@@ -610,7 +610,8 @@ class Application {
 		// console.log(EntityClass.constructor.toString().match(/function (\w*)/)[1]);
 		// console.log(`Entity net.prototype instantiate ${path} [${id}] owner: ${ownerId}. Entity: ${EntityClass}`);
 		const entity = new EntityClass(this);
-		entity.spawn(id, ownerId, path, position, rotation, isAcitve);
+		entity.spawn(id, ownerId, path, position, rotation, isActive);
+		console.log(`Entity ${entity} spawned as ${entity.__name}. Spawn as active: ${isActive}`);
 		this.addEntity(entity);
 	}
 
@@ -669,9 +670,14 @@ class Application {
 
 		await this.start();
 
-		const initPacketes = this.groupedReplayPackets[0] ?? [];
-		console.log(`Handling ${initPacketes.length} init packets`);
-		this.runReplayOnPackets(initPacketes);
+		let initPackets: RPCPacket[] = [];
+		if (this.firstRealReplayDataTime != 0) {
+			initPackets = this.replayPackets.filter(p => ((p.timestamp ?? Date.now()) - this.replayStartTime) < this.firstRealReplayDataTime);
+		} else if (this.groupedReplayPackets[0]) {
+			initPackets = this.groupedReplayPackets[0];
+		}
+		console.log(`Handling ${initPackets.length} init packets`);
+		this.runReplayOnPackets(initPackets);
 		this.groupedReplayPackets[0] = [];
 
 		console.log(`Waiting for mission info`);
@@ -789,9 +795,10 @@ class Application {
 			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
 			this.groupedReplayPackets[sec].push(rpc);
 
-			if (sec != 0 && this.firstRealReplayDataTime == 0) {
+			// Yeah this is bad, I don't know a better way to identify where data starts. Tbh not sure why data is being stored way before the start timestamp
+			if (sec != 0 && this.firstRealReplayDataTime == 0 && this.groupedReplayPackets[sec].length > 10) {
 				this.firstRealReplayDataTime = (rpc.timestamp ?? Date.now()) - this.replayStartTime;
-				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime}`);
+				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
 			}
 
 			rpc.pid = this.packetPid++;
@@ -812,6 +819,10 @@ class Application {
 
 	public getEntityByPlayerName(name: string) {
 		return this.entities.find(e => e.hasFoundValidOwner && e.owner.entityId == e.id && e.owner.pilotName == name);
+	}
+
+	public getEntitiesByOwnerId(id: string) {
+		return this.entities.filter(e => e.hasFoundValidOwner && e.owner.steamId == id);
 	}
 
 	public finalDeleteEntity(entity: Entity) {

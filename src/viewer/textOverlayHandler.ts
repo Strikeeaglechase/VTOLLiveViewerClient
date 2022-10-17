@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/src/vector";
 import { Application } from "./app";
@@ -39,10 +40,12 @@ class TextOverlay {
 	private textElm: HTMLParagraphElement;
 	public cssObj: CSS2DObject;
 	private isVisible = false;
+	public isHovered = false;
 
 	public text = "";
 	private posOffset: IVector3 = new Vector(0, 0, 0);
 	private prevPos: Vector = new Vector(0, 0, 0);
+	private lastUpdateTime = 0;
 
 	debugBoxHelper: THREE.BoxHelper;
 
@@ -85,7 +88,12 @@ class TextOverlay {
 
 		Application.instance.sceneManager.registerOverlay(this, this.cssObj);
 
+		this.elm.addEventListener("mouseenter", () => this.isHovered = true);
+		this.elm.addEventListener("mouseleave", () => this.isHovered = false);
+
 		this.combineId = combineId ?? -1;
+
+		markRaw(this);
 
 		// this.debugBoxHelper = new THREE.BoxHelper(this.object, 0x00ffff);
 		// this.debugBoxHelper.name = `Debug Box Helper`;
@@ -95,9 +103,6 @@ class TextOverlay {
 	public edit(text: string): this {
 		if (text == this.text) return this;
 		this.text = text;
-		this.textElm.innerText = text;
-
-		this.elm.style.bottom = (text.split("\n").length * 10) + "px";
 
 		return this;
 	}
@@ -125,6 +130,16 @@ class TextOverlay {
 
 	public update(overlays: TextOverlay[]) {
 		this.updatePosition();
+
+		const d = Date.now();
+		if (d - this.lastUpdateTime < 100) return;
+		this.lastUpdateTime = d;
+
+		if (this.textElm.innerText != this.text) {
+			this.textElm.innerText = this.text;
+			this.elm.style.bottom = (this.text.split("\n").length * 10) + "px";
+		}
+
 		if (this.combineId == -1) return;
 
 		if (this.isOverlapping) {

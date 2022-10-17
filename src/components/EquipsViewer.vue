@@ -5,8 +5,9 @@
 			<!-- <div v-for="(weapon, index) in equips()" v-bind:key="index">
 				<p>{{ weapon }}</p>
 			</div> -->
-			<p>{{ equips() }}</p>
-			<p>{{ tanks() }}</p>
+			<p>Missiles: {{ missiles() }}</p>
+			<p>Equipment: {{ equips() }}</p>
+			<p>Fuel: {{ fuel() }}%</p>
 		</div>
 	</div>
 </template>
@@ -28,14 +29,20 @@
 			});
 		}
 
-		equips() {
-			if (this.entity == null) return [];
+		missiles() {
+			if (this.entity == null) return "";
 			return this.entity.equipManager.getWeapons();
 		}
 
-		tanks() {
-			if (this.entity == null) return [];
-			return this.entity.equipManager.getFuel();
+		equips() {
+			if (this.entity == null) return "";
+			return this.entity.equipManager.getEquips();
+		}
+
+		fuel() {
+			if (this.entity == null) return "";
+			const fuel = this.entity.equipManager.getFuel();
+			return Math.round(fuel * 100);
 		}
 
 		dropDown() {

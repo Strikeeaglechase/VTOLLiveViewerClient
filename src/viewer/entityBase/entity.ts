@@ -160,7 +160,7 @@ class Entity {
 	protected textOverlay: TextOverlay;
 	private textOverlayHasHadFirstUpdate = false;
 
-	private __name: string;
+	public __name: string;
 
 	constructor(public app: Application, config: EntityConfig = {}) {
 		this.application = app;
@@ -176,6 +176,8 @@ class Entity {
 		if (!this.showInBra && !this.showInSidebar) {
 			markRaw(this);
 		}
+
+		markRaw(this.trail);
 
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
@@ -213,6 +215,7 @@ class Entity {
 		this.damage.mesh.name = "Entity Damage";
 		this.damage.mesh.visible = false;
 		this.scene.add(this.damage.mesh);
+		markRaw(this.damage);
 	}
 
 	protected async setInactive(reason: string) {
@@ -375,6 +378,8 @@ class Entity {
 		this.addObjectMeshToScene();
 
 		this.isCreatingMesh = false;
+		markRaw(this.mesh);
+		markRaw(this.meshProxyObject);
 	}
 
 	private maybeCreateTextOverlay(parent: THREE.Object3D) {
@@ -383,6 +388,7 @@ class Entity {
 		this.textOverlay.onDblClick = () => {
 			this.focus();
 		};
+		markRaw(this.textOverlay);
 	}
 
 	// Returns the object that should be used for raycasting
@@ -428,7 +434,6 @@ class Entity {
 		if (path.includes("Enemy")) this.team = Team.B;
 
 		this.tryFindOwner();
-		console.log(`Entity ${this.debugName} spawned as ${this.__name}. Spawn as active: ${isActive}`);
 	}
 
 	public setUnitId(uid: number) {
@@ -508,7 +513,7 @@ class Entity {
 			console.warn(`Entity ${this.debugName} is not active but update was called! Call runInactiveUpdate instead`);
 			return;
 		}
-
+		if (!this.hasFoundValidOwner) this.tryFindOwner();
 		// Interpolate position using velocity
 		this.velocity = this.velocity.add(this.acceleration.multiply(dt / 1000));
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));

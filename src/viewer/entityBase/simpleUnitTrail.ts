@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { Application } from "../app";
 import { Entity } from "./entity";
@@ -31,7 +32,9 @@ class SimpleUnitTrail {
 	};
 	private lastTrailTime = 0;
 
-	constructor(private entity: Entity) { }
+	constructor(private entity: Entity) {
+		markRaw(this);
+	}
 
 	public updateColor(color: { r: number; g: number; b: number; }): void {
 		this.color = color;
@@ -81,9 +84,14 @@ class SimpleUnitTrail {
 
 		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail();
 
-		const previousPoint = this.linePoints[this.linePoints.length - 1];
+		let previousPoint = this.linePoints[this.linePoints.length - 1];
 		if (previousPoint) {
-			if (Application.time < previousPoint.time) this.retractTrail(); // Handle replay rewind
+			// Handle replay rewind
+			while (Application.time < previousPoint.time && this.linePoints.length > 1) {
+				this.retractTrail();
+				previousPoint = this.linePoints[this.linePoints.length - 1];
+			}
+
 			previousPoint.position.set(this.entity.position.x, this.entity.position.y, this.entity.position.z);
 		}
 

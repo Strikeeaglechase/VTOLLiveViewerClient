@@ -28,10 +28,10 @@
 				<!-- {{ isLockedBy(entity) }} -->
 			</p>
 		</div>
-		<!-- <div>
+		<div>
 			<br />
 			<EquipsViewer />
-		</div> -->
+		</div>
 	</div>
 </template>
 

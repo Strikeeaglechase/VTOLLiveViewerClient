@@ -62,8 +62,6 @@ class MissileEntity extends Entity {
 		group.children[1].rotateY(Math.PI / 2);
 
 		console.log(`Created default mesh for missile`);
-		// this.scene.add(group);
-		// this.customTextOverlay = new TextOverlay(group).edit(this.type).offset(0, 0, 0);
 
 		return group;
 	}
@@ -72,8 +70,13 @@ class MissileEntity extends Entity {
 		super.update(dt);
 		if (!this.isActive) return;
 
-		const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-		this.textOverlay.edit(`${this.displayName} [${this.owner.pilotName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+		const baseText = `${this.displayName} [${this.owner.pilotName}]`;
+		if (this.textOverlay.isHovered) {
+			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
+			this.textOverlay.edit(`${baseText}\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+		} else {
+			this.textOverlay.edit(baseText + "\n");
+		}
 	}
 
 	protected async onFirstPos(): Promise<void> {
