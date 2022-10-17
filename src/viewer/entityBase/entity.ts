@@ -278,6 +278,7 @@ class Entity {
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
 
+		this.maybeCreateTextOverlay(this.mesh.children[0]);
 
 		this.object.name = "Entity Mesh";
 		// this.scene.add(this.object);
@@ -370,7 +371,6 @@ class Entity {
 
 		this.boundingBox.setFromObject(obj.children[0]);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		this.maybeCreateTextOverlay(obj.children[0]);
 
 		this.mesh = obj;
 		this.meshProxyObject.add(this.mesh);
@@ -384,7 +384,10 @@ class Entity {
 
 	private maybeCreateTextOverlay(parent: THREE.Object3D) {
 		if (!this.hasOverlay) return;
-		this.textOverlay = new TextOverlay(parent, this.type).edit(this.id.toString()).offset(0, 10, 0);
+		this.textOverlay = new TextOverlay(parent, this.type)
+			.edit(this.id.toString())
+			.offset(0, 10, 0)
+			.show();
 		this.textOverlay.onDblClick = () => {
 			this.focus();
 		};

@@ -56,6 +56,8 @@ class EquipManager {
 	private miscEquips: Entity[] = [];
 	private HpEquip: any; // Holy fuck this is bad, but webpack shits itself if we do this correctly
 
+	private lastUpdate = 0;
+
 	public fuel = 1;
 
 	constructor(private entity: Entity) {
@@ -67,7 +69,11 @@ class EquipManager {
 		this.HpEquip = HpEquip.HardpointEntity;
 	}
 
-	public update(dt: number): void {
+	public update(dt: number, force = false): void {
+		const d = Date.now();
+		if (d - this.lastUpdate < 1000 && !force) return;
+		this.lastUpdate = d;
+
 		this.owned = this.entity.app.entities.filter(entity => {
 			return entity.ownerId == this.entity.ownerId;
 		});

@@ -86,9 +86,17 @@ class MissileEntity extends Entity {
 		this.hasTrail = true;
 		this.meshProxyObject.visible = true;
 		this.textOverlay.combineId = null;
+		this.textOverlay.show();
 
 		this.trail.color = new THREE.Color(255, 255, 255);
 		this.trail.reset();
+
+		if (this.hasFoundValidOwner && this.owner.entityId > 0) {
+			const ownerEntity = this.app.getEntityById(this.owner.entityId);
+			if (ownerEntity) {
+				ownerEntity.equipManager.update(0, true);
+			}
+		}
 	}
 
 	// TODO: Rename this RPC
