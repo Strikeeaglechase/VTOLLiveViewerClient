@@ -61,12 +61,6 @@ class EquipManager {
 	public fuel = 1;
 
 	constructor(private entity: Entity) {
-		this.init();
-	}
-
-	private async init() {
-		const HpEquip = await import(`../entities/hardpointEntity`);
-		this.HpEquip = HpEquip.HardpointEntity;
 	}
 
 	public update(dt: number, force = false): void {
@@ -80,7 +74,7 @@ class EquipManager {
 
 		this.missiles = this.owned.filter(e => e instanceof MissileEntity && !e.fired && !e.type.toLowerCase().includes("/sams/"));
 		this.miscEquips = this.owned.filter(e => {
-			if (!(e instanceof this.HpEquip)) return false;
+			// console.log(this.entity.toString(), e.type, getDisplayEquipName(e.type));
 			return getDisplayEquipName(e.type) != null;
 		});
 	}
@@ -111,9 +105,14 @@ class EquipManager {
 
 		let str = "";
 		for (const key in equips) {
-			str += key + " x" + equips[key] + " ";
+			if (equips[key] > 1) {
+				// str += key + " x" + equips[key] + " ";
+				str += `${key} x${equips[key]} `;
+			} else {
+				str += `${key} `;
+			}
 		}
-
+		console.log(str);
 		return str;
 	}
 
