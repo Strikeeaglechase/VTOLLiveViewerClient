@@ -7,7 +7,7 @@
 			</div>
 		</div>
 		<div class="lobbyBrowser" v-else>
-			<div v-for="game in getReplayRecordings()" :key="game.id">
+			<div v-for="game in getReplayRecordings()" :key="game.recordingId">
 				<RecordedLobbyEntry :lobby="game" />
 			</div>
 		</div>

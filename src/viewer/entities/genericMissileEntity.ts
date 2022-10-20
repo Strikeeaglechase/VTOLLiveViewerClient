@@ -15,11 +15,10 @@ class MissileEntity extends Entity {
 	public fired = false;
 	public dims = { len, wid, hei };
 
-	// public static spawnFor: string[] = ["Weapons/Missiles/AGM-145", "Weapons/Missiles/AGM-161", "Weapons/Missiles/AGM-89", "Weapons/Missiles/AIM-120", "Weapons/Missiles/AIM-120D", "Weapons/Missiles/AIM-9+", "Weapons/Missiles/AIM-9", "Weapons/Missiles/AIM-92", "Weapons/Missiles/AIRS-T", "Weapons/Missiles/APKWS", "Weapons/Missiles/ASF-MRM", "Weapons/Missiles/ASF-SRM", "Weapons/Missiles/CAGM-6", "Weapons/Missiles/CBU-97", "Weapons/Missiles/GBU-12", "Weapons/Missiles/GBU-38", "Weapons/Missiles/GBU-39", "Weapons/Missiles/GBU-39ER", "Weapons/Missiles/GBU-53", "Weapons/Missiles/GMA-14", "Weapons/Missiles/GMA-6", "Weapons/Missiles/HARM", "Weapons/Missiles/Hellfire", "Weapons/Missiles/MARM", "Weapons/Missiles/Maverick", "Weapons/Missiles/MissileTrail", "Weapons/Missiles/MK82", "Weapons/Missiles/MK82HighDrag", "Weapons/Missiles/MK83", "Weapons/Missiles/SB-1", "Weapons/Missiles/SideARM", "Weapons/Missiles/SubMissile", "Weapons/Missiles/TestASM", "Weapons/Missiles/WaspMissile", "Weapons/Missiles/SAMs/APCIRSAM", "Weapons/Missiles/SAMs/BSM-66", "Weapons/Missiles/SAMs/BSM-66LR", "Weapons/Missiles/SAMs/ECarrierIRMissile", "Weapons/Missiles/SAMs/ESSM", "Weapons/Missiles/SAMs/ESuperMissile", "Weapons/Missiles/SAMs/FLKM-100", "Weapons/Missiles/SAMs/HVAvengerSAM", "Weapons/Missiles/SAMs/MAD-4 Missile", "Weapons/Missiles/SAMs/MANPADMissile", "Weapons/Missiles/SAMs/PAC-3", "Weapons/Missiles/SAMs/PAC-3Weak", "Weapons/Missiles/SAMs/RIM-67B", "Weapons/Missiles/SAMs/SaawMissile", "Weapons/Missiles/SAMs/VLSAntiShipMissile", "Weapons/Missiles/AIM-7", "Weapons/Missiles/AIM-9E"];
 	public static spawnFor = new RegExp(/weapons\/missiles\/.*/i);
 
 	constructor(app: Application) {
-		super(app);
+		super(app, { useHostTeam: false });
 	}
 
 	protected async setInactive(reason: string) {

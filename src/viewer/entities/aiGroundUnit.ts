@@ -14,7 +14,9 @@ class AIGroundUnit extends Entity {
 		super(app, {
 			hasBaseLine: false,
 			hasOverlay: true,
-			useInstancedMesh: true
+			useInstancedMesh: true,
+			showInBra: true,
+			useHostTeam: false
 		});
 	}
 

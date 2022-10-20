@@ -6,7 +6,6 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/src/vector";
 import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity } from "../entityBase/entity";
-import { MissileEntity } from "./genericMissileEntity";
 
 @EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94"])
 class PlayerVehicle extends Entity {
@@ -74,8 +73,8 @@ class PlayerVehicle extends Entity {
 		await super.remove();
 		if (this.tgp) this.tgp.remove();
 		if (this.lockLine) this.lockLine.remove();
-		const ownedMissiles = this.app.getEntitiesByOwnerId(this.ownerId).filter(e => e instanceof MissileEntity && !e.fired);
-		ownedMissiles.forEach(m => m.remove());
+		const ownedEntities = this.app.getEntitiesByOwnerId(this.ownerId);
+		ownedEntities.forEach(e => e.canShowAsEquip = false);
 	}
 
 	public getLockingMe() {

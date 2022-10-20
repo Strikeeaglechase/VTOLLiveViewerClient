@@ -186,6 +186,7 @@ class Application {
 	}
 
 	public entities: Entity[] = [];
+	private entitiesByOwner: Record<string, Entity[]> = {};
 	private entitiesToDelete: Entity[] = [];
 
 	private stats = new Stats();
@@ -475,6 +476,13 @@ class Application {
 				return;
 			}
 			this.entities.splice(idx, 1);
+
+			const ownerIdx = this.entitiesByOwner[entity.ownerId]?.indexOf(entity);
+			if (ownerIdx == -1 || ownerIdx == undefined) {
+				console.error(`Entity to delete not found in entitiesByOwner list!`);
+				return;
+			}
+			this.entitiesByOwner[entity.ownerId].splice(ownerIdx, 1);
 		});
 		this.entitiesToDelete = [];
 
@@ -532,14 +540,12 @@ class Application {
 	@RPC("out")
 	genNewAlphaKey(key: string, adminPassword: string) { }
 
-	// private tempEmit = true;
 	private addEntity(entity: Entity): void {
 		this.entities.push(entity);
-		EventBus.$emit("entities", this.entities);
-		// if (this.tempEmit) EventBus.$emit("entities", this.entities);
-		// else console.warn(`Temp emit go brrrr`);
 
-		// this.tempEmit = false;
+		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
+		this.entitiesByOwner[entity.ownerId].push(entity);
+		EventBus.$emit("entities", this.entities);
 	}
 
 	public setFocusTo(entity: Entity): void {
@@ -822,7 +828,7 @@ class Application {
 	}
 
 	public getEntitiesByOwnerId(id: string) {
-		return this.entities.filter(e => e.hasFoundValidOwner && e.owner.steamId == id);
+		return this.entitiesByOwner[id] ?? [];
 	}
 
 	public finalDeleteEntity(entity: Entity) {

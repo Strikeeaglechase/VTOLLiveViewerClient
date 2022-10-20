@@ -36,6 +36,7 @@ type EntityConfig = Partial<{
 	hasBaseLine: boolean;
 	hasOverlay: boolean;
 	useInstancedMesh: boolean;
+	useHostTeam: boolean;
 }>;
 
 // Used for storing replay data, the entity class may be removed but this data should be kept
@@ -146,8 +147,10 @@ class Entity {
 	protected hasBaseLine = false;
 	protected hasOverlay = true;
 	protected useInstancedMesh = false;
+	protected useHostTeam = true;
 
 	private isCreatingMesh = false;
+	public canShowAsEquip = true;
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
 	public equipManager: EquipManager = new EquipManager(this);
@@ -172,6 +175,7 @@ class Entity {
 		this.hasBaseLine = config.hasBaseLine ?? this.hasBaseLine;
 		this.hasOverlay = config.hasOverlay ?? this.hasOverlay;
 		this.useInstancedMesh = config.useInstancedMesh ?? this.useInstancedMesh;
+		this.useHostTeam = config.useHostTeam ?? this.useHostTeam;
 
 		if (!this.showInBra && !this.showInSidebar) {
 			markRaw(this);
@@ -278,7 +282,7 @@ class Entity {
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
 
-		this.maybeCreateTextOverlay(this.mesh.children[0]);
+		this.maybeCreateTextOverlay();
 
 		this.object.name = "Entity Mesh";
 		// this.scene.add(this.object);
@@ -348,9 +352,8 @@ class Entity {
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
 		// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
-		setTimeout(() => {
-			this.maybeCreateTextOverlay(this.object);
-		}, 1500 + Math.random() * 1000);
+
+		this.maybeCreateTextOverlay();
 	}
 
 	protected async createMesh(): Promise<void> {
@@ -382,8 +385,10 @@ class Entity {
 		markRaw(this.meshProxyObject);
 	}
 
-	private maybeCreateTextOverlay(parent: THREE.Object3D) {
+	private maybeCreateTextOverlay() {
 		if (!this.hasOverlay) return;
+		const parent = this.useInstancedMesh ? this.object : this.mesh.children[0];
+
 		this.textOverlay = new TextOverlay(parent, this.type)
 			.edit(this.id.toString())
 			.offset(0, 10, 0)
@@ -433,8 +438,8 @@ class Entity {
 		this.displayName = Entity.identifierToDisplayName(this.type);
 
 		// A sort of shitty way to tell if AI is allied or enemy, but it works
-		if (path.includes("Allied")) this.team = Team.A;
-		if (path.includes("Enemy")) this.team = Team.B;
+		if (path.includes("Allied")) this.setTeam(Team.A);
+		if (path.includes("Enemy")) this.setTeam(Team.B);
 
 		this.tryFindOwner();
 	}
@@ -450,7 +455,7 @@ class Entity {
 		if (owner) {
 			this.owner = owner;
 			this.hasFoundValidOwner = true;
-			this.setTeam(owner.team);
+			if (this.useHostTeam) this.setTeam(owner.team);
 		}
 	}
 
@@ -524,7 +529,7 @@ class Entity {
 		this.gForce = (this.acceleration.length() / 9.8 + 1);
 		this.maxGForce = Math.max(this.maxGForce, this.gForce);
 
-		if (this.owner) this.team = this.owner.team;
+		if (this.owner && this.useHostTeam) this.team = this.owner.team;
 
 		// Object gets position, meshProxyObject gets rotation, things that want to parent to pos but not rot can use `object`
 		this.object.position.set(this.position.x, this.position.y, this.position.z);

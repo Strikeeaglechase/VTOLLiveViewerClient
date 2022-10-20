@@ -54,7 +54,6 @@ class EquipManager {
 	private owned: Entity[] = [];
 	private missiles: Entity[] = [];
 	private miscEquips: Entity[] = [];
-	private HpEquip: any; // Holy fuck this is bad, but webpack shits itself if we do this correctly
 
 	private lastUpdate = 0;
 
@@ -68,13 +67,9 @@ class EquipManager {
 		if (d - this.lastUpdate < 1000 && !force) return;
 		this.lastUpdate = d;
 
-		this.owned = this.entity.app.entities.filter(entity => {
-			return entity.ownerId == this.entity.ownerId;
-		});
-
+		this.owned = this.entity.app.getEntitiesByOwnerId(this.entity.ownerId).filter(e => e.canShowAsEquip);
 		this.missiles = this.owned.filter(e => e instanceof MissileEntity && !e.fired && !e.type.toLowerCase().includes("/sams/"));
 		this.miscEquips = this.owned.filter(e => {
-			// console.log(this.entity.toString(), e.type, getDisplayEquipName(e.type));
 			return getDisplayEquipName(e.type) != null;
 		});
 	}
@@ -105,14 +100,13 @@ class EquipManager {
 
 		let str = "";
 		for (const key in equips) {
+			if (str.length > 0) str += ", ";
 			if (equips[key] > 1) {
-				// str += key + " x" + equips[key] + " ";
-				str += `${key} x${equips[key]} `;
+				str += `${key} x${equips[key]}`;
 			} else {
-				str += `${key} `;
+				str += `${key}`;
 			}
 		}
-		console.log(str);
 		return str;
 	}
 
