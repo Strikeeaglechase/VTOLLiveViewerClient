@@ -22,7 +22,7 @@
 		}
 
 		handleClick() {
-			if (IS_ALPHA && !getCookie("alpha_key")) {
+			if (IS_ALPHA && !getCookie("alpha_key") && location.pathname != "/replay") {
 				const key = prompt("Enter alpha key:");
 				if (!key) {
 					return;

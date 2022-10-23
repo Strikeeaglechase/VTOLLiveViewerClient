@@ -15,7 +15,7 @@ class AIGroundUnit extends Entity {
 			hasBaseLine: false,
 			hasOverlay: true,
 			useInstancedMesh: true,
-			showInBra: true,
+			showInBra: false,
 			useHostTeam: false
 		});
 	}
