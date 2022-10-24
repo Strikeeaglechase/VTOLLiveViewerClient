@@ -1,11 +1,12 @@
 <template>
 	<div id="app">
 		<div id="main-container" v-show="isRunning()">
-			<Sidebar />
-			<UnitRange />
+			<Sidebar class="ui" />
+			<UnitRange class="ui" />
+			<!-- <ReplayInfo class="ui" /> -->
 		</div>
 		<div id="lobby-select-container" v-show="isLobbySelect()">
-			<LobbyBrowser />
+			<LobbyBrowser :state="state" />
 		</div>
 		<div id="welcome-page" v-show="isWelcome()">
 			<Welcome />
@@ -22,14 +23,16 @@
 	import { Application, ApplicationRunningState } from "./viewer/app";
 	import { EventBus } from "./eventBus";
 	import Welcome from "./components/welcome/Welcome.vue";
+	import ReplayInfo from "./components/ReplayInfo.vue";
 
-	@Component({ components: { Sidebar, UnitRange, LobbyBrowser, Welcome } })
+	@Component({
+		components: { Sidebar, UnitRange, LobbyBrowser, Welcome, ReplayInfo },
+	})
 	export default class App extends Vue {
 		state: ApplicationRunningState = ApplicationRunningState.welcome;
 		mounted() {
 			EventBus.$on("state", (state: ApplicationRunningState) => {
 				this.state = state;
-				console.log(this.state);
 			});
 		}
 
@@ -38,7 +41,10 @@
 		}
 
 		isLobbySelect() {
-			return this.state == ApplicationRunningState.lobbySelect;
+			return (
+				this.state == ApplicationRunningState.lobbySelect ||
+				this.state == ApplicationRunningState.replaySelect
+			);
 		}
 
 		isWelcome() {

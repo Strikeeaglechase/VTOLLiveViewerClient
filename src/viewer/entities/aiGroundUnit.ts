@@ -1,7 +1,7 @@
 
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
@@ -14,18 +14,27 @@ class AIGroundUnit extends Entity {
 		super(app, {
 			hasBaseLine: false,
 			hasOverlay: true,
-			useInstancedMesh: true
+			useInstancedMesh: true,
+			showInBra: false,
+			useHostTeam: false
 		});
+	}
+
+	// Protect AI team, don't want to inherit from host
+	protected setTeam(team: Team) {
+		if (this.team != Team.Unknown && this.team != team) return;
+
+		super.setTeam(team);
 	}
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
 		super.spawn(id, ownerId, path, position, rotation, isActive);
 		this.hasOverlay = !(path == "Units/Allied/AlliedSoldier" || path == "Units/Enemy/EnemySoldier");
-		if (isActive) await this.setActive();
+		if (isActive) await this.setActive(`AI spawned as active`);
 	}
 
-	public async setActive(): Promise<void> {
-		await super.setActive();
+	public async setActive(reason: string): Promise<void> {
+		await super.setActive(reason);
 		// Make ground units generally bigger
 		// This is sorta scuffed, scale system needs looking at
 		if (this.scaleDamper == 1) this.scaleDamper = 5;
@@ -59,7 +68,7 @@ class AIGroundUnit extends Entity {
 
 	@RPC("in")
 	Spawn() {
-		this.setActive();
+		this.setActive(`AI got spawn RPC`);
 	}
 }
 

@@ -18,6 +18,7 @@ import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
 import { GunEntity } from "./entities/gunEntity";
+import { HardpointEntity } from "./entities/hardpointEntity";
 import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
 import { BulletManager } from "./managers/bulletManager";
@@ -25,6 +26,8 @@ import { FlareManager } from "./managers/flareManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
+
+const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
 const rad = (deg: number): number => deg * Math.PI / 180;
 const deg = (rad: number): number => rad * 180 / Math.PI;
@@ -61,14 +64,13 @@ class MessageHandler {
 
 	@RPC("in")
 	NetDestroy(id: number) {
-		for (let i = 0; i < this.app.entities.length; i++) {
-			if (this.app.entities[i].id == id) {
-				// console.log(`Got despawn for ${id} - ${this.app.entities[i].displayName}`);
-				this.app.entities[i].remove();
-				this.app.entities.splice(i, 1);
-				return;
-			}
+		const entity = this.app.getEntityById(id);
+		if (!entity) {
+			console.warn(`Got despawn for unknown entity ${id}`);
+			return;
 		}
+		console.log(`Got despawn for ${entity}`);
+		entity.remove();
 	}
 
 	@RPC("in")
@@ -81,36 +83,124 @@ class MessageHandler {
 enum ApplicationRunningState {
 	welcome = "welcome",
 	lobbySelect = "lobby_select",
+	replaySelect = "replay_select",
 	running = "running",
 	lobbyEnd = "lobby_end",
 }
+
+interface ReplaceRPCHandler {
+	className: string;
+	method: string;
+	handler: (app: Application, rpc: RPCPacket) => boolean | RPCPacket;
+}
+
+// Handles "undoing" RPCs when the replay is running in reverse
+// Can return false to prevent the RPC from executing, or can return a different RPC to execute
+const replaceRPCHandlers: ReplaceRPCHandler[] = [
+	{
+		className: "MessageHandler",
+		method: "NetInstantiate",
+		handler: (app: Application, rpc: RPCPacket) => {
+			const [id, ownerId, path, pos, rot, active] = rpc.args;
+			console.log(`Reversing NetInstantiate for ${id}`);
+			app.messageHandler.NetDestroy(id);
+			return false;
+		}
+	},
+	{
+		className: "MessageHandler",
+		method: "NetDestroy",
+		handler: (app: Application, rpc: RPCPacket) => {
+			const [id] = rpc.args;
+			console.log(`Reversing NetDestroy for ${id}`);
+			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
+			if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);
+			else return spawnPacket;
+			return false;
+		}
+	},
+	{
+		className: "MissileEntity",
+		method: "Detonate",
+		handler: (app: Application, rpc: RPCPacket) => {
+			console.log(`Reversing Detonate for missile ${rpc.id}`);
+			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == rpc.id);
+			if (!spawnPacket) console.error(`Attempting to undo detonate for ${rpc.id} but no spawn packet found`);
+			else return spawnPacket;
+			return false;
+		}
+	},
+	{
+		className: "PlayerVehicle",
+		method: "SetLock",
+		handler: (app: Application, rpc: RPCPacket) => {
+			console.log(`Reversing SetLock for ${rpc.id} -> ${rpc.args[0]} (was ${rpc.args[1]})`);
+			const rpcCopy = JSON.parse(JSON.stringify(rpc));
+			rpcCopy.args[1] = !rpcCopy.args[1];
+			return rpcCopy;
+		}
+	}
+];
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
 class Application {
 	private container: HTMLDivElement;
+	public messageHandler: MessageHandler;
+	public client: Client;
 	public sceneManager = new SceneManager(this);
 	private mapLoader = new MapLoader(this.sceneManager);
+	public meshLoader: MeshLoader = new MeshLoader();
+	public bulletManager: BulletManager;
+	public flareManager: FlareManager;
 
-	private isOfflineTest = false;
+	// TODO: Move replay to its own class
+	public replayPackets: RPCPacket[] = [];
+	private groupedReplayPackets: RPCPacket[][] = [];
+	private onReplayChunk: (() => void) | null = null;
+	public isReplay = false;
+	private replayStartTime = 0;
+	private currentReplayChunkReceive = 0;
+	private replayCurrentTime = 0;
+	private prevReplayTime = 0;
+	private firstRealReplayDataTime = 0;
+	private replaySpeed = 7;
+	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
+	private previousReplayTimeDirection = 1;
+	// private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
+	private get computedReplaySpeed(): number {
+		return REPLAY_SPEEDS[this.replaySpeed];
+	}
+	public get timeDirection(): number {
+		if (!this.isReplay) return 1;
+		return this.computedReplaySpeed >= 0 ? 1 : -1;
+	}
+
+	public get time(): number {
+		if (this.isReplay) return this.replayCurrentTime;
+		return Date.now();
+	}
+
+	public static get time() {
+		return this.instance.time;
+	}
 
 	public entities: Entity[] = [];
-	public client: Client;
-	private messageHandler: MessageHandler;
+	private entitiesByOwner: Record<string, Entity[]> = {};
+	private entitiesToDelete: Entity[] = [];
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
 	public socket: WebSocket;
+	private timeouts: { func: () => void; startAt: number; time: number; }[] = [];
 
-	public meshLoader: MeshLoader = new MeshLoader();
-	public bulletManager: BulletManager;
-	public flareManager: FlareManager;
+	private isUiHidden = false;
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
-	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit];
+	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit, HardpointEntity];
 
 	public static instance: Application;
 	public static state: ApplicationRunningState = ApplicationRunningState.welcome;
@@ -124,8 +214,14 @@ class Application {
 	}
 
 	public static setState(state: ApplicationRunningState) {
+		if (state == ApplicationRunningState.lobbySelect && location.pathname == "/replay") {
+			state = ApplicationRunningState.replaySelect;
+			console.log(`Switching to replay select state rather than regular lobby select`);
+		}
 		Application.state = state;
+		Application.instance.state = state;
 		EventBus.$emit("state", state);
+		console.log(`New application state: ${state}`);
 	}
 
 	public async init(): Promise<void> {
@@ -173,6 +269,7 @@ class Application {
 
 		this.stats.showPanel(0);
 		document.body.appendChild(this.stats.dom);
+		this.stats.dom.classList.add("ui");
 
 		Application.setState(ApplicationRunningState.running);
 
@@ -217,7 +314,6 @@ class Application {
 
 	// Sets up a testing scene with a variety of entities
 	private async offlineTestSetup() {
-		this.isOfflineTest = true;
 		await this.start();
 		this.game = new VTOLLobby("0");
 		this.game.players.push({
@@ -253,7 +349,7 @@ class Application {
 		this.entities.push(missile);
 
 		const patriot = new AIGroundUnit(this);
-		patriot.spawn(id++, "0", "Units/Allied/PatriotLauncher", new Vector(40, 0, 0), new Vector(0, 0, 0), true);
+		patriot.spawn(id++, "0", "Units/Allied/AlliedBackstopSAM", new Vector(40, 0, 0), new Vector(0, 0, 0), true);
 		this.entities.push(patriot);
 
 		for (let i = 0; i < 1; i++) {
@@ -270,7 +366,7 @@ class Application {
 		const cam = this.sceneManager.cameraController.fakeCamera;
 		setTimeout(async () => {
 			cam.position.set(-2, 57, -90);
-			this.setFocusTo(aircraft);
+			aircraft.focus();
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 
@@ -285,25 +381,120 @@ class Application {
 		}, 250);
 	}
 
+	private packetIsInTimeframe(packet: RPCPacket) {
+		const fromRecordingStart = (packet.timestamp ?? Date.now()) - this.replayStartTime;
+
+		if (this.computedReplaySpeed > 0) {
+			return fromRecordingStart <= this.replayCurrentTime && fromRecordingStart > this.prevReplayTime;
+		} else if (this.computedReplaySpeed < 0) {
+			return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
+		}
+
+		return false;
+	}
+
+	private runReplay(expectedDt: number): number {
+		if (expectedDt > 1000) {
+			console.warn(`Expected dt excessive ${expectedDt}`);
+			expectedDt = 1000 / 60;
+		}
+		// console.log(expectedDt, this.computedReplaySpeed, this.replayCurrentTime);
+		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
+		const curSec = Math.floor(this.replayCurrentTime / 1000);
+		const prevSec = Math.floor(this.prevReplayTime / 1000);
+		const currentPacketGroup = this.groupedReplayPackets[curSec] ?? [];
+		const prevPacketGroup = this.groupedReplayPackets[prevSec] ?? [];
+
+		let packets: RPCPacket[];
+		if (curSec != prevSec) packets = [...currentPacketGroup, ...prevPacketGroup];
+		else packets = currentPacketGroup;
+		// if (this.computedReplaySpeed != 0) console.log(`${this.replayCurrentTime} - ${curSec}/${prevSec} - ${inTimeframePackets.length}/${packets.length}`);
+
+		const inTimeframePackets = packets.filter(packet => this.packetIsInTimeframe(packet));
+		this.runReplayOnPackets(inTimeframePackets);
+
+		this.prevReplayTime = this.replayCurrentTime;
+		return expectedDt * this.computedReplaySpeed;
+	}
+
+	private runReplayOnPackets(packets: RPCPacket[]) {
+		const resultPackets: RPCPacket[] = [];
+		packets.forEach(packet => {
+			if (this.computedReplaySpeed < 0) {
+				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
+				// if (packet.method == "NetDestroy") console.log(`Net destroy packet handled`);
+				if (handler) {
+					const res = handler.handler(this, packet);
+					if (!res) return;
+					if (typeof res == "object") resultPackets.push(res);
+					else resultPackets.push(packet);
+				} else {
+					resultPackets.push(packet);
+				}
+			} else {
+				resultPackets.push(packet);
+			}
+		});
+
+		resultPackets.forEach(packet => {
+			// console.log(`(${packet.id}) ${packet.className}.${packet.method}`);
+			// const hit = this.packetHits[packet.pid as number];
+			// hit.hits++;
+			// hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
+			const untouchedTime = this.replayCurrentTime;
+			this.replayCurrentTime = (packet.timestamp ?? (this.replayCurrentTime + this.replayStartTime)) - this.replayStartTime;
+			RPCController.handlePacket(packet);
+			this.replayCurrentTime = untouchedTime;
+		});
+	}
 
 	private run(): void {
 		this.stats.begin();
 
 		const d = Date.now();
-		const dt = d - this.prevFrameTime;
+		let dt = d - this.prevFrameTime;
+		if (this.isReplay) {
+			dt = this.runReplay(dt);
+		}
 		this.prevFrameTime = d;
 
 		this.entities.forEach(entity => {
-			if (entity.isActive) entity.update(dt);
+			try {
+				if (entity.isActive) entity.update(dt);
+				else entity.runInactiveUpdate(dt);
+			} catch (e) {
+				console.error(`Exception in entity update for ${entity}`);
+				throw e;
+			}
 		});
+
+		this.entitiesToDelete.forEach(entity => {
+			console.log(`Finalizing entity delete ${entity}`);
+			const idx = this.entities.indexOf(entity);
+			if (idx == -1) {
+				console.error(`Entity to delete not found in entities list!`);
+				return;
+			}
+			this.entities.splice(idx, 1);
+
+			const ownerIdx = this.entitiesByOwner[entity.ownerId]?.indexOf(entity);
+			if (ownerIdx == -1 || ownerIdx == undefined) {
+				console.error(`Entity to delete not found in entitiesByOwner list!`);
+				return;
+			}
+			this.entitiesByOwner[entity.ownerId].splice(ownerIdx, 1);
+		});
+		this.entitiesToDelete = [];
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
+		this.runTimeouts();
 
 		this.gameList = this.gameList.filter(g => g.isOpen);
 
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
+
 
 		// Track websocket usage
 		if (debug_ws_usage && this.tick++ % 60 == 0) {
@@ -351,10 +542,15 @@ class Application {
 
 	private addEntity(entity: Entity): void {
 		this.entities.push(entity);
+
+		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
+		this.entitiesByOwner[entity.ownerId].push(entity);
 		EventBus.$emit("entities", this.entities);
 	}
 
 	public setFocusTo(entity: Entity): void {
+		console.log(`Setting focus to ${entity}`);
+		EventBus.$emit("focused-entity", entity);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
@@ -382,9 +578,9 @@ class Application {
 			});
 	}
 
-	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isAcitve: boolean) {
+	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean) {
 		// Resolve the class that handles this type of entity 
-		let EntityClass;
+		let EntityClass = null;
 		for (let i = 0; i < this.spawnables.length; i++) {
 			const eClass = this.spawnables[i];
 			if (Array.isArray(eClass.spawnFor)) {
@@ -393,18 +589,25 @@ class Application {
 					EntityClass = eClass;
 					break;
 				}
-			} else {
-				const v = eClass.spawnFor.test(path.trim());
-				if (v) {
-					EntityClass = eClass;
-					break;
+			}
+		}
+
+		if (EntityClass == null) {
+			for (let i = 0; i < this.spawnables.length; i++) {
+				const eClass = this.spawnables[i];
+				if (!Array.isArray(eClass.spawnFor)) {
+					const v = eClass.spawnFor.test(path.trim());
+					if (v) {
+						EntityClass = eClass;
+						break;
+					}
 				}
 			}
 		}
 
 		if (!EntityClass) {
 			// We don't care about HPEquips and Rearm points so don't log errors for that
-			if (!path.startsWith("HPEquips") && !path.includes("Rearm")) console.warn(`Unable to locate entity handler for ${path}`);
+			if (!path.includes("Rearm")) console.error(`Unable to locate entity handler for ${path}`);
 			return;
 		}
 
@@ -413,7 +616,8 @@ class Application {
 		// console.log(EntityClass.constructor.toString().match(/function (\w*)/)[1]);
 		// console.log(`Entity net.prototype instantiate ${path} [${id}] owner: ${ownerId}. Entity: ${EntityClass}`);
 		const entity = new EntityClass(this);
-		entity.spawn(id, ownerId, path, position, rotation, isAcitve);
+		entity.spawn(id, ownerId, path, position, rotation, isActive);
+		console.log(`Entity ${entity} spawned as ${entity.__name}. Spawn as active: ${isActive}`);
 		this.addEntity(entity);
 	}
 
@@ -437,6 +641,60 @@ class Application {
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 	}
 
+	public requestReplay(replayId: string, onProgress?: (progress: number) => void) {
+		this.client.replayGame(replayId);
+		return new Promise<void>(res => {
+			this.currentReplayChunkReceive = 0;
+			this.onReplayChunk = () => {
+				this.currentReplayChunkReceive++;
+				if (this.currentReplayChunkReceive == this.client.expectedReplayChunks) {
+					res();
+					this.onReplayChunk = null;
+				}
+				if (onProgress) onProgress(this.currentReplayChunkReceive / this.client.expectedReplayChunks);
+			};
+		});
+	}
+
+	public async beginReplay(id: string) {
+		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
+		this.isReplay = true;
+		if (this.replayPackets[0].timestamp == undefined) {
+			console.error(`Replay packet 0 has no timestamp`);
+			return;
+		}
+		this.replayStartTime = this.replayPackets[0].timestamp;
+		this.replayCurrentTime = 0;
+		this.messageHandler = new MessageHandler(id, this);
+		let game = this.gameList.find(g => g.id == id);
+		if (!game) {
+			// TODO: Research this more, seems like sometimes we have an existing game entry? Inconsistent behavior bad
+			console.warn(`Unable to find game with ID ${id}`);
+			game = new VTOLLobby(id);
+		}
+		this.game = game;
+
+		await this.start();
+
+		let initPackets: RPCPacket[] = [];
+		if (this.firstRealReplayDataTime != 0) {
+			initPackets = this.replayPackets.filter(p => ((p.timestamp ?? Date.now()) - this.replayStartTime) < this.firstRealReplayDataTime);
+		} else if (this.groupedReplayPackets[0]) {
+			initPackets = this.groupedReplayPackets[0];
+		}
+		console.log(`Handling ${initPackets.length} init packets`);
+		this.runReplayOnPackets(initPackets);
+		this.groupedReplayPackets[0] = [];
+
+		console.log(`Waiting for mission info`);
+		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+		console.log(`Got mission info!`);
+		if (this.replayCurrentTime < this.firstRealReplayDataTime) {
+			this.replayCurrentTime = this.firstRealReplayDataTime;
+			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
+		}
+	}
+
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {
 		const raycaster = new THREE.Raycaster();
 		const x = (screenX / window.innerWidth) * 2 - 1;
@@ -458,9 +716,16 @@ class Application {
 		if (intersections.length > 0) {
 			const entity = validEntities.find(e => e.isInteractionMesh(intersections[0].object, intersections[0].instanceId));
 			if (entity) {
-				this.setFocusTo(entity);
+				entity.focus();
+				return;
 			}
 		}
+
+		this.sceneManager.overlayElements.forEach(elm => {
+			if (elm.onDblClick && elm.isInBounds(e.clientX, e.clientY)) {
+				elm.onDblClick(e);
+			}
+		});
 	}
 
 	// Websocket debug
@@ -470,6 +735,7 @@ class Application {
 	private lMessages = 0;
 	private lBytes = 0;
 	private tick = 0;
+	private packetPid = 0;
 
 	public packets: RPCPacket[] = [];
 
@@ -498,10 +764,55 @@ class Application {
 			const data = message.data as Blob;
 			const bytes = new Uint8Array(await data.arrayBuffer());
 			this.bytes += bytes.length;
-			RPCController.handlePacket(bytes);
-			const rpcs = decompressRpcPackets([...bytes]);
-			this.rpcs += rpcs.length;
+
+			const headerBytes = bytes.slice(0, "REPLAY".length);
+			const header = String.fromCharCode(...headerBytes);
+			if (header == "REPLAY") {
+				this.handleReplayChunk(bytes);
+			} else {
+				RPCController.handlePacket(bytes);
+				const rpcs = decompressRpcPackets([...bytes]);
+				this.rpcs += rpcs.length;
+			}
 		}
+	}
+
+	private handleReplayChunk(bytes: Uint8Array) {
+		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
+		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp ?? Date.now();
+		this.replayPackets.push(...rpcs);
+		console.log(`Got replay chunk ${this.currentReplayChunkReceive} with ${rpcs.length} packets (${bytes.length} bytes)`);
+
+		if (rpcs[0].timestamp == undefined) {
+			console.error(`Replay packet chunk ${this.currentReplayChunkReceive} packet 0 has no timestamp`);
+			// Interpolate timestamps
+			const msPerChunk = 30 * 1000;
+			const tsStep = msPerChunk / rpcs.length;
+			rpcs.forEach((rpc, idx) => {
+				rpc.timestamp = this.currentReplayChunkReceive * msPerChunk + tsStep * idx;
+			});
+		}
+
+		// const sec = Math.floor(((rpcs[0].timestamp ?? Date.now()) - this.replayStartTime) / 1000);
+
+
+		rpcs.forEach(rpc => {
+			const sec = Math.floor(((rpc.timestamp ?? Date.now()) - this.replayStartTime) / 1000);
+			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
+			this.groupedReplayPackets[sec].push(rpc);
+
+			// Yeah this is bad, I don't know a better way to identify where data starts. Tbh not sure why data is being stored way before the start timestamp
+			if (sec != 0 && this.firstRealReplayDataTime == 0 && this.groupedReplayPackets[sec].length > 10) {
+				this.firstRealReplayDataTime = (rpc.timestamp ?? Date.now()) - this.replayStartTime;
+				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
+			}
+
+			rpc.pid = this.packetPid++;
+			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
+		});
+
+		if (this.onReplayChunk) this.onReplayChunk();
+		else console.warn(`Received replay chunk without onReplayChunk callback`);
 	}
 
 	public getEntityByUnitId(unitId: number) {
@@ -516,13 +827,92 @@ class Application {
 		return this.entities.find(e => e.hasFoundValidOwner && e.owner.entityId == e.id && e.owner.pilotName == name);
 	}
 
+	public getEntitiesByOwnerId(id: string) {
+		return this.entitiesByOwner[id] ?? [];
+	}
+
+	public finalDeleteEntity(entity: Entity) {
+		this.entitiesToDelete.push(entity);
+	}
+
 	private handleResize(): void {
 		this.sceneManager.handleResize();
 	}
 
+	private toggleUI() {
+		this.isUiHidden = !this.isUiHidden;
+		const elms = document.getElementsByClassName("ui");
+
+		for (const e of elms) {
+			const elm = e as HTMLDivElement;
+			if (this.isUiHidden) {
+				if (elm.style.display != "none") {
+					elm.setAttribute("prev-display", elm.style.display);
+					elm.style.display = "none";
+				}
+			} else {
+				if (elm.style.display == "none") {
+					elm.style.display = elm.getAttribute("prev-display") || "block";
+				}
+			}
+		}
+	}
+
+	private handleKeyDown(e: KeyboardEvent) {
+		if (Application.state != ApplicationRunningState.running) return;
+
+		if (e.key == "f") this.toggleUI();
+
+		const prevReplay = REPLAY_SPEEDS[this.replaySpeed];
+		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);
+		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
+		// console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
+
+		// if (prevReplay < 0 && this.computedReplaySpeed > 0) {
+		// 	this.onTimeFlipHandlers.forEach(handler => handler(1));
+		// }
+		// 
+		// if (prevReplay > 0 && this.computedReplaySpeed < 0) {
+		// 	this.onTimeFlipHandlers.forEach(handler => handler(-1));
+		// }
+		if (this.computedReplaySpeed != 0) {
+			if (this.timeDirection != this.previousReplayTimeDirection) {
+				this.onTimeFlipHandlers.forEach(handler => handler(this.timeDirection));
+				this.previousReplayTimeDirection = this.timeDirection;
+			}
+		}
+	}
+
+	// private handleKeyUp(e: KeyboardEvent) {
+	// 	if (e.key == "f") {
+	// 		const elms = document.getElementsByClassName("ui");
+	// 		for (const e of elms) {
+	// 			const elm = e as HTMLDivElement;
+
+	// 		}
+	// 	}
+	// }
+
 	private addWindowEventHandlers(): void {
 		window.addEventListener("resize", () => this.handleResize());
 		window.addEventListener("dblclick", (e) => this.handleMouseClick(e));
+		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
+	}
+
+	public onTimeFlip(handler: (newDir: number) => void): void {
+		this.onTimeFlipHandlers.push(handler);
+	}
+
+	private runTimeouts() {
+		const now = Application.time;
+		const timeouts = this.timeouts.filter(t => t.time + t.startAt <= now);
+		timeouts.forEach(t => t.func());
+		this.timeouts = this.timeouts.filter(t => t.time + t.startAt > now || now < t.startAt);
+	}
+
+	public setTimeout(handler: () => void, ms: number): void {
+		this.timeouts.push({ func: handler, time: ms, startAt: Application.time });
 	}
 }
 

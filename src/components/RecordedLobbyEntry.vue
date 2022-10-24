@@ -15,18 +15,17 @@
 			class="long-text"
 			:class="{ grey: lobby.playerCount >= lobby.maxPlayers }"
 		>
-			<span class="name">{{ lobby.name }} &nbsp; </span>
+			<span class="date">{{ getDate() }} &nbsp; </span>
+			<span class="name">{{ lobby.lobbyName }} &nbsp; </span>
 			<span class="mission"> {{ lobby.missionName }} &nbsp; </span>
-			<span class="players">
-				{{ lobby.playerCount }} / {{ lobby.maxPlayers }}
+			<span class="time">
+				{{ parseTime(lobby.time) }}
 			</span>
 		</div>
-		<button
-			v-on:click="joinLobby()"
-			:class="{ disableBtn: lobby.playerCount >= lobby.maxPlayers }"
-		>
+		<button v-on:click="joinLobby()" style="margin-right: 0px">
 			{{ joinBtnText }}
 		</button>
+		<button v-on:click="download()">Download</button>
 	</div>
 </template>
 
@@ -34,56 +33,78 @@
 	import { Component, Prop, Vue } from "vue-property-decorator";
 	import {
 		LobbyConnectionStatus,
+		RecordedLobbyInfo,
 		VTOLLobby,
 	} from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import { API_URL } from "../config";
 	import { Application } from "../viewer/app";
 
 	@Component({ components: {} })
-	export default class LobbyEntry extends Vue {
+	export default class RecordedLobbyEntry extends Vue {
 		@Prop()
-		lobby!: VTOLLobby;
+		lobby!: RecordedLobbyInfo;
 
-		joinBtnText = "Join";
+		joinBtnText = "View";
 
-		joinLobby() {
-			console.log(`Joining lobby ${this.lobby.id}`);
-			if (this.lobby.state == LobbyConnectionStatus.Connected) {
-				Application.instance.subscribe(this.lobby);
+		async joinLobby() {
+			if (this.joinBtnText != "View") {
+				console.warn(`Tried to join lobby ${this.lobby.lobbyId} twice`);
+				return;
 			}
 
-			this.lobby.state = LobbyConnectionStatus.Connecting;
-			this.joinBtnText = "Connecting...";
-			if (this.lobby.isPrivate) {
-				const password = prompt("Enter password");
-				if (!password) return;
-				Application.instance.requestJoinPrivateLobby(
-					this.lobby.id,
-					password
-				);
-			} else {
-				Application.instance.requestJoinLobby(this.lobby.id);
-			}
-			this.lobby.waitForConnectionResult().then((status) => {
-				if (status == LobbyConnectionStatus.Connected) {
-					Application.instance.subscribe(this.lobby);
-				} else if (status == LobbyConnectionStatus.Invalid) {
-					this.joinBtnText = "Invalid password";
-					setTimeout(() => {
-						this.joinBtnText = "Join";
-					}, 3000);
-				}
-			});
-			// Application.instance.subscribe(this.lobby);
+			console.log(
+				`Requesting replay for ${this.lobby.lobbyName} Recording ID: ${this.lobby.recordingId}`
+			);
+
+			this.joinBtnText = "Loading...";
+			await Application.instance.requestReplay(
+				this.lobby.recordingId,
+				(n) => (this.joinBtnText = `${(n * 100).toFixed(0)}%`)
+			);
+			this.joinBtnText = "Starting";
+			Application.instance.beginReplay(this.lobby.lobbyId);
+		}
+
+		parseTime() {
+			const totalSeconds = this.lobby.duration / 1000;
+			const totalMinutes = totalSeconds / 60;
+			const totalHours = totalMinutes / 60;
+			const z = (v: number) => (v < 10 ? "0" + Math.floor(v) : Math.floor(v));
+
+			const seconds = z(totalSeconds % 60);
+			const minutes = z(totalMinutes % 60);
+			const hours = z(totalHours % 60);
+			return `${hours}:${minutes}:${seconds}`;
+		}
+
+		async download() {
+			const req = await fetch(`${API_URL}/recordings/${this.lobby.lobbyId}`);
+			const data = await req.blob();
+			const url = window.URL.createObjectURL(data);
+			const a = document.createElement("a");
+			a.style.display = "none";
+			a.download = `${this.lobby.lobbyName}-${new Date(
+				this.lobby.startTime || Date.now()
+			).toISOString()}.vtgr`;
+			a.href = url;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+		}
+
+		getDate() {
+			return new Date(this.lobby.startTime || Date.now())
+				.toISOString()
+				.substring(0, 10);
 		}
 
 		getPreviewImageUrl() {
-			if (!this.lobby.mission)
-				return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
+			// if (!this.lobby.mission)
+			// 	return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
 
-			if (this.lobby.mission.isBuiltin)
-				return `${API_URL}/previewBuiltin/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
-			return `${API_URL}/preview/${this.lobby.mission.workshopId}/${this.lobby.mission.id}`;
+			if (this.lobby.type == "built-in")
+				return `${API_URL}/previewBuiltin/${this.lobby.campaignId}/${this.lobby.missionId}`;
+			return `${API_URL}/preview/${this.lobby.campaignId}/${this.lobby.missionId}`;
 		}
 	}
 </script>

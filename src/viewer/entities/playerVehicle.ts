@@ -26,7 +26,7 @@ class PlayerVehicle extends Entity {
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
 		super.spawn(id, ownerId, path, position, rotation, isActive);
-		await this.setActive();
+		await this.setActive(`Player vehicle spawned`);
 		this.showInSidebar = true;
 		this.textOverlay.combineId = null;
 
@@ -45,11 +45,17 @@ class PlayerVehicle extends Entity {
 		this.meshProxyObject.add(this.playerHeadLine);
 	}
 
+	protected override onScaleUpdate(): void {
+		super.onScaleUpdate();
+		// Keep head the same size by scaling with the inverse of the scale
+		if (this.playerHeadLine) this.playerHeadLine.scale.set(1 / this.scale, 1 / this.scale, 1 / this.scale);
+	}
+
 	public update(dt: number): void {
 		super.update(dt);
 
-		this.tgp.update();
-		this.lockLine.update();
+		if (this.tgp) this.tgp.update();
+		if (this.lockLine) this.lockLine.update();
 
 		// Sometimes player's don't get a team until after the spawn, lets check for that
 		if (this.hasFoundValidOwner && this.team != this.owner.team) {
@@ -67,6 +73,8 @@ class PlayerVehicle extends Entity {
 		await super.remove();
 		if (this.tgp) this.tgp.remove();
 		if (this.lockLine) this.lockLine.remove();
+		const ownedEntities = this.app.getEntitiesByOwnerId(this.ownerId);
+		ownedEntities.forEach(e => e.canShowAsEquip = false);
 	}
 
 	public getLockingMe() {
@@ -100,6 +108,8 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	SetLock(actorId: number, isLocked: boolean) {
+		if (!this.lockLine) return;
+		console.log(`${this} SetLock ${actorId} ${isLocked}`);
 		const actor = this.app.getEntityByUnitId(actorId);
 		if (!actor) return console.error(`Unable to find ActorId ${actorId} for SetLock ${isLocked}`);
 
@@ -118,6 +128,11 @@ class PlayerVehicle extends Entity {
 	@RPC("in")
 	Die() {
 		this.triggerDeath();
+	}
+
+	@RPC("in")
+	SetFuel(tank: number, fuel: number) {
+		if (tank == 0) this.equipManager.fuel = fuel;
 	}
 }
 

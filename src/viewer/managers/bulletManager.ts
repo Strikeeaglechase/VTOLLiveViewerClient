@@ -1,6 +1,8 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
+import { Application } from "../app";
 import { SceneManager } from "./sceneManager.js";
 
 const BULLET_MAX_LT = 5 * 1000; // 5 seconds
@@ -43,12 +45,14 @@ class Bullet {
 			this.cylinder.visible = false;
 			masterBulletObject.add(this.cylinder);
 		}
+
+		markRaw(this);
 	}
 
 	public fire(position: Vector, velocity: Vector,) {
 		this.position = position;
 		this.velocity = velocity;
-		this.firedAt = Date.now();
+		this.firedAt = Application.time;
 		this.isAlive = true;
 
 		if (USE_BULLET_LINE) {
@@ -61,7 +65,7 @@ class Bullet {
 	public update(dt: number): BulletReturnState {
 		if (!this.isAlive) return BulletReturnState.free;
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));
-		const futurePos = this.position.add(this.velocity.multiply(dt / 1000));
+		const futurePos = this.position.add(this.velocity.multiply(16.6 / 1000));
 
 		if (USE_BULLET_LINE) {
 			const pos = this.lineGeometry.attributes["position"].array as Float32Array;
@@ -88,7 +92,7 @@ class Bullet {
 			this.cylinder.position.set(this.position.x, this.position.y, this.position.z);
 		}
 
-		this.isAlive = this.firedAt + BULLET_MAX_LT > Date.now();
+		this.isAlive = this.firedAt + BULLET_MAX_LT > Application.time && Application.time >= this.firedAt;
 		if (!this.isAlive) {
 			this.despawn();
 			return BulletReturnState.dying;

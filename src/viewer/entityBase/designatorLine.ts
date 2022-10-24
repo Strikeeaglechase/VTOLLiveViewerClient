@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { IVector3 } from "../../../../VTOLLiveViewerCommon/src/vector";
 import { Application } from "../app";
@@ -17,7 +18,9 @@ class DesignatorLine {
 	private lockedEntity: Entity | null = null;
 	private lockedPoint: IVector3 | null = null;
 
-	constructor(private parent: Entity, private app: Application, private color: string) { }
+	constructor(private parent: Entity, private app: Application, private color: string) {
+		markRaw(this);
+	}
 
 	public init() {
 		this.geometry = new THREE.BufferGeometry().setFromPoints([

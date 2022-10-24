@@ -1,11 +1,14 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
+import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Player, Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { TextOverlay } from "../textOverlayHandler";
+import { EquipManager } from "./equipManager";
 import { SimpleUnitTrail } from "./simpleUnitTrail";
 
 const len = 7;
@@ -33,9 +36,22 @@ type EntityConfig = Partial<{
 	hasBaseLine: boolean;
 	hasOverlay: boolean;
 	useInstancedMesh: boolean;
+	useHostTeam: boolean;
 }>;
 
+// Used for storing replay data, the entity class may be removed but this data should be kept
+interface PersistentEntityData {
+	setActiveAt: number;
+	setInactiveAt: number;
+}
+
 class Entity {
+	static persistentData: Record<number, PersistentEntityData> = {};
+	private get persistentData(): PersistentEntityData {
+		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = { setActiveAt: 0, setInactiveAt: 0 };
+		return Entity.persistentData[this.id];
+	}
+
 	public position: Vector = new Vector();
 	public velocity: Vector = new Vector();
 	public rotation: Vector = new Vector();
@@ -76,21 +92,18 @@ class Entity {
 	public iMeshId: number;
 	private iMeshOffsetObject: THREE.Object3D;
 
-	private engineOffsets: Vector[];
+	private engineOffsets: Vector[] | null;
 
 	protected _scale = 1;
 	public set scale(scale: number) {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
 
-		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1));
-		this.meshProxyObject.scale.setScalar(this._scale);
-		if (this.isFocus) {
-			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
-			this.app.flareManager.updateScale(this._scale);
-		}
+		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
+		this.onScaleUpdate();
 	}
 	public get scale() { return this._scale; }
 	protected scaleDamper = 1;
+	private iMeshLoadScale = 1;
 	protected baseScaleSize: number;
 
 	public get isFocus() {
@@ -104,12 +117,23 @@ class Entity {
 	}
 
 	get debugName() {
-		return `${this.id} ${this.type} [${this.unitId}] Active: ${this.isActive}`;
+		return `${this.id} A:${this.isActive} ${this.type} [${this.unitId}]`;
 	}
 
+	// private setActiveAt: number;
+	// private setInactiveAt: number;
+	// private spawnAt: number;
+
 	private _isActive = false;
-	public set isActive(v: boolean) { this._isActive = true; }
+	public set isActive(v: boolean) {
+		this._isActive = v;
+		console.log(`${this.debugName} is now ${v ? "active" : "inactive"}`);
+	}
 	public get isActive() { return this._isActive; }
+	public get isActivating() {
+		return !!this.activatingPromise;
+	}
+	private activatingPromise: Promise<void> | null = null;
 
 	public hasDied = false;
 
@@ -123,10 +147,14 @@ class Entity {
 	protected hasBaseLine = false;
 	protected hasOverlay = true;
 	protected useInstancedMesh = false;
+	protected useHostTeam = true;
 
 	private isCreatingMesh = false;
+	public canShowAsEquip = true;
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
+	public equipManager: EquipManager = new EquipManager(this);
+
 	public static spawnFor: string[] | RegExp = [];
 
 	protected boundingBox: THREE.Box3;
@@ -135,9 +163,7 @@ class Entity {
 	protected textOverlay: TextOverlay;
 	private textOverlayHasHadFirstUpdate = false;
 
-	private activatingPromise: Promise<void> | null = null;
-
-	private __name: string;
+	public __name: string;
 
 	constructor(public app: Application, config: EntityConfig = {}) {
 		this.application = app;
@@ -149,6 +175,13 @@ class Entity {
 		this.hasBaseLine = config.hasBaseLine ?? this.hasBaseLine;
 		this.hasOverlay = config.hasOverlay ?? this.hasOverlay;
 		this.useInstancedMesh = config.useInstancedMesh ?? this.useInstancedMesh;
+		this.useHostTeam = config.useHostTeam ?? this.useHostTeam;
+
+		if (!this.showInBra && !this.showInSidebar) {
+			markRaw(this);
+		}
+
+		markRaw(this.trail);
 
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
@@ -186,13 +219,62 @@ class Entity {
 		this.damage.mesh.name = "Entity Damage";
 		this.damage.mesh.visible = false;
 		this.scene.add(this.damage.mesh);
+		markRaw(this.damage);
 	}
 
-	protected async setActive() {
+	protected async setInactive(reason: string) {
+		console.log(`Setting ${this.debugName} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
+		if (!this.isActive) {
+			console.warn(`${this.debugName} is already inactive`);
+			return;
+		}
+
+		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
+
+		// This causes a memory leak! We need to free the components, this may be important for replay.
+		this.scene.remove(this.object);
+
+		this.object = new THREE.Object3D();
+		this.meshProxyObject = new THREE.Object3D();
+		this.object.add(this.meshProxyObject);
+
+		// Often there will be a motion update this frame as well, so defer updating this value until next
+		this.hasGotFirstPos = false;
+		this.hasDied = false;
+		this.isActive = false;
+
+		if (this.textOverlay) {
+			this.app.sceneManager.removeOverlay(this.textOverlay, this.textOverlay.cssObj);
+			this.textOverlayHasHadFirstUpdate = false;
+		}
+
+		if (this.hasTrail) this.trail.remove();
+
+		if (this.damage) this.destroyDamageMesh();
+	}
+
+	private destroyDamageMesh() {
+		this.scene.remove(this.damage.mesh);
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-ignore
+		this.damage = null;
+		console.log(`Removed damage mesh for entity ${this.debugName}`);
+	}
+
+	protected async setActive(reason: string) {
+		console.log(`Setting ${this.debugName} active because ${reason}`);
 		if (this.isActive) {
 			console.warn(`Entity ${this.debugName} is already active`);
 			return;
 		}
+
+		if (this.isActivating) {
+			console.warn(`Entity ${this.debugName} is already activating`);
+			return;
+		}
+
+		if (!this.persistentData.setActiveAt) this.persistentData.setActiveAt = Application.time; // If this is a replay, knowing when we were set active is important for undoing it
+
 		// Some things might want to wait for active to become true, so create a promise they can wait for
 		let res: () => void;
 		this.activatingPromise = new Promise<void>(resolve => res = resolve);
@@ -200,11 +282,11 @@ class Entity {
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
 
-		console.log(`Setting ${this.debugName} active`);
+		this.maybeCreateTextOverlay();
 
 		this.object.name = "Entity Mesh";
 		// this.scene.add(this.object);
-		if (this.hasTrail) this.trail.init();
+		// if (this.hasTrail) this.trail.init();
 		this.isActive = true;
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -254,6 +336,7 @@ class Entity {
 		this.iMesh = obj.mesh;
 		this.iMeshId = obj.id;
 
+		// TODO: This code needs refactoring, why so many methods to get scales and what not? Should just return config object.
 		// If there are mesh offsets, load them
 		const iMeshOffsets = this.app.meshLoader.getOffsets(this.type);
 		this.iMeshOffsetObject = new THREE.Object3D();
@@ -263,17 +346,14 @@ class Entity {
 		this.meshProxyObject.add(this.iMeshOffsetObject);
 
 		this.scaleDamper = this.app.meshLoader.getScaleDamper(this.type);
-
+		this.iMeshLoadScale = this.app.meshLoader.getScale(this.type);
 		this.engineOffsets = this.app.meshLoader.getEngineOffsets(this.type);
 
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		if (this.hasOverlay) {
-			// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
-			setTimeout(() => {
-				this.textOverlay = new TextOverlay(this.object, this.type).edit(this.id.toString()).offset(0, 10, 0);
-			}, 1500 + Math.random() * 1000);
-		}
+		// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
+
+		this.maybeCreateTextOverlay();
 	}
 
 	protected async createMesh(): Promise<void> {
@@ -294,7 +374,6 @@ class Entity {
 
 		this.boundingBox.setFromObject(obj.children[0]);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		if (this.hasOverlay) this.textOverlay = new TextOverlay(obj.children[0], this.type).edit(this.id.toString()).offset(0, 10, 0);
 
 		this.mesh = obj;
 		this.meshProxyObject.add(this.mesh);
@@ -302,6 +381,22 @@ class Entity {
 		this.addObjectMeshToScene();
 
 		this.isCreatingMesh = false;
+		markRaw(this.mesh);
+		markRaw(this.meshProxyObject);
+	}
+
+	private maybeCreateTextOverlay() {
+		if (!this.hasOverlay) return;
+		const parent = this.useInstancedMesh ? this.object : this.mesh.children[0];
+
+		this.textOverlay = new TextOverlay(parent, this.type)
+			.edit(this.id.toString())
+			.offset(0, 10, 0)
+			.show();
+		this.textOverlay.onDblClick = () => {
+			this.focus();
+		};
+		markRaw(this.textOverlay);
 	}
 
 	// Returns the object that should be used for raycasting
@@ -343,11 +438,10 @@ class Entity {
 		this.displayName = Entity.identifierToDisplayName(this.type);
 
 		// A sort of shitty way to tell if AI is allied or enemy, but it works
-		if (path.includes("Allied")) this.team = Team.A;
-		if (path.includes("Enemy")) this.team = Team.B;
+		if (path.includes("Allied")) this.setTeam(Team.A);
+		if (path.includes("Enemy")) this.setTeam(Team.B);
 
 		this.tryFindOwner();
-		console.log(`Entity ${this.debugName} spawned as ${this.__name}. Spawn as active: ${isActive}`);
 	}
 
 	public setUnitId(uid: number) {
@@ -361,7 +455,7 @@ class Entity {
 		if (owner) {
 			this.owner = owner;
 			this.hasFoundValidOwner = true;
-			this.setTeam(owner.team);
+			if (this.useHostTeam) this.setTeam(owner.team);
 		}
 	}
 
@@ -375,12 +469,32 @@ class Entity {
 		this.trail.reset();
 	}
 
+	protected onScaleUpdate() {
+		this.meshProxyObject.scale.setScalar(this._scale);
+		if (this.isFocus) {
+			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
+			this.app.flareManager.updateScale(this._scale);
+		}
+	}
+
 	protected updateMotion(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
+		// Make sure that if were were previously set active, we don't call this until we should have been set active
 		if (!this.hasGotFirstPos) {
-			this.onFirstPos();
+			const activeAt = this.persistentData.setActiveAt;
+			const inactiveAt = this.persistentData.setInactiveAt;
+			if (activeAt) {
+				if (Application.time > activeAt && (!inactiveAt || Application.time < inactiveAt)) {
+					this.onFirstPos();
+				}
+			} else {
+				this.onFirstPos();
+			}
 		}
 		// If an entity uses onFirstPos to set active it will drop this update packet - this could be an issue
-		if (!this.isActive) return;
+		if (!this.isActive) {
+			// console.warn(`Entity ${this.debugName} got motion update while inactive`);
+			return;
+		}
 
 		// Handles the weird unity->threejs rotation
 		const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
@@ -394,14 +508,20 @@ class Entity {
 	}
 
 	protected setTeam(team: Team) {
+		if (this.team != Team.Unknown && this.team != team) {
+			console.warn(`Entity ${this.debugName} already has team ${this.team}, overwriting with ${team}`);
+		}
+
 		this.team = team;
 		this.trail.updateColor(trailColors[this.team]);
 	}
 
 	public update(dt: number): void {
+		if (!this.isActive) {
+			console.warn(`Entity ${this.debugName} is not active but update was called! Call runInactiveUpdate instead`);
+			return;
+		}
 		if (!this.hasFoundValidOwner) this.tryFindOwner();
-		if (!this.isActive) return;
-
 		// Interpolate position using velocity
 		this.velocity = this.velocity.add(this.acceleration.multiply(dt / 1000));
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));
@@ -409,7 +529,7 @@ class Entity {
 		this.gForce = (this.acceleration.length() / 9.8 + 1);
 		this.maxGForce = Math.max(this.maxGForce, this.gForce);
 
-		if (this.owner) this.team = this.owner.team;
+		if (this.owner && this.useHostTeam) this.team = this.owner.team;
 
 		// Object gets position, meshProxyObject gets rotation, things that want to parent to pos but not rot can use `object`
 		this.object.position.set(this.position.x, this.position.y, this.position.z);
@@ -446,6 +566,8 @@ class Entity {
 		}
 		if (this.damage && this.damage.active) this.updateDamage();
 
+		if (this.equipManager) this.equipManager.update(dt);
+
 		if (this.textOverlay) {
 			if (!this.previousPosition.equals(this.position) || !this.previousVelocity.equals(this.previousVelocity) || !this.textOverlayHasHadFirstUpdate) {
 				const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
@@ -464,13 +586,40 @@ class Entity {
 		this.previousPosition.set(this.position);
 		this.previousVelocity.set(this.velocity);
 		this.previousScale = this._scale;
+
+		// Time has been set to before when we were active, deactivate
+		if (Application.time < this.persistentData.setActiveAt) {
+			this.setInactive(`Time is before the activation time (${this.persistentData.setActiveAt})`);
+		}
+	}
+
+	public runInactiveUpdate(dt: number): void {
+		if (this.isActive) {
+			console.warn(`Entity ${this.debugName} is active but runInactiveUpdate was called! Call update instead`);
+			return;
+		}
+
+		if (!this.hasFoundValidOwner) this.tryFindOwner();
+
+		const activeAt = this.persistentData.setActiveAt;
+		const inactiveAt = this.persistentData.setInactiveAt;
+
+		if (
+			this.app.isReplay && // This check shouldn't be needed but seems to fix odd bug
+			!this.isActivating && // Activation can take a bit, make sure we aren't mid activation
+			activeAt && // We have an activation time
+			Application.time > activeAt && // Time is after activation time
+			(!inactiveAt || Application.time < inactiveAt) // Either we don't have an inactive time or time is before inactive time
+		) {
+			this.setActive(`Is currently inactive, but past the activeAt time (${activeAt}) and before the inactiveAt time (${inactiveAt}). Time: ${Application.time}`);
+		}
 	}
 
 	protected triggerDamage() {
 		if (!this.isActive) return;
 		if (!this.damage) this.setupDamageMesh();
 		this.damage.active = true;
-		this.damage.lastDamageAt = Date.now();
+		this.damage.lastDamageAt = Application.time;
 		this.damage.mesh.position.set(this.position.x, this.position.y, this.position.z);
 		this.damage.mesh.scale.set(this._scale, this._scale, this._scale);
 	}
@@ -479,32 +628,44 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this.debugName} has died`);
 		this.triggerDamage();
-		setTimeout(() => { this.remove(); }, damageFadeTime * 3);
+		this.app.setTimeout(() => { this.setInactive(`Entity died`); }, damageFadeTime * 3);
 	}
 
 	protected updateDamage() {
 		if (!this.damage) return;
-		if (Date.now() - this.damage.lastDamageAt > damageFadeTime) {
+
+		if (Application.time - this.damage.lastDamageAt > damageFadeTime) {
 			this.damage.active = false;
 			this.damage.mesh.visible = false;
 		} else {
 			this.damage.mesh.visible = true;
-			this.damage.mat.opacity = 1 - (Date.now() - this.damage.lastDamageAt) / damageFadeTime;
+			this.damage.mat.opacity = 1 - (Application.time - this.damage.lastDamageAt) / damageFadeTime;
+		}
+
+		if (Application.time < this.damage.lastDamageAt) {
+			this.damage.mesh.visible = false;
 		}
 	}
 
 	public async remove(): Promise<void> {
-		this.app.entities = this.app.entities.filter(e => e != this);
+		console.log(`Removing entity ${this.debugName}`);
 
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
-		if (this.activatingPromise) await this.activatingPromise;
+		if (this.activatingPromise) {
+			console.log(`Waiting for entity ${this.debugName} to finish activating before removing`);
+			await this.activatingPromise;
+			console.log(`Entity ${this.debugName} finished activating, can now remove`);
+		}
 
+		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
+		RPCController.deregister(this);
+		this.app.finalDeleteEntity(this); // Queue a request to remove entity from list
 		if (!this.isActive) return;
 
 		this.trail.remove();
 		this.scene.remove(this.baseLine);
-		if (this.damage) this.scene.remove(this.damage.mesh);
+		if (this.damage) this.destroyDamageMesh();
 
 		if (this.useInstancedMesh && this.iMesh) {
 			const obj = new THREE.Object3D();
@@ -525,8 +686,8 @@ class Entity {
 			"Vehicles/AH-94": "AH-94",
 			"Vehicles/VTOL4": "AV-42C",
 			"Weapons/Missiles/Maverick": "AGM-65",
-			"Weapons/Missiles/AIM-92": "Stinger", // From the AH-94
-			"Weapons/Missiles/APKWS": "Guided Rocket",
+			"Weapons/Missiles/AIM-92": "AIM-92", // From the AH-94
+			"Weapons/Missiles/APKWS": "PGM-27",
 			"Weapons/Missiles/HARM": "AGM-88",
 			"Weapons/Missiles/Hellfire": "AGM-114",
 			"Weapons/Missiles/MARM": "AGM-188",
@@ -536,8 +697,9 @@ class Entity {
 			"Weapons/Missiles/SB-1": "SB-1 Bomb",
 			"Weapons/Missiles/SideARM": "AGM-126",
 			"Weapons/Missiles/SubMissile": "Cluster Munition",
-			"Weapons/Missiles/SAMs/APCIRSAM" : "IR APC SAM",
-			"Weapons/Missiles/SAMs/SaawMissile" : "SAAW Missile",
+			"Weapons/Missiles/SAMs/APCIRSAM": "IR APC SAM",
+			"Weapons/Missiles/SAMs/SaawMissile": "SAAW Missile",
+			"Units/Allied/BSTOPRadar": "Backstop Radar"
 		};
 
 		if (map[identifier]) return map[identifier];
@@ -555,6 +717,10 @@ class Entity {
 		}
 
 		return addSpace(convert(name));
+	}
+
+	toString() {
+		return this.debugName;
 	}
 }
 export { Entity };

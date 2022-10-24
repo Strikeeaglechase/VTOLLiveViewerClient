@@ -45,19 +45,19 @@ class CameraController {
 		this.domElement.addEventListener("click", (e) => this.stopCurrentMove());
 		this.domElement.addEventListener("wheel", (e) => this.stopCurrentMove());
 
-		window.addEventListener("keydown", (e) => {
-			if (e.key == "Alt") {
-				this.orbit.mouseButtons.RIGHT = 0;
-				this.orbit.mouseButtons.LEFT = 2;
-			}
-		});
+		// window.addEventListener("keydown", (e) => {
+		// 	if (e.key == "Alt") {
+		// 		this.orbit.mouseButtons.RIGHT = 0;
+		// 		this.orbit.mouseButtons.LEFT = 2;
+		// 	}
+		// });
 
-		window.addEventListener("keyup", (e) => {
-			if (e.key == "Alt") {
-				this.orbit.mouseButtons.RIGHT = 2;
-				this.orbit.mouseButtons.LEFT = 0;
-			}
-		});
+		// window.addEventListener("keyup", (e) => {
+		// 	if (e.key == "Alt") {
+		// 		this.orbit.mouseButtons.RIGHT = 2;
+		// 		this.orbit.mouseButtons.LEFT = 0;
+		// 	}
+		// });
 	}
 
 	update() {

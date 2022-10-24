@@ -2,96 +2,16 @@ import * as THREE from "three";
 
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
+import { entityMeshs } from "./entityMeshConfigs";
 import { GLTFLoader } from "./GLTFLoader";
 import InstancedGroupMesh from "./instancedGroupMesh";
 import { OBJLoader } from "./OBJLoader";
-
-interface EntityMeshConfig {
-	key: string;
-	path: string;
-	rotation?: Vector;
-	position?: Vector;
-	scaleDamper?: number;
-	loadScale?: number;
-	color?: string;
-	engineOffsets? : Vector[];
-}
 
 interface IMeshOffsets {
 	pos: Vector | null;
 	rot: Vector | null;
 }
 
-const entityMeshs: EntityMeshConfig[] = [
-	{
-		key: "Vehicles/FA-26B",
-		path: "./assets/objects/output/vtolvr_FA-26.gltf",
-		position: new Vector(0, 0, -5),
-		rotation: new Vector(0, Math.PI, 0),
-		color: "#747474",
-		engineOffsets: [new Vector(-1, 0, -5), new Vector(1, 0, -5)]
-	},
-	{
-		key: "Vehicles/SEVTF",
-		path: "./assets/objects/output/vtolvr_F-45A.gltf",
-		position: new Vector(0, 0, -7.5),
-		engineOffsets: [new Vector(0, 0, -5)]
-	},
-	{
-		key: "Vehicles/VTOL4",
-		path: "./assets/objects/output/vtolvr_AV-42CAI.gltf",
-		position: new Vector(0, 0, -2.5),
-		loadScale: 0.5,
-		engineOffsets: [new Vector(-5, 0, 0), new Vector(5, 0, 0)]
-	},
-	{
-		key: "Vehicles/AH-94",
-		path: "./assets/objects/output/vtolvr_ah-94.gltf",
-		position: new Vector(0, -1, -2),
-		loadScale: 10,
-		engineOffsets: []
-	},
-	{
-		key: "Units/Allied/AlliedCarrier",
-		path: "./assets/objects/output/vtolvr_AlliedCarrier.gltf",
-		scaleDamper: 0.1,
-		color: "#404040",
-		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
-	},
-	{
-		key: "Units/Allied/AlliedAAShip",
-		path: "./assets/objects/output/vtolvr_AlliedAAShip.gltf",
-		scaleDamper: 0.1,
-		color: "#404040",
-		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
-	},
-	{
-		key: "Units/Allied/EscortCruiser",
-		path: "./assets/objects/output/vtolvr_EscortCruiser.gltf",
-		scaleDamper: 0.1,
-		rotation: new Vector(0, 0, 0),
-		engineOffsets: []
-	},
-	{
-		key: "Units/Allied/PatriotLauncher",
-		path: "./assets/objects/patriot_Launcher.obj",
-		rotation: new Vector(0, Math.PI / 2, 0),
-		position: new Vector(0, 0, -2),
-		loadScale: 1.5,
-		engineOffsets: []
-	},
-	{
-		key: "Vehicles/F117",
-		path: "./assets/objects/F117_LOD1.obj",
-		rotation: new Vector(0, 0, 0),
-		position: new Vector(0, 0, -3),
-		loadScale: 0.4,
-		// color: "#000000",
-		engineOffsets: []
-	},
-];
 
 // This needs looking at for performance.
 // TODO: Check vts file for how many instances of each entity we need. The less IMesh's we have, the better.
@@ -291,6 +211,13 @@ class MeshLoader {
 		if (!config || !config.scaleDamper) return 1;
 
 		return config.scaleDamper;
+	}
+
+	public getScale(entityKey: string) {
+		const config = entityMeshs.find(em => em.key == entityKey);
+		if (!config || !config.loadScale) return 1;
+
+		return config.loadScale;
 	}
 
 	public getEngineOffsets(entityKey: string) {

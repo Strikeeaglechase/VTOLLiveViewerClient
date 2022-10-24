@@ -20,6 +20,7 @@
 		mounted() {
 			EventBus.$on("entities", (e: Entity[]) => {
 				this.entities = e;
+				// console.log(`Sidebar: ${e.length} entities`);
 			});
 		}
 
@@ -27,13 +28,18 @@
 			// return e.filter((e) => e.showInSidebar);
 			return e
 				.filter((e) => {
+					if (e instanceof MissileEntity) return false;
+					if (!e.isActive) return false;
 					if (e.showInSidebar) return true;
 					if (e.isFocus) return true;
-					if (!(e instanceof MissileEntity)) return false;
 
 					if (!e.hasFoundValidOwner || e.app.currentFocus == null)
 						return false;
-					return e.app.currentFocus.id == e.owner.entityId && e.isActive;
+					return (
+						e.app.currentFocus.id == e.owner.entityId &&
+						e.id == e.owner.entityId &&
+						e.isActive
+					);
 				})
 				.slice()
 				.sort((a, b) => this.sortEntitys(a, b));
@@ -57,5 +63,6 @@
 	height: 100%;
 	right: 0;
 	position: fixed;
+	pointer-events: none;
 }
 </style>

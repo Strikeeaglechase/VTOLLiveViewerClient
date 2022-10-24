@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markRaw } from "vue";
 
 import { Application } from "../app";
 import { CameraController } from "../cameraController";
@@ -28,7 +29,9 @@ class SceneManager {
 	public primaryLight: THREE.DirectionalLight;
 
 	private hasInit = false;
-	constructor(private app: Application) { }
+	constructor(private app: Application) {
+		markRaw(this);
+	}
 
 	public async init(container: HTMLDivElement): Promise<void> {
 		this.scene = new THREE.Scene();
@@ -94,6 +97,7 @@ class SceneManager {
 		});
 		// }
 
+		this.overlayElements.forEach(overlay => overlay.updateBoundingRect());
 		this.overlayElements.forEach(overlay => overlay.update(this.overlayElements));
 
 		this.lastCameraPos.copy(camPos);
