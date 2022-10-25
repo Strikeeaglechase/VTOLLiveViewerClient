@@ -58,6 +58,7 @@
 			});
 
 			return resLobbies.filter((g) => {
+				if (!g.name || g.name == "") return false;
 				if (this.searchStr == "") {
 					return !g.isPrivate;
 				}

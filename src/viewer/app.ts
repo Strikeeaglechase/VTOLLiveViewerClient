@@ -211,6 +211,8 @@ class Application {
 		this.container = document.getElementById("main-container") as HTMLDivElement;
 		this.handleResize();
 		this.addWindowEventHandlers();
+
+		setInterval(() => this.alwaysRun(), 1000 / 60);
 	}
 
 	public static setState(state: ApplicationRunningState) {
@@ -490,8 +492,6 @@ class Application {
 		this.flareManager.update(dt);
 		this.runTimeouts();
 
-		this.gameList = this.gameList.filter(g => g.isOpen);
-
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
 
@@ -507,6 +507,18 @@ class Application {
 
 		this.stats.end();
 		requestAnimationFrame(() => this.run());
+	}
+
+	private alwaysRun(): void {
+		let didRemove = false;
+		this.gameList = this.gameList.filter(g => {
+			if (!g.isOpen) didRemove = false;
+			return g.isOpen;
+		});
+
+		if (didRemove) {
+			EventBus.$emit("lobbies", this.gameList);
+		}
 	}
 
 	@RPC("in")
@@ -538,7 +550,16 @@ class Application {
 	public requestJoinPrivateLobby(id: string, password: string) { }
 
 	@RPC("out")
-	genNewAlphaKey(key: string, adminPassword: string) { }
+	public genNewAlphaKey(key: string, adminPassword: string) { }
+
+	@RPC("in")
+	public SyncLobbies(ids: string[]) {
+		const closedGames = this.gameList.filter(g => !ids.includes(g.id));
+		closedGames.forEach(game => {
+			console.warn(`Game ${game.id} (${game.name}) closed, but we didn't get a notification!`);
+			game.isOpen = false;
+		});
+	}
 
 	private addEntity(entity: Entity): void {
 		this.entities.push(entity);
