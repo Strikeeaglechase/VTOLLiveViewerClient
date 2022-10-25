@@ -105,8 +105,6 @@
 	margin-top: 10px;
 	margin-bottom: 10px;
 
-	max-width: 600px;
-
 	display: flex;
 
 	align-items: center;
@@ -184,6 +182,8 @@ button {
 
 	margin-left: auto;
 	margin-right: 25px;
+
+  cursor: pointer;
 }
 
 button:hover {
@@ -194,6 +194,7 @@ button:hover {
 .disableBtn {
 	color: grey;
 	border: 1px grey solid;
+  cursor: auto;
 }
 
 .disableBtn:hover {
