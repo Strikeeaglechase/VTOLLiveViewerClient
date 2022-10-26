@@ -140,6 +140,7 @@ class TextOverlay {
 			this.elm.style.bottom = (this.text.split("\n").length * 10) + "px";
 		}
 
+		return;
 		if (this.combineId == -1) return;
 
 		if (this.isOverlapping) {

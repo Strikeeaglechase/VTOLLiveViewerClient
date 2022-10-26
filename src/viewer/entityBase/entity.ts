@@ -628,7 +628,10 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this.debugName} has died`);
 		this.triggerDamage();
-		this.app.setTimeout(() => { this.setInactive(`Entity died`); }, damageFadeTime * 3);
+		this.app.setTimeout(() => {
+			// this.setInactive(`Entity died`);
+			this.remove();
+		}, damageFadeTime * 3);
 	}
 
 	protected updateDamage() {
@@ -668,10 +671,17 @@ class Entity {
 		if (this.damage) this.destroyDamageMesh();
 
 		if (this.useInstancedMesh && this.iMesh) {
-			const obj = new THREE.Object3D();
-			obj.position.set(0, 0, 0);
-			obj.updateMatrixWorld();
-			this.iMesh.setMatrixAt(this.iMeshId, obj.matrixWorld);
+			// const obj = new THREE.Object3D();
+			// obj.position.set(0, 0, 0);
+			// obj.scale.set(0, 0, 0);
+			// obj.updateMatrixWorld();
+			// this.iMesh.setMatrixAt(this.iMeshId, obj.matrixWorld);
+			this.object.position.set(0, 0, 0);
+			this.object.scale.set(0, 0, 0);
+			this.object.updateMatrixWorld();
+			this.iMeshOffsetObject.updateMatrixWorld();
+
+			this.iMesh.setMatrixAt(this.iMeshId, this.iMeshOffsetObject.matrixWorld);
 			this.iMesh.setNeedsUpdate(true);
 		}
 

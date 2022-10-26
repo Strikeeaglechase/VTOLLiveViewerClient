@@ -64,13 +64,14 @@
 			} else {
 				Application.instance.requestJoinLobby(this.lobby.id);
 			}
-			this.lobby.waitForConnectionResult().then((status) => {
+			this.lobby.waitForConnectionResult().then(({ status, reason }) => {
 				if (status == LobbyConnectionStatus.Connected) {
 					Application.instance.subscribe(this.lobby);
 				} else if (status == LobbyConnectionStatus.Invalid) {
-					this.joinBtnText = "Invalid password";
+					this.joinBtnText = reason;
 					setTimeout(() => {
 						this.joinBtnText = "Join";
+						this.lobby.state = LobbyConnectionStatus.None;
 					}, 3000);
 				}
 			});
@@ -183,7 +184,7 @@ button {
 	margin-left: auto;
 	margin-right: 25px;
 
-  cursor: pointer;
+	cursor: pointer;
 }
 
 button:hover {
@@ -194,7 +195,7 @@ button:hover {
 .disableBtn {
 	color: grey;
 	border: 1px grey solid;
-  cursor: auto;
+	cursor: auto;
 }
 
 .disableBtn:hover {

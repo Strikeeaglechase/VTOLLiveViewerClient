@@ -822,8 +822,8 @@ class Application {
 			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
 			this.groupedReplayPackets[sec].push(rpc);
 
-			// Yeah this is bad, I don't know a better way to identify where data starts. Tbh not sure why data is being stored way before the start timestamp
-			if (sec != 0 && this.firstRealReplayDataTime == 0 && this.groupedReplayPackets[sec].length > 10) {
+			// We want to start the replay back when the first player spawns
+			if (this.firstRealReplayDataTime == 0 && this.isPlayerVehicleSpawn(rpc)) {
 				this.firstRealReplayDataTime = (rpc.timestamp ?? Date.now()) - this.replayStartTime;
 				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
 			}
@@ -834,6 +834,12 @@ class Application {
 
 		if (this.onReplayChunk) this.onReplayChunk();
 		else console.warn(`Received replay chunk without onReplayChunk callback`);
+	}
+
+	private isPlayerVehicleSpawn(rpc: RPCPacket) {
+		if (rpc.className != "MessageHandler" || rpc.method != "NetInstantiate") return false;
+		const [id, ownerId, path, pos, rot, active] = rpc.args;
+		return PlayerVehicle.spawnFor.includes(path);
 	}
 
 	public getEntityByUnitId(unitId: number) {
