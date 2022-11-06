@@ -3,7 +3,7 @@
 		<div id="main-container" v-show="isRunning()">
 			<Sidebar class="ui" />
 			<UnitRange class="ui" />
-			<!-- <ReplayInfo class="ui" /> -->
+			<ReplayInfo class="ui" />
 		</div>
 		<div id="lobby-select-container" v-show="isLobbySelect()">
 			<LobbyBrowser :state="state" />

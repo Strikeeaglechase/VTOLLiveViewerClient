@@ -159,7 +159,7 @@ class Application {
 	private groupedReplayPackets: RPCPacket[][] = [];
 	private onReplayChunk: (() => void) | null = null;
 	public isReplay = false;
-	private replayStartTime = 0;
+	public replayStartTime = 0;
 	private currentReplayChunkReceive = 0;
 	private replayCurrentTime = 0;
 	private prevReplayTime = 0;
@@ -168,7 +168,7 @@ class Application {
 	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
 	private previousReplayTimeDirection = 1;
 	// private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
-	private get computedReplaySpeed(): number {
+	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
 	public get timeDirection(): number {
