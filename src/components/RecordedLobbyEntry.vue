@@ -1,25 +1,21 @@
 <template>
-	<div class="lobby-browser-entry" :class="{ privLob: lobby.isPrivate }">
+	<div class="lobby-browser-entry">
 		<div class="thumbnail-container-hor">
 			<div class="thumbnail-container-vert">
 				<img
 					class="thumbnail"
-					:class="{ faded: lobby.playerCount >= lobby.maxPlayers }"
 					:src="getPreviewImageUrl()"
 					onerror="this.src='https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png'"
 				/>
 			</div>
 		</div>
 
-		<div
-			class="long-text"
-			:class="{ grey: lobby.playerCount >= lobby.maxPlayers }"
-		>
+		<div class="long-text">
 			<span class="date">{{ getDate() }} &nbsp; </span>
 			<span class="name">{{ lobby.lobbyName }} &nbsp; </span>
 			<span class="mission"> {{ lobby.missionName }} &nbsp; </span>
 			<span class="time">
-				{{ parseTime(lobby.time) }}
+				{{ parseTime() }}
 			</span>
 		</div>
 		<div class="btn-container">
@@ -48,12 +44,25 @@
 
 		joinBtnText = "View";
 
-		async joinLobby() {
-			if (this.joinBtnText != "View") {
-				console.warn(`Tried to join lobby ${this.lobby.lobbyId} twice`);
-				return;
+		async mounted() {
+			if (window.location.search == `?replay=${this.lobby.recordingId}`) {
+				console.log(
+					`Pushed onload request for replay ${this.lobby.recordingId}`
+				);
+				Application.onClientId(() => this.joinLobbyReq());
 			}
+		}
 
+		async joinLobby() {
+			window.location.href += `?replay=${this.lobby.recordingId}`;
+			// if (this.joinBtnText != "View") {
+			// 	console.warn(`Tried to join lobby ${this.lobby.recordingId} twice`);
+			// 	return;
+			// }
+		}
+
+		async joinLobbyReq() {
+			document.getElementById("start")?.click();
 			console.log(
 				`Requesting replay for ${this.lobby.lobbyName} Recording ID: ${this.lobby.recordingId}`
 			);
@@ -80,7 +89,9 @@
 		}
 
 		async download() {
-			const req = await fetch(`${API_URL}/recordings/${this.lobby.lobbyId}`);
+			const req = await fetch(
+				`${API_URL}/recordings/${this.lobby.recordingId}`
+			);
 			const data = await req.blob();
 			const url = window.URL.createObjectURL(data);
 			const a = document.createElement("a");
@@ -91,6 +102,7 @@
 			a.href = url;
 			document.body.appendChild(a);
 			a.click();
+			// console.log(a);
 			window.URL.revokeObjectURL(url);
 		}
 

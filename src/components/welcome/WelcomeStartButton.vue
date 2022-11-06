@@ -1,5 +1,10 @@
 <template>
-	<a href="javascript:void(0);" class="fancy-btn" v-on:click="handleClick()">
+	<a
+		href="javascript:void(0);"
+		id="start"
+		class="fancy-btn"
+		v-on:click="handleClick()"
+	>
 		<p class="btn-txt">View {{ viewValue }}</p>
 	</a>
 </template>
@@ -22,7 +27,11 @@
 		}
 
 		handleClick() {
-			if (IS_ALPHA && !getCookie("alpha_key") && location.pathname != "/replay") {
+			if (
+				IS_ALPHA &&
+				!getCookie("alpha_key") &&
+				location.pathname != "/replay"
+			) {
 				const key = prompt("Enter alpha key:");
 				if (!key) {
 					return;

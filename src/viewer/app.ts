@@ -206,6 +206,13 @@ class Application {
 	public static state: ApplicationRunningState = ApplicationRunningState.welcome;
 	public state: ApplicationRunningState = ApplicationRunningState.welcome;
 
+	private static onClientIdEvents: (() => void)[] = [];
+	private static hasGotClientId = false;
+	public static onClientId(cb: () => void) {
+		if (this.hasGotClientId) cb();
+		else this.onClientIdEvents.push(cb);
+	}
+
 	constructor() {
 		Application.instance = this;
 		this.container = document.getElementById("main-container") as HTMLDivElement;
@@ -228,12 +235,16 @@ class Application {
 
 	public async init(): Promise<void> {
 		this.socket = new WebSocket(WS_URL);
-		this.socket.onopen = () => {
-			console.log(`Websocket connected!`);
-		};
-		this.socket.onclose = () => console.log(`Websocket disconnected`);
-		this.socket.onerror = (e) => console.log(`Websocket error: `, e);
-		this.socket.onmessage = (message: MessageEvent) => this.handleWSMessage(message);
+		await new Promise<void>(res => {
+			this.socket.onopen = () => {
+				console.log(`Websocket connected!`);
+				res();
+			};
+			this.socket.onclose = () => console.log(`Websocket disconnected`);
+			this.socket.onerror = (e) => console.log(`Websocket error: `, e);
+			this.socket.onmessage = (message: MessageEvent) => this.handleWSMessage(message);
+
+		});
 
 		RPCController.init((packet) => {
 			const pckt = {
@@ -244,6 +255,11 @@ class Application {
 		});
 
 		EventBus.$emit("state", this.state);
+
+		// console.log(`Calling Application.onLoad for ${Application.onLoad.length} events`);
+		// Application.onLoadEvents.forEach(f => f(this));
+		// Application.onLoadEvents = [];
+		// Application.hasLoaded = true;
 
 		// Some testing utilities
 		// Testing heightmap
@@ -677,7 +693,7 @@ class Application {
 		});
 	}
 
-	public async beginReplay(id: string) {
+	public async beginReplay(lobbyId: string) {
 		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
 		this.isReplay = true;
 		if (this.replayPackets[0].timestamp == undefined) {
@@ -686,12 +702,12 @@ class Application {
 		}
 		this.replayStartTime = this.replayPackets[0].timestamp;
 		this.replayCurrentTime = 0;
-		this.messageHandler = new MessageHandler(id, this);
-		let game = this.gameList.find(g => g.id == id);
+		this.messageHandler = new MessageHandler(lobbyId, this);
+		let game = this.gameList.find(g => g.id == lobbyId);
 		if (!game) {
 			// TODO: Research this more, seems like sometimes we have an existing game entry? Inconsistent behavior bad
-			console.warn(`Unable to find game with ID ${id}`);
-			game = new VTOLLobby(id);
+			console.warn(`Unable to find game with ID ${lobbyId}`);
+			game = new VTOLLobby(lobbyId);
 		}
 		this.game = game;
 
@@ -777,6 +793,11 @@ class Application {
 					this.client.setAlphaKey(alphaKey);
 				}
 
+				console.log(`Received client ID: ${this.client.id}`);
+				console.log(`Calling Application.onClientId with ${Application.onClientIdEvents.length} callbacks`);
+				Application.onClientIdEvents.forEach(cb => cb());
+				Application.onClientIdEvents = [];
+				Application.hasGotClientId = true;
 			} else {
 				RPCController.handlePacket(packet as RPCPacket);
 				this.rpcs++;
