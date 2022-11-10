@@ -356,7 +356,7 @@ class Application {
 		await aircraft3.spawn(id++, "0", "Vehicles/VTOL4", new Vector(-20, 0, 10000), new Vector(0, 0, 0), true);
 
 		const aircraft4 = new AIAirVehicle(this);
-		aircraft4.spawn(id++, "0", "Units/Allied/E-4", new Vector(-40, 0, 0), new Vector(0, 0, 0), true);
+		aircraft4.spawn(id++, "0", "Units/Allied/KC-49", new Vector(-40, 0, 0), new Vector(0, 0, 0), true);
 		aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
 		// await aircraft4.spawn(id++, "0", "Vehicles/F117", new Vector(0, 0, 0), new Vector(0, 0, 0));
 		this.entities.push(aircraft, aircraft2, aircraft3, aircraft4);
@@ -389,10 +389,10 @@ class Application {
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 
 			missile.setUnitId(100);
-			// setInterval(() => {
-			// 	const gun = this.getEntityById(id - 1) as GunEntity;
-			// 	gun.FireBullet(new Vector(aircraft.position.x, aircraft.position.y, aircraft.position.z), new Vector(0, 0, 10000));
-			// }, 0);
+			let r = 0;
+			setInterval(() => {
+				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0);
+			}, 0);
 
 			aircraft.SetLock(100, true);
 			// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));

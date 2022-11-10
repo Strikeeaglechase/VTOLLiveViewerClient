@@ -15,7 +15,7 @@ export const entityMeshs: EntityMeshConfig[] = [
 	{
 		key: "Vehicles/FA-26B",
 		path: "./assets/objects/output/vtolvr_FA-26.gltf",
-		position: new Vector(0, 0, -5),
+		position: new Vector(0, 0, -1.5),
 		rotation: new Vector(0, Math.PI, 0),
 		color: "#747474",
 		engineOffsets: [new Vector(-1, 0, -5), new Vector(1, 0, -5)]
@@ -23,13 +23,13 @@ export const entityMeshs: EntityMeshConfig[] = [
 	{
 		key: "Vehicles/SEVTF",
 		path: "./assets/objects/output/vtolvr_F-45A.gltf",
-		position: new Vector(0, 0, -7.5),
+		position: new Vector(0, 0, -3.5),
 		engineOffsets: [new Vector(0, 0, -5)]
 	},
 	{
 		key: "Vehicles/VTOL4",
 		path: "./assets/objects/output/vtolvr_AV-42CAI.gltf",
-		position: new Vector(0, 0, -2.5),
+		position: new Vector(0, 0, -0.5),
 		loadScale: 0.5,
 		engineOffsets: [new Vector(-5, 0, 0), new Vector(5, 0, 0)]
 	},
