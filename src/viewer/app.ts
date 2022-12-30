@@ -26,6 +26,7 @@ import { FlareManager } from "./managers/flareManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
+import { kills } from "./testData";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
@@ -264,12 +265,12 @@ class Application {
 		// Some testing utilities
 		// Testing heightmap
 		// this.mapLoader.loadHeightmapFromMission({
-		// campaignId: "quickMPFlights",
-		// id: "airshowFreeflight",
-		// isBuiltin: true,
-		// mapId: "e_coastBay",
-		// name: "Free Flight / Airshow",
-		// workshopId: "built-in"
+		// 	campaignId: "mp_pvpscenarios",
+		// 	id: "airshowFreeflight",
+		// 	isBuiltin: true,
+		// 	mapId: "hMap2",
+		// 	name: "BVR",
+		// 	workshopId: "built-in"
 		// });
 
 		// this.offlineTestSetup();
@@ -397,6 +398,94 @@ class Application {
 			aircraft.SetLock(100, true);
 			// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
 		}, 250);
+	}
+
+	private loadTestHSData() {
+		const victimAIMesh = new THREE.InstancedMesh(
+			new THREE.SphereGeometry(100),
+			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
+			kills.length
+		);
+		const victimBIMesh = new THREE.InstancedMesh(
+			new THREE.SphereGeometry(100),
+			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
+			kills.length
+		);
+
+		const killIMesh = new THREE.InstancedMesh(
+			new THREE.SphereGeometry(100),
+			new THREE.MeshBasicMaterial({ color: "#FF0000" }),
+			kills.length
+		);
+
+		// let avgKillerX = 0;
+		// let avgKillerY = 0;
+		// let avgKillerZ = 0;
+		// let avgVictimX = 0;
+		// let avgVictimY = 0;
+		// let avgVictimZ = 0;
+
+		// let count = 0;
+
+		kills.forEach((kill, idx) => {
+			if (!kill.killerPosition || !kill.victimPosition) return;
+			if (kill.killerPosition.x == 0 && kill.killerPosition.y == 0 && kill.killerPosition.z == 0) return;
+			if (kill.victimPosition.x == 0 && kill.victimPosition.y == 0 && kill.victimPosition.z == 0) return;
+
+			// avgKillerX += kill.killerPosition.x;
+			// avgKillerY += kill.killerPosition.y;
+			// avgKillerZ += kill.killerPosition.z;
+			// avgVictimX += kill.victimPosition.x;
+			// avgVictimY += kill.victimPosition.y;
+			// avgVictimZ += kill.victimPosition.z;
+			// count++;
+
+			const victimPos = new THREE.Vector3(-kill.victimPosition.x, kill.victimPosition.y, kill.victimPosition.z);
+			const victimMatrix = new THREE.Matrix4().setPosition(victimPos);
+			if (kill.victimTeam == 0) victimAIMesh.setMatrixAt(idx, victimMatrix);
+			if (kill.victimTeam == 1) victimBIMesh.setMatrixAt(idx, victimMatrix);
+
+			const killerPos = new THREE.Vector3(-kill.killerPosition.x, kill.killerPosition.y, kill.killerPosition.z);
+			const killerMatrix = new THREE.Matrix4().setPosition(killerPos);
+			killIMesh.setMatrixAt(idx, killerMatrix);
+
+			// Create a line between the two;
+			const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
+			const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
+			const line = new THREE.Line(lineGeo, lineMat);
+			line.name = "Line";
+
+			this.sceneManager.add(line);
+		});
+
+		// avgKillerX /= count;
+		// avgKillerY /= count;
+		// avgKillerZ /= count;
+		// avgVictimX /= count;
+		// avgVictimY /= count;
+		// avgVictimZ /= count;
+		// const sphere = new THREE.Mesh(
+		// 	new THREE.SphereGeometry(500),
+		// 	new THREE.MeshBasicMaterial({ color: "#FF0000" })
+		// );
+		// sphere.position.set(-avgKillerX, avgKillerY, avgKillerZ);
+		// sphere.name = "Center";
+		// this.sceneManager.add(sphere);
+		// const sphere2 = new THREE.Mesh(
+		// 	new THREE.SphereGeometry(500),
+		// 	new THREE.MeshBasicMaterial({ color: "#0000FF" })
+		// );
+		// sphere2.position.set(-avgVictimX, avgVictimY, avgVictimZ);
+		// sphere2.name = "Center";
+		// this.sceneManager.add(sphere2);
+
+		victimAIMesh.name = "Victims";
+		victimBIMesh.name = "Victims";
+		killIMesh.name = "Killers";
+
+		// this.sceneManager.add(victimAIMesh);
+		// this.sceneManager.add(victimBIMesh);
+		// this.sceneManager.add(killIMesh);
 	}
 
 	private packetIsInTimeframe(packet: RPCPacket) {
