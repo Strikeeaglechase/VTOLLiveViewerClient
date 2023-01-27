@@ -255,7 +255,14 @@ class Application {
 			this.socket.send(JSON.stringify(pckt));
 		});
 
-		EventBus.$emit("state", this.state);
+		if (window.location.pathname.startsWith("/lobbies")) {
+			Application.setState(ApplicationRunningState.lobbySelect);
+		} else if (window.location.pathname.startsWith("/replay")) {
+			Application.setState(ApplicationRunningState.replaySelect);
+		}
+
+
+		// EventBus.$emit("state", this.state);
 
 		// console.log(`Calling Application.onLoad for ${Application.onLoad.length} events`);
 		// Application.onLoadEvents.forEach(f => f(this));

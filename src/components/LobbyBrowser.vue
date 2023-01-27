@@ -48,7 +48,15 @@
 			if (location.pathname == "/replay") {
 				const req = await fetch(`${API_URL}/recordings`);
 				this.replayLobbies = await req.json();
-				console.log(this.replayLobbies);
+				const id = window.location.search.split("=")[1];
+				if (window.location.search.startsWith(`?replay=`)) {
+					this.replayLobbies = this.replayLobbies.filter(
+						(l) => l.recordingId == id
+					);
+					// if (lobby) {
+					// 	Application.joinLobby(lobby);
+					// }
+				}
 			}
 		}
 

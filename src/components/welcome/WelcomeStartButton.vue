@@ -5,13 +5,13 @@
 		class="fancy-btn"
 		v-on:click="handleClick()"
 	>
-		<p class="btn-txt">View {{ viewValue }}</p>
+		<p class="btn-txt">View {{ text }}</p>
 	</a>
 </template>
 
 
 <script lang="ts">
-	import { Component, Vue } from "vue-property-decorator";
+	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { IS_ALPHA } from "../../config";
 	import { getCookie } from "../../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
 
@@ -19,26 +19,31 @@
 
 	@Component({})
 	export default class WelcomeStartButton extends Vue {
-		viewValue = "Lobbies";
+		@Prop()
+		text: string;
+		@Prop()
+		redirect: string;
+		// viewValue = "Lobbies";
 
-		mounted() {
-			this.viewValue =
-				location.pathname == "/replay" ? "Recordings" : "Lobbies";
-		}
+		// mounted() {
+		// 	this.viewValue =
+		// 		location.pathname == "/replay" ? "Recordings" : "Lobbies";
+		// }
 
 		handleClick() {
-			if (
-				IS_ALPHA &&
-				!getCookie("alpha_key") &&
-				location.pathname != "/replay"
-			) {
-				const key = prompt("Enter alpha key:");
-				if (!key) {
-					return;
-				}
-				Application.instance.client.setAlphaKey(key);
-			}
-			Application.setState(ApplicationRunningState.lobbySelect);
+			// if (
+			// 	IS_ALPHA &&
+			// 	!getCookie("alpha_key") &&
+			// 	location.pathname != "/replay"
+			// ) {
+			// 	const key = prompt("Enter alpha key:");
+			// 	if (!key) {
+			// 		return;
+			// 	}
+			// 	Application.instance.client.setAlphaKey(key);
+			// }
+			// Application.setState(ApplicationRunningState.lobbySelect);
+			location.pathname = this.redirect;
 		}
 	}
 </script>

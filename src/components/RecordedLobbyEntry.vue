@@ -62,7 +62,7 @@
 		}
 
 		async joinLobbyReq() {
-			document.getElementById("start")?.click();
+			// document.getElementById("start")?.click();
 			console.log(
 				`Requesting replay for ${this.lobby.lobbyName} Recording ID: ${this.lobby.recordingId}`
 			);
