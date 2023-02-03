@@ -228,6 +228,7 @@ class Application {
 			state = ApplicationRunningState.replaySelect;
 			console.log(`Switching to replay select state rather than regular lobby select`);
 		}
+
 		Application.state = state;
 		Application.instance.state = state;
 		EventBus.$emit("state", state);
@@ -884,9 +885,19 @@ class Application {
 
 				// If we have an alpha key, lets send it now that we have our ID
 				const alphaKey = getCookie("alpha_key");
-				if (IS_ALPHA && alphaKey) {
-					console.log(`Sending alpha key`);
-					this.client.setAlphaKey(alphaKey);
+				if (IS_ALPHA) {
+					if (alphaKey) {
+						console.log(`Sending alpha key`);
+						this.client.setAlphaKey(alphaKey);
+					} else if (Application.state == ApplicationRunningState.lobbySelect
+						&& IS_ALPHA
+						&& !getCookie("alpha_key")) {
+						const key = prompt("Enter alpha key:");
+						if (!key) {
+							return;
+						}
+						Application.instance.client.setAlphaKey(key);
+					}
 				}
 
 				console.log(`Received client ID: ${this.client.id}`);
