@@ -92,7 +92,7 @@ class MissileEntity extends Entity {
 
 		if (this.hasFoundValidOwner && this.owner.entityId > 0) {
 			const ownerEntity = this.app.getEntityById(this.owner.entityId);
-			if (ownerEntity) {
+			if (ownerEntity && ownerEntity.equipManager) {
 				ownerEntity.equipManager.update(0, true);
 			}
 		}

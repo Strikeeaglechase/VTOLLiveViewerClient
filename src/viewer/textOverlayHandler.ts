@@ -43,8 +43,11 @@ class TextOverlay {
 	public isHovered = false;
 
 	public text = "";
+	private needsTextUpdate = false;
+
 	private posOffset: IVector3 = new Vector(0, 0, 0);
 	private prevPos: Vector = new Vector(0, 0, 0);
+	private nextPos: Vector = new Vector(0, 0, 0);
 	private lastUpdateTime = 0;
 
 	debugBoxHelper: THREE.BoxHelper;
@@ -103,6 +106,7 @@ class TextOverlay {
 	public edit(text: string): this {
 		if (text == this.text) return this;
 		this.text = text;
+		this.needsTextUpdate = true;
 
 		return this;
 	}
@@ -131,14 +135,9 @@ class TextOverlay {
 	public update(overlays: TextOverlay[]) {
 		this.updatePosition();
 
-		const d = Date.now();
-		if (d - this.lastUpdateTime < 100) return;
-		this.lastUpdateTime = d;
-
-		if (this.textElm.innerText != this.text) {
-			this.textElm.innerText = this.text;
-			this.elm.style.bottom = (this.text.split("\n").length * 10) + "px";
-		}
+		// const d = Date.now();
+		// if (d - this.lastUpdateTime < 100) return;
+		// this.lastUpdateTime = d;
 
 		return;
 		if (this.combineId == -1) return;
@@ -150,6 +149,21 @@ class TextOverlay {
 			overlays.forEach(overlay => {
 				if (this.canParentTo(overlay)) this.parent(overlay);
 			});
+		}
+	}
+
+	public runBatchedUpdate() {
+		if (!this.nextPos.equals(this.prevPos)) {
+			this.prevPos = this.nextPos;
+
+			this.cssObj.position.set(this.nextPos.x, this.nextPos.y, this.nextPos.z);
+			this.cssObj.updateWorldMatrix(true, true);
+		}
+
+		if (this.needsTextUpdate) {
+			this.textElm.innerText = this.text;
+			this.elm.style.bottom = (this.text.split("\n").length * 10) + "px";
+			this.needsTextUpdate = false;
 		}
 	}
 
@@ -225,12 +239,7 @@ class TextOverlay {
 			);
 		}
 
-		if (pos.equals(this.prevPos)) return;
-		this.prevPos = pos;
-
-		this.cssObj.position.set(pos.x, pos.y, pos.z);
-		this.cssObj.updateWorldMatrix(true, true);
-
+		this.nextPos = pos;
 	}
 }
 

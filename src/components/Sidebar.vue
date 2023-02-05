@@ -1,5 +1,6 @@
 <template>
 	<div id="sidebar">
+		<!-- <SettingsPopoutButton /> -->
 		<div v-for="entity in filterSidebar(entities)" :key="entity.id">
 			<EntityComponent :entity="entity" />
 		</div>
@@ -12,8 +13,8 @@
 	import { MissileEntity } from "../viewer/entities/genericMissileEntity";
 	import { Entity } from "../viewer/entityBase/entity";
 	import EntityComponent from "./Entity.vue";
-
-	@Component({ components: { EntityComponent } })
+	import SettingsPopoutButton from "./settings/SettingsPopoutButton.vue";
+	@Component({ components: { EntityComponent, SettingsPopoutButton } })
 	export default class Sidebar extends Vue {
 		entities: Entity[] = [];
 

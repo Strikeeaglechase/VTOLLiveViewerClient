@@ -132,7 +132,7 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	SetFuel(tank: number, fuel: number) {
-		if (tank == 0) this.equipManager.fuel = fuel;
+		if (tank == 0 && this.equipManager) this.equipManager.fuel = fuel;
 	}
 }
 

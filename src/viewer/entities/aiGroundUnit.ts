@@ -18,6 +18,8 @@ class AIGroundUnit extends Entity {
 			showInBra: false,
 			useHostTeam: false
 		});
+
+		this.equipManager = null;
 	}
 
 	// Protect AI team, don't want to inherit from host

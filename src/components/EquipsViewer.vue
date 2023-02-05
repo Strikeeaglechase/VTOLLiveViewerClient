@@ -31,17 +31,17 @@
 
 		missiles() {
 			if (this.entity == null) return "";
-			return this.entity.equipManager.getWeapons();
+			return this.entity.equipManager?.getWeapons() ?? "";
 		}
 
 		equips() {
 			if (this.entity == null) return "";
-			return this.entity.equipManager.getEquips();
+			return this.entity.equipManager?.getEquips() ?? "";
 		}
 
 		fuel() {
 			if (this.entity == null) return "";
-			const fuel = this.entity.equipManager.getFuel();
+			const fuel = this.entity.equipManager?.getFuel() ?? 0;
 			return Math.round(fuel * 100);
 		}
 

@@ -13,6 +13,8 @@ class CSS2DRenderer {
 
 	public domElement: HTMLDivElement;
 
+	private elementStyleUpdateCache: { element: HTMLElement, style: string; }[] = [];
+
 	constructor() {
 		this.domElement = document.createElement('div');
 		this.domElement.className = "overlay-main";
@@ -47,12 +49,7 @@ class CSS2DRenderer {
 			this.vector.applyMatrix4(this.viewProjectionMatrix);
 
 			const style = 'translate(-50%,-50%) translate(' + (this.vector.x * this._widthHalf + this._widthHalf) + 'px,' + (-this.vector.y * this._heightHalf + this._heightHalf) + 'px)';
-
-			element.style.transform = style;
-
-			if (element.parentNode !== this.domElement) {
-				this.domElement.appendChild(element);
-			}
+			this.elementStyleUpdateCache.push({ element: element, style: style });
 		}
 	}
 
@@ -71,6 +68,15 @@ class CSS2DRenderer {
 		objects.forEach(obj => {
 			this.renderObject(obj, camera, frustum);
 		});
+
+		this.elementStyleUpdateCache.forEach((cache) => {
+			cache.element.style.transform = cache.style;
+
+			if (cache.element.parentNode !== this.domElement) {
+				this.domElement.appendChild(cache.element);
+			}
+		});
+		this.elementStyleUpdateCache = [];
 	}
 }
 

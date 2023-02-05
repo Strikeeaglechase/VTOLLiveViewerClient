@@ -153,7 +153,7 @@ class Entity {
 	public canShowAsEquip = true;
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
-	public equipManager: EquipManager = new EquipManager(this);
+	public equipManager: EquipManager | null = new EquipManager(this);
 
 	public static spawnFor: string[] | RegExp = [];
 

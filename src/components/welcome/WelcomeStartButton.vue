@@ -43,6 +43,7 @@
 			// 	Application.instance.client.setAlphaKey(key);
 			// }
 			// Application.setState(ApplicationRunningState.lobbySelect);
+
 			location.pathname = this.redirect;
 		}
 	}
