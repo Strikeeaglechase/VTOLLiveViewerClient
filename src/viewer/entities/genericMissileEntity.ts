@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/src/vector.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { addCommas, Application, msToKnots, mToFt } from "../app";
 import { Entity } from "../entityBase/entity";
 

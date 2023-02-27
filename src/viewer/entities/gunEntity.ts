@@ -9,7 +9,9 @@ import { Entity } from "../entityBase/entity";
 @EnableRPCs("instance")
 class GunEntity extends Entity {
 	public static spawnFor: string[] = ["HPEquips/F45A/f45_gun", "HPEquips/AFighter/fa26_gun", "HPEquips/VTOL/m230", "HPEquips/VTOL/gau-8", "HPEquips/AH-94/ah94_gun"];
-
+	get debugName() {
+		return `GunEntity (${this.id ?? ""})`;
+	}
 	constructor(app: Application) {
 		super(app);
 		this.isActive = true;

@@ -44,9 +44,9 @@
 	"exclude": [
 		"node_modules"
 	],
-	"references": [
-		{
-			"path": "../common",
-		}
-	]
+	// "references": [
+	// 	{
+	// 		"path": "../VTOLLiverViewerCommon/tsconfig.json",
+	// 	}
+	// ]
 }

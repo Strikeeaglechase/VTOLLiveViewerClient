@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { markRaw } from "vue";
 
-import { IVector3 } from "../../../../VTOLLiveViewerCommon/src/vector";
+import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
 import { Application } from "../app";
 import { Entity } from "./entity";
 

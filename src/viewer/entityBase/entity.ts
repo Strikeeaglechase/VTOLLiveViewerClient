@@ -117,7 +117,7 @@ class Entity {
 	}
 
 	get debugName() {
-		return `${this.id} A:${this.isActive} ${this.type} [${this.unitId}]`;
+		return `${this.id} A:${this.isActive} ${this.type} ${this.unitId ? "[" + this.unitId + "]" : ""}`;
 	}
 
 	// private setActiveAt: number;
@@ -271,6 +271,10 @@ class Entity {
 		if (this.isActivating) {
 			console.warn(`Entity ${this.debugName} is already activating`);
 			return;
+		}
+
+		if (this.id == undefined) {
+			console.warn(`Entity ${this.debugName} has no id when setActive was called`);
 		}
 
 		if (!this.persistentData.setActiveAt) this.persistentData.setActiveAt = Application.time; // If this is a replay, knowing when we were set active is important for undoing it

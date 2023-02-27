@@ -4,14 +4,16 @@ import Stats from "stats.js";
 import * as THREE from "three";
 
 import {
+	decompressRpcPackets
+} from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
+import { getCookie } from "../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
+import {
 	EnableRPCs, RPC, RPCController, RPCPacket
 } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import {
 	AssignID, Client, PacketType, Team, Vector3, VTOLLobby
 } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/src/compression";
-import { getCookie } from "../../../VTOLLiveViewerCommon/src/cookieHelper";
-import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/src/vector";
+import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
 import { IS_ALPHA, IS_DEV, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
@@ -166,6 +168,7 @@ class Application {
 	private prevReplayTime = 0;
 	private firstRealReplayDataTime = 0;
 	private replaySpeed = 7;
+	private isInReplaySetup = false;
 	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
 	private previousReplayTimeDirection = 1;
 	// private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
@@ -272,15 +275,8 @@ class Application {
 
 		// Some testing utilities
 		// Testing heightmap
-		// this.mapLoader.loadHeightmapFromMission({
-		// 	campaignId: "mp_pvpscenarios",
-		// 	id: "airshowFreeflight",
-		// 	isBuiltin: true,
-		// 	mapId: "hMap2",
-		// 	name: "BVR",
-		// 	workshopId: "built-in"
-		// });
 
+		// this.loadTestHSData();
 		// this.offlineTestSetup();
 		// this.quickTestSetup();
 
@@ -408,45 +404,53 @@ class Application {
 		}, 250);
 	}
 
-	private loadTestHSData() {
+	private async loadTestHSData() {
+		await this.start();
+
+		await this.mapLoader.loadHeightmapFromMission({
+			campaignId: "mp_pvpscenarios",
+			id: "airshowFreeflight",
+			isBuiltin: true,
+			mapId: "hMap2",
+			name: "BVR",
+			workshopId: "built-in"
+		});
+
+		this.game = new VTOLLobby("0");
+		this.game.players.push({
+			entityId: 1,
+			pilotName: "Chase",
+			slot: 0,
+			steamId: "0",
+			team: Team.A,
+			unitId: 0
+		});
+		this.messageHandler = new MessageHandler(this.game.id, this);
+
 		const victimAIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(100),
+			new THREE.SphereGeometry(200),
 			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
 			kills.length
 		);
 		const victimBIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(100),
+			new THREE.SphereGeometry(200),
 			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
 			kills.length
 		);
 
 		const killIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(100),
+			new THREE.SphereGeometry(200),
 			new THREE.MeshBasicMaterial({ color: "#FF0000" }),
 			kills.length
 		);
 
-		// let avgKillerX = 0;
-		// let avgKillerY = 0;
-		// let avgKillerZ = 0;
-		// let avgVictimX = 0;
-		// let avgVictimY = 0;
-		// let avgVictimZ = 0;
 
-		// let count = 0;
+		console.log(kills.length);
 
 		kills.forEach((kill, idx) => {
 			if (!kill.killerPosition || !kill.victimPosition) return;
 			if (kill.killerPosition.x == 0 && kill.killerPosition.y == 0 && kill.killerPosition.z == 0) return;
 			if (kill.victimPosition.x == 0 && kill.victimPosition.y == 0 && kill.victimPosition.z == 0) return;
-
-			// avgKillerX += kill.killerPosition.x;
-			// avgKillerY += kill.killerPosition.y;
-			// avgKillerZ += kill.killerPosition.z;
-			// avgVictimX += kill.victimPosition.x;
-			// avgVictimY += kill.victimPosition.y;
-			// avgVictimZ += kill.victimPosition.z;
-			// count++;
 
 			const victimPos = new THREE.Vector3(-kill.victimPosition.x, kill.victimPosition.y, kill.victimPosition.z);
 			const victimMatrix = new THREE.Matrix4().setPosition(victimPos);
@@ -457,43 +461,21 @@ class Application {
 			const killerMatrix = new THREE.Matrix4().setPosition(killerPos);
 			killIMesh.setMatrixAt(idx, killerMatrix);
 
-			// Create a line between the two;
-			const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
-			const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
-			const line = new THREE.Line(lineGeo, lineMat);
-			line.name = "Line";
-
-			this.sceneManager.add(line);
+			// // Create a line between the two;
+			// const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
+			// const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
+			// const line = new THREE.Line(lineGeo, lineMat);
+			// line.name = "Line";
+			// this.sceneManager.add(line);
 		});
-
-		// avgKillerX /= count;
-		// avgKillerY /= count;
-		// avgKillerZ /= count;
-		// avgVictimX /= count;
-		// avgVictimY /= count;
-		// avgVictimZ /= count;
-		// const sphere = new THREE.Mesh(
-		// 	new THREE.SphereGeometry(500),
-		// 	new THREE.MeshBasicMaterial({ color: "#FF0000" })
-		// );
-		// sphere.position.set(-avgKillerX, avgKillerY, avgKillerZ);
-		// sphere.name = "Center";
-		// this.sceneManager.add(sphere);
-		// const sphere2 = new THREE.Mesh(
-		// 	new THREE.SphereGeometry(500),
-		// 	new THREE.MeshBasicMaterial({ color: "#0000FF" })
-		// );
-		// sphere2.position.set(-avgVictimX, avgVictimY, avgVictimZ);
-		// sphere2.name = "Center";
-		// this.sceneManager.add(sphere2);
 
 		victimAIMesh.name = "Victims";
 		victimBIMesh.name = "Victims";
 		killIMesh.name = "Killers";
 
-		// this.sceneManager.add(victimAIMesh);
-		// this.sceneManager.add(victimBIMesh);
-		// this.sceneManager.add(killIMesh);
+		this.sceneManager.add(victimAIMesh);
+		this.sceneManager.add(victimBIMesh);
+		this.sceneManager.add(killIMesh);
 	}
 
 	private packetIsInTimeframe(packet: RPCPacket) {
@@ -568,7 +550,7 @@ class Application {
 
 		const d = Date.now();
 		let dt = d - this.prevFrameTime;
-		if (this.isReplay) {
+		if (this.isReplay && !this.isInReplaySetup) {
 			dt = this.runReplay(dt);
 		}
 		this.prevFrameTime = d;
@@ -675,6 +657,16 @@ class Application {
 	}
 
 	private addEntity(entity: Entity): void {
+		if (this.entities.includes(entity)) {
+			console.error(`Entity ${entity} already exists in entities list!`);
+			console.log(entity);
+		}
+
+		if (this.entities.some(e => e.id == entity.id)) {
+			console.error(`Duplicate entity id ${entity.id}!`);
+			console.log(entity);
+		}
+
 		this.entities.push(entity);
 
 		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
@@ -793,6 +785,7 @@ class Application {
 	public async beginReplay(lobbyId: string) {
 		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
 		this.isReplay = true;
+		this.isInReplaySetup = true;
 		if (this.replayPackets[0].timestamp == undefined) {
 			console.error(`Replay packet 0 has no timestamp`);
 			return;
@@ -818,7 +811,18 @@ class Application {
 		}
 		console.log(`Handling ${initPackets.length} init packets`);
 		this.runReplayOnPackets(initPackets);
-		this.groupedReplayPackets[0] = [];
+		// this.groupedReplayPackets[0] = []; So much debugging to find this line of code that was causing issues
+		// Remove all initPackets so they don't get handled again
+		initPackets.forEach(p => {
+			const index = this.replayPackets.indexOf(p);
+			if (index > -1) this.replayPackets.splice(index, 1);
+			const timestampSeconds = Math.floor(p.timestamp ?? 0 / 1000);
+			const groupedPackets = this.groupedReplayPackets[timestampSeconds];
+			if (groupedPackets) {
+				const index = groupedPackets.indexOf(p);
+				if (index > -1) groupedPackets.splice(index, 1);
+			}
+		});
 
 		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
@@ -827,6 +831,7 @@ class Application {
 			this.replayCurrentTime = this.firstRealReplayDataTime;
 			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
 		}
+		this.isInReplaySetup = false;
 	}
 
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {

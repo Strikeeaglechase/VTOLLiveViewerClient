@@ -13,7 +13,7 @@
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { IS_ALPHA } from "../../config";
-	import { getCookie } from "../../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
+	// import { getCookie } from "../../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
 
 	import { Application, ApplicationRunningState } from "../../viewer/app";
 

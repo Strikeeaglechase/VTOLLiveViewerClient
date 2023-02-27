@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { MissionInfo } from "../../../../VTOLLiveViewerCommon/src/shared.js";
+import { MissionInfo } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Chunk, HeightMap, HeightMapData } from "./heightmap";
 import { Biome, MapLoader, METERS_PER_PIXEL } from "./mapLoader";
 
