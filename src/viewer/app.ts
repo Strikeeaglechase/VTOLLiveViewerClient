@@ -931,7 +931,7 @@ class Application {
 		}
 	}
 
-	private handleReplayChunk(bytes: Uint8Array) {
+	public handleReplayChunk(bytes: Uint8Array) {
 		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
 		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp ?? Date.now();
 		this.replayPackets.push(...rpcs);

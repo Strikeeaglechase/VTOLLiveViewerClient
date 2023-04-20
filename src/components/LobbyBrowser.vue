@@ -1,5 +1,6 @@
 <template>
 	<div>
+		<ReplayUpload v-if="!isLobbySelect()" />
 		<LobbySearch />
 		<div class="lobbyBrowser" v-if="isLobbySelect()">
 			<div v-for="game in getGames()" :key="game.id">
@@ -26,8 +27,11 @@
 	import { Application, ApplicationRunningState } from "../viewer/app";
 	import { API_URL } from "../config";
 	import RecordedLobbyEntry from "./RecordedLobbyEntry.vue";
+	import ReplayUpload from "./ReplayUpload.vue";
 
-	@Component({ components: { LobbyEntry, LobbySearch, RecordedLobbyEntry } })
+	@Component({
+		components: { LobbyEntry, LobbySearch, RecordedLobbyEntry, ReplayUpload },
+	})
 	export default class LobbyBrowser extends Vue {
 		lobbies: VTOLLobby[] = [];
 		replayLobbies: RecordedLobbyInfo[] = [];
