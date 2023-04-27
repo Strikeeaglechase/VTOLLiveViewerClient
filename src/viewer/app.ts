@@ -763,6 +763,11 @@ class Application {
 		this.client.subscribe(game.id);
 		this.game = game;
 		this.messageHandler = new MessageHandler(game.id, this);
+		this.game.onLobbyRestart = async () => {
+			console.log(`Lobby restarting, waiting for new connection...`);
+			const conRes = await this.game.waitForConnectionResult();
+			location.reload();
+		};
 
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 	}

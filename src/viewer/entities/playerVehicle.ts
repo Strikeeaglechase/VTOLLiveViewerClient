@@ -7,7 +7,7 @@ import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity } from "../entityBase/entity";
 
-@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94"])
+@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55"])
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
@@ -16,7 +16,7 @@ class PlayerVehicle extends Entity {
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry;
 
-	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4"];
+	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55"];
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInSidebar: true, showInBra: true });
