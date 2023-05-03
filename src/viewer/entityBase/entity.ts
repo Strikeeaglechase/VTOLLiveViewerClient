@@ -127,7 +127,7 @@ class Entity {
 	private _isActive = false;
 	public set isActive(v: boolean) {
 		this._isActive = v;
-		console.log(`${this.debugName} is now ${v ? "active" : "inactive"}`);
+		console.log(`${this} is now ${v ? "active" : "inactive"}`);
 	}
 	public get isActive() { return this._isActive; }
 	public get isActivating() {
@@ -223,9 +223,9 @@ class Entity {
 	}
 
 	protected async setInactive(reason: string) {
-		console.log(`Setting ${this.debugName} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
+		console.log(`Setting ${this} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
 		if (!this.isActive) {
-			console.warn(`${this.debugName} is already inactive`);
+			console.warn(`${this} is already inactive`);
 			return;
 		}
 
@@ -258,23 +258,23 @@ class Entity {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-ignore
 		this.damage = null;
-		console.log(`Removed damage mesh for entity ${this.debugName}`);
+		console.log(`Removed damage mesh for entity ${this}`);
 	}
 
 	protected async setActive(reason: string) {
-		console.log(`Setting ${this.debugName} active because ${reason}`);
+		console.log(`Setting ${this} active because ${reason}`);
 		if (this.isActive) {
-			console.warn(`Entity ${this.debugName} is already active`);
+			console.warn(`Entity ${this} is already active`);
 			return;
 		}
 
 		if (this.isActivating) {
-			console.warn(`Entity ${this.debugName} is already activating`);
+			console.warn(`Entity ${this} is already activating`);
 			return;
 		}
 
 		if (this.id == undefined) {
-			console.warn(`Entity ${this.debugName} has no id when setActive was called`);
+			console.warn(`Entity ${this} has no id when setActive was called`);
 		}
 
 		if (!this.persistentData.setActiveAt) this.persistentData.setActiveAt = Application.time; // If this is a replay, knowing when we were set active is important for undoing it
@@ -300,7 +300,7 @@ class Entity {
 	}
 
 	protected createDefaultMesh(): THREE.Group {
-		console.warn(`Entity ${this.debugName} is using default mesh`);
+		console.warn(`Entity ${this} is using default mesh`);
 		const base = new THREE.Shape([
 			new THREE.Vector2(0, 0),
 			new THREE.Vector2(-wid, -len),
@@ -332,7 +332,7 @@ class Entity {
 	protected async createInstancedMesh(): Promise<void> {
 		const obj = await this.app.meshLoader.loadInstancedMesh(this.type);
 		if (obj == null) {
-			console.log(`Failed to load instanced mesh for ${this.debugName}, using non-instanced`);
+			console.log(`Failed to load instanced mesh for ${this}, using non-instanced`);
 			this.useInstancedMesh = false;
 			return this.createMesh();
 		}
@@ -406,7 +406,7 @@ class Entity {
 	// Returns the object that should be used for raycasting
 	public getInteractionMesh() {
 		if (!this.isActive) {
-			console.error(`GetInteractionMesh called on inactive entity ${this.debugName}`);
+			console.error(`GetInteractionMesh called on inactive entity ${this}`);
 		}
 
 		if (!this.useInstancedMesh) return this.mesh?.children[0];
@@ -450,7 +450,7 @@ class Entity {
 
 	public setUnitId(uid: number) {
 		this.unitId = uid;
-		console.log(`Entity ${this.debugName} got unit ID ${this.unitId}`);
+		console.log(`Entity ${this} got unit ID ${this.unitId}`);
 	}
 
 	protected tryFindOwner(): void {
@@ -468,7 +468,7 @@ class Entity {
 	}
 
 	protected onFirstPos() {
-		console.log(`Entity ${this.debugName} first pos`);
+		console.log(`Entity ${this} first pos`);
 		this.hasGotFirstPos = true;
 		this.trail.reset();
 	}
@@ -496,7 +496,7 @@ class Entity {
 		}
 		// If an entity uses onFirstPos to set active it will drop this update packet - this could be an issue
 		if (!this.isActive) {
-			// console.warn(`Entity ${this.debugName} got motion update while inactive`);
+			// console.warn(`Entity ${this} got motion update while inactive`);
 			return;
 		}
 
@@ -513,7 +513,7 @@ class Entity {
 
 	protected setTeam(team: Team) {
 		if (this.team != Team.Unknown && this.team != team) {
-			console.warn(`Entity ${this.debugName} already has team ${this.team}, overwriting with ${team}`);
+			console.warn(`Entity ${this} already has team ${this.team}, overwriting with ${team}`);
 		}
 
 		this.team = team;
@@ -522,7 +522,7 @@ class Entity {
 
 	public update(dt: number): void {
 		if (!this.isActive) {
-			console.warn(`Entity ${this.debugName} is not active but update was called! Call runInactiveUpdate instead`);
+			console.warn(`Entity ${this} is not active but update was called! Call runInactiveUpdate instead`);
 			return;
 		}
 		if (!this.hasFoundValidOwner) this.tryFindOwner();
@@ -547,7 +547,7 @@ class Entity {
 				this.iMeshOffsetObject.updateMatrixWorld();
 
 				if (!this.iMesh) {
-					console.log(`Entity ${this.debugName} has no instanced mesh. Active: ${this.isActive}`);
+					console.log(`Entity ${this} has no instanced mesh. Active: ${this.isActive}`);
 					this.createMesh();
 				} else {
 					this.iMesh.setMatrixAt(this.iMeshId, this.iMeshOffsetObject.matrixWorld);
@@ -599,7 +599,7 @@ class Entity {
 
 	public runInactiveUpdate(dt: number): void {
 		if (this.isActive) {
-			console.warn(`Entity ${this.debugName} is active but runInactiveUpdate was called! Call update instead`);
+			console.warn(`Entity ${this} is active but runInactiveUpdate was called! Call update instead`);
 			return;
 		}
 
@@ -630,11 +630,11 @@ class Entity {
 
 	protected triggerDeath() {
 		this.hasDied = true;
-		console.log(`Entity ${this.debugName} has died`);
+		console.log(`Entity ${this} has died`);
 		this.triggerDamage();
 		this.app.setTimeout(() => {
 			// this.setInactive(`Entity died`);
-			this.remove();
+			this.remove(`Death triggered`);
 		}, damageFadeTime * 3);
 	}
 
@@ -654,15 +654,15 @@ class Entity {
 		}
 	}
 
-	public async remove(): Promise<void> {
-		console.log(`Removing entity ${this.debugName}`);
+	public async remove(reason: string): Promise<void> {
+		console.warn(`Removing entity ${this} because ${reason}`);
 
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
 		if (this.activatingPromise) {
-			console.log(`Waiting for entity ${this.debugName} to finish activating before removing`);
+			console.log(`Waiting for entity ${this} to finish activating before removing`);
 			await this.activatingPromise;
-			console.log(`Entity ${this.debugName} finished activating, can now remove`);
+			console.log(`Entity ${this} finished activating, can now remove`);
 		}
 
 		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;

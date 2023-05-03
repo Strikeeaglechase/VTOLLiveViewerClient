@@ -109,7 +109,7 @@ class MissileEntity extends Entity {
 	public Detonate(): void {
 		this.fired = false;
 		this.hasTrail = false;
-		this.remove();
+		this.remove(`Missile detonated`);
 	}
 }
 

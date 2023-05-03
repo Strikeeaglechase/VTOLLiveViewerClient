@@ -4,6 +4,7 @@
 			<Sidebar class="ui" />
 			<UnitRange class="ui" />
 			<ReplayInfo class="ui" />
+			<LogPanel class="ui" />
 		</div>
 		<div id="lobby-select-container" v-show="isLobbySelect()">
 			<LobbyBrowser :state="state" />
@@ -24,9 +25,17 @@
 	import { EventBus } from "./eventBus";
 	import Welcome from "./components/welcome/Welcome.vue";
 	import ReplayInfo from "./components/ReplayInfo.vue";
+	import LogPanel from "./components/LogPanel.vue";
 
 	@Component({
-		components: { Sidebar, UnitRange, LobbyBrowser, Welcome, ReplayInfo },
+		components: {
+			Sidebar,
+			UnitRange,
+			LobbyBrowser,
+			Welcome,
+			ReplayInfo,
+			LogPanel,
+		},
 	})
 	export default class App extends Vue {
 		state: ApplicationRunningState = ApplicationRunningState.welcome;

@@ -182,11 +182,11 @@
 	background: rgba(0, 0, 0, 0.6);
 	padding-right: 10px;
 	padding-bottom: 5px;
-	margin-bottom: 25px;
+	margin-bottom: 15px;
+	margin-right: 10px;
 	position: fixed;
 	right: 0;
 	bottom: 0;
-	margin-right: 10px;
 }
 p {
 	color: white;

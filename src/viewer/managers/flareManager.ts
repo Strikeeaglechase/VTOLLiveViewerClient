@@ -71,7 +71,6 @@ class FlareManager {
 	}
 
 	public fireCm(entity: Entity) {
-		console.log("CMS");
 		// Try to reuse a flare, otherwise create a new one
 		if (this.freeFlares.length == 0) {
 			const mesh = new THREE.Mesh(this.geometry, this.material);

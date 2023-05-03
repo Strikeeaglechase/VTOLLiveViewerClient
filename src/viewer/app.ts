@@ -73,7 +73,7 @@ class MessageHandler {
 			return;
 		}
 		console.log(`Got despawn for ${entity}`);
-		entity.remove();
+		entity.remove(`NetDestroy command`);
 	}
 
 	@RPC("in")
@@ -96,6 +96,13 @@ interface ReplaceRPCHandler {
 	method: string;
 	handler: (app: Application, rpc: RPCPacket) => boolean | RPCPacket;
 }
+
+interface LogMessage {
+	message: string;
+	timestamp: number;
+	id: number;
+}
+let lmId = 0;
 
 // Handles "undoing" RPCs when the replay is running in reverse
 // Can return false to prevent the RPC from executing, or can return a different RPC to execute
@@ -142,6 +149,25 @@ const replaceRPCHandlers: ReplaceRPCHandler[] = [
 			rpcCopy.args[1] = !rpcCopy.args[1];
 			return rpcCopy;
 		}
+	},
+	{
+		className: "VTOLLobby",
+		method: "LogMessage",
+		handler: (app: Application, rpc: RPCPacket) => {
+			let removeIndex = -1;
+			for (let i = app.logMessages.length - 1; i >= 0; i--) {
+				if (app.logMessages[i].message == rpc.args[0]) {
+					removeIndex = i;
+					break;
+				}
+			}
+
+			if (removeIndex == -1) {
+				console.warn(`Attempting to undo log message ${rpc.args[0]} but no message found`);
+			} else {
+				app.logMessages.splice(removeIndex, 1);
+			}
+		}
 	}
 ];
 
@@ -179,12 +205,10 @@ class Application {
 		if (!this.isReplay) return 1;
 		return this.computedReplaySpeed >= 0 ? 1 : -1;
 	}
-
 	public get time(): number {
 		if (this.isReplay) return this.replayCurrentTime;
 		return Date.now();
 	}
-
 	public static get time() {
 		return this.instance.time;
 	}
@@ -192,6 +216,7 @@ class Application {
 	public entities: Entity[] = [];
 	private entitiesByOwner: Record<string, Entity[]> = {};
 	private entitiesToDelete: Entity[] = [];
+	public logMessages: LogMessage[] = [];
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;
@@ -755,7 +780,7 @@ class Application {
 		if (typeof game == "string") game = this.gameList.find(g => g.id == game);
 		if (!game) throw new Error(`Cannot find game by ID: ${gameRef}`);
 
-		this.entities.forEach(entity => entity.remove());
+		this.entities.forEach(entity => entity.remove(`New subscription`));
 		this.entities = [];
 		if (this.messageHandler) RPCController.deregister(this.messageHandler);
 
@@ -767,6 +792,10 @@ class Application {
 			console.log(`Lobby restarting, waiting for new connection...`);
 			const conRes = await this.game.waitForConnectionResult();
 			location.reload();
+		};
+		this.game.onLogMessage = (msg: string) => {
+			console.log(`[GAME] ${msg}`);
+			this.addLogMessage(msg);
 		};
 
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
@@ -1048,15 +1077,10 @@ class Application {
 		}
 	}
 
-	// private handleKeyUp(e: KeyboardEvent) {
-	// 	if (e.key == "f") {
-	// 		const elms = document.getElementsByClassName("ui");
-	// 		for (const e of elms) {
-	// 			const elm = e as HTMLDivElement;
-
-	// 		}
-	// 	}
-	// }
+	private addLogMessage(message: string) {
+		this.logMessages.push({ message, timestamp: this.time, id: lmId++ });
+		EventBus.$emit("log-messages", this.logMessages);
+	}
 
 	private addWindowEventHandlers(): void {
 		window.addEventListener("resize", () => this.handleResize());
@@ -1081,4 +1105,4 @@ class Application {
 	}
 }
 
-export { Application, ApplicationRunningState, deg, rad, mToFt, ftToMi, miToFt, ftToM, msToKnots, knotsToMs, lerp, vec, addCommas };
+export { Application, ApplicationRunningState, LogMessage, deg, rad, mToFt, ftToMi, miToFt, ftToM, msToKnots, knotsToMs, lerp, vec, addCommas };

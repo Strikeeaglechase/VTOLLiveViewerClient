@@ -69,8 +69,8 @@ class PlayerVehicle extends Entity {
 		}
 	}
 
-	public async remove(): Promise<void> {
-		await super.remove();
+	public async remove(reason: string): Promise<void> {
+		await super.remove(reason);
 		if (this.tgp) this.tgp.remove();
 		if (this.lockLine) this.lockLine.remove();
 		const ownedEntities = this.app.getEntitiesByOwnerId(this.ownerId);
