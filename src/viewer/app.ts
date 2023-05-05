@@ -847,16 +847,16 @@ class Application {
 		this.runReplayOnPackets(initPackets);
 		// this.groupedReplayPackets[0] = []; So much debugging to find this line of code that was causing issues
 		// Remove all initPackets so they don't get handled again
-		initPackets.forEach(p => {
-			const index = this.replayPackets.indexOf(p);
-			if (index > -1) this.replayPackets.splice(index, 1);
-			const timestampSeconds = Math.floor(p.timestamp ?? 0 / 1000);
-			const groupedPackets = this.groupedReplayPackets[timestampSeconds];
-			if (groupedPackets) {
-				const index = groupedPackets.indexOf(p);
-				if (index > -1) groupedPackets.splice(index, 1);
-			}
-		});
+		// initPackets.forEach(p => {
+		// 	const index = this.replayPackets.indexOf(p);
+		// 	if (index > -1) this.replayPackets.splice(index, 1);
+		// 	const timestampSeconds = Math.floor(p.timestamp ?? 0 / 1000);
+		// 	const groupedPackets = this.groupedReplayPackets[timestampSeconds];
+		// 	if (groupedPackets) {
+		// 		const index = groupedPackets.indexOf(p);
+		// 		if (index > -1) groupedPackets.splice(index, 1);
+		// 	}
+		// });
 
 		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
@@ -865,6 +865,8 @@ class Application {
 			this.replayCurrentTime = this.firstRealReplayDataTime;
 			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
 		}
+
+		console.log(`-- Replay fully loaded --`);
 		this.isInReplaySetup = false;
 	}
 
@@ -1060,6 +1062,10 @@ class Application {
 		const prevReplay = REPLAY_SPEEDS[this.replaySpeed];
 		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);
 		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
+
+		if (prevReplay != this.computedReplaySpeed) {
+			console.log(`New replay speed: ${this.computedReplaySpeed}x`);
+		}
 		// console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
 
 		// if (prevReplay < 0 && this.computedReplaySpeed > 0) {
