@@ -134,6 +134,11 @@ class TextOverlay {
 
 	public update(overlays: TextOverlay[]) {
 		this.updatePosition();
+		if (Application.instance.isTextOverlayHidden) {
+			if (!this.elm.classList.contains("hide")) this.elm.classList.add("hide");
+		} else {
+			if (this.elm.classList.contains("hide")) this.elm.classList.remove("hide");
+		}
 
 		// const d = Date.now();
 		// if (d - this.lastUpdateTime < 100) return;

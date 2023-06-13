@@ -226,6 +226,7 @@ class Application {
 	private timeouts: { func: () => void; startAt: number; time: number; }[] = [];
 
 	private isUiHidden = false;
+	public isTextOverlayHidden = false;
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
@@ -1054,10 +1055,15 @@ class Application {
 		}
 	}
 
+	private toggleTextOverlay() {
+		this.isTextOverlayHidden = !this.isTextOverlayHidden;
+	}
+
 	private handleKeyDown(e: KeyboardEvent) {
 		if (Application.state != ApplicationRunningState.running) return;
 
 		if (e.key == "f") this.toggleUI();
+		if (e.key == "o") this.toggleTextOverlay();
 
 		const prevReplay = REPLAY_SPEEDS[this.replaySpeed];
 		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);

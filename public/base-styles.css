@@ -22,3 +22,7 @@ html {
 	border-style: solid;
 	border-color: red;
 }
+
+.hide {
+	display: none;
+}
