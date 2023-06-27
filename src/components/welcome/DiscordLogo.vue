@@ -1,5 +1,5 @@
 <template>
-	<a href="https://discord.gg/u7X72wc" target="_blank">
+	<a href="https://discord.gg/yQ8ZW8cQRt" target="_blank">
 		<img src="discord.svg" class="discordlink" />
 	</a>
 </template>
@@ -21,9 +21,9 @@
 }
 
 a {
-  padding: 0;
-  margin: 0;
-  min-height: 0;
-  max-height: 40px;
+	padding: 0;
+	margin: 0;
+	min-height: 0;
+	max-height: 40px;
 }
 </style>

@@ -6,16 +6,17 @@ import * as THREE from "three";
 import {
 	decompressRpcPackets
 } from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
-import { getCookie } from "../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
 import {
 	EnableRPCs, RPC, RPCController, RPCPacket
 } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import {
-	AssignID, Client, PacketType, Team, Vector3, VTOLLobby
+	AssignID, PacketType, Team, Vector3, VTOLLobby
 } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
-import { IS_ALPHA, IS_DEV, WS_URL } from "../config";
+import { IS_DEV, REFRESH_URL, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
+import { Client } from "./client/client";
+import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
@@ -28,7 +29,6 @@ import { FlareManager } from "./managers/flareManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
-import { kills } from "./testData";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
@@ -87,9 +87,16 @@ enum ApplicationRunningState {
 	welcome = "welcome",
 	lobbySelect = "lobby_select",
 	replaySelect = "replay_select",
+	admin = "admin",
 	running = "running",
 	lobbyEnd = "lobby_end",
 }
+
+const stateChangeMap = {
+	"/lobbies": ApplicationRunningState.lobbySelect,
+	"/replay": ApplicationRunningState.replaySelect,
+	"/admin": ApplicationRunningState.admin,
+};
 
 interface ReplaceRPCHandler {
 	className: string;
@@ -285,12 +292,21 @@ class Application {
 			this.socket.send(JSON.stringify(pckt));
 		});
 
-		if (window.location.pathname.startsWith("/lobbies")) {
-			Application.setState(ApplicationRunningState.lobbySelect);
-		} else if (window.location.pathname.startsWith("/replay")) {
-			Application.setState(ApplicationRunningState.replaySelect);
-		}
+		// }
+		const pathnames = Object.keys(stateChangeMap) as (keyof typeof stateChangeMap)[];
+		pathnames.forEach(pathname => {
+			if (window.location.pathname.startsWith(pathname)) {
+				Application.setState(stateChangeMap[pathname]);
+			}
+		});
 
+		const user = getLoggedInUser();
+		if (user) {
+			const daysTillExpire = (((user.exp ?? 0) * 1000) - Date.now()) / 1000 / 60 / 60 / 24;
+			if (daysTillExpire < 7) {
+				window.location.assign(REFRESH_URL);
+			}
+		}
 
 		// EventBus.$emit("state", this.state);
 
@@ -430,79 +446,79 @@ class Application {
 		}, 250);
 	}
 
-	private async loadTestHSData() {
-		await this.start();
+	// private async loadTestHSData() {
+	// 	await this.start();
 
-		await this.mapLoader.loadHeightmapFromMission({
-			campaignId: "mp_pvpscenarios",
-			id: "airshowFreeflight",
-			isBuiltin: true,
-			mapId: "hMap2",
-			name: "BVR",
-			workshopId: "built-in"
-		});
+	// 	await this.mapLoader.loadHeightmapFromMission({
+	// 		campaignId: "mp_pvpscenarios",
+	// 		id: "airshowFreeflight",
+	// 		isBuiltin: true,
+	// 		mapId: "hMap2",
+	// 		name: "BVR",
+	// 		workshopId: "built-in"
+	// 	});
 
-		this.game = new VTOLLobby("0");
-		this.game.players.push({
-			entityId: 1,
-			pilotName: "Chase",
-			slot: 0,
-			steamId: "0",
-			team: Team.A,
-			unitId: 0
-		});
-		this.messageHandler = new MessageHandler(this.game.id, this);
+	// 	this.game = new VTOLLobby("0");
+	// 	this.game.players.push({
+	// 		entityId: 1,
+	// 		pilotName: "Chase",
+	// 		slot: 0,
+	// 		steamId: "0",
+	// 		team: Team.A,
+	// 		unitId: 0
+	// 	});
+	// 	this.messageHandler = new MessageHandler(this.game.id, this);
 
-		const victimAIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(200),
-			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
-			kills.length
-		);
-		const victimBIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(200),
-			new THREE.MeshBasicMaterial({ color: "#0000FF" }),
-			kills.length
-		);
+	// 	const victimAIMesh = new THREE.InstancedMesh(
+	// 		new THREE.SphereGeometry(200),
+	// 		new THREE.MeshBasicMaterial({ color: "#0000FF" }),
+	// 		kills.length
+	// 	);
+	// 	const victimBIMesh = new THREE.InstancedMesh(
+	// 		new THREE.SphereGeometry(200),
+	// 		new THREE.MeshBasicMaterial({ color: "#0000FF" }),
+	// 		kills.length
+	// 	);
 
-		const killIMesh = new THREE.InstancedMesh(
-			new THREE.SphereGeometry(200),
-			new THREE.MeshBasicMaterial({ color: "#FF0000" }),
-			kills.length
-		);
+	// 	const killIMesh = new THREE.InstancedMesh(
+	// 		new THREE.SphereGeometry(200),
+	// 		new THREE.MeshBasicMaterial({ color: "#FF0000" }),
+	// 		kills.length
+	// 	);
 
 
-		console.log(kills.length);
+	// 	console.log(kills.length);
 
-		kills.forEach((kill, idx) => {
-			if (!kill.killerPosition || !kill.victimPosition) return;
-			if (kill.killerPosition.x == 0 && kill.killerPosition.y == 0 && kill.killerPosition.z == 0) return;
-			if (kill.victimPosition.x == 0 && kill.victimPosition.y == 0 && kill.victimPosition.z == 0) return;
+	// 	kills.forEach((kill, idx) => {
+	// 		if (!kill.killerPosition || !kill.victimPosition) return;
+	// 		if (kill.killerPosition.x == 0 && kill.killerPosition.y == 0 && kill.killerPosition.z == 0) return;
+	// 		if (kill.victimPosition.x == 0 && kill.victimPosition.y == 0 && kill.victimPosition.z == 0) return;
 
-			const victimPos = new THREE.Vector3(-kill.victimPosition.x, kill.victimPosition.y, kill.victimPosition.z);
-			const victimMatrix = new THREE.Matrix4().setPosition(victimPos);
-			if (kill.victimTeam == 0) victimAIMesh.setMatrixAt(idx, victimMatrix);
-			if (kill.victimTeam == 1) victimBIMesh.setMatrixAt(idx, victimMatrix);
+	// 		const victimPos = new THREE.Vector3(-kill.victimPosition.x, kill.victimPosition.y, kill.victimPosition.z);
+	// 		const victimMatrix = new THREE.Matrix4().setPosition(victimPos);
+	// 		if (kill.victimTeam == 0) victimAIMesh.setMatrixAt(idx, victimMatrix);
+	// 		if (kill.victimTeam == 1) victimBIMesh.setMatrixAt(idx, victimMatrix);
 
-			const killerPos = new THREE.Vector3(-kill.killerPosition.x, kill.killerPosition.y, kill.killerPosition.z);
-			const killerMatrix = new THREE.Matrix4().setPosition(killerPos);
-			killIMesh.setMatrixAt(idx, killerMatrix);
+	// 		const killerPos = new THREE.Vector3(-kill.killerPosition.x, kill.killerPosition.y, kill.killerPosition.z);
+	// 		const killerMatrix = new THREE.Matrix4().setPosition(killerPos);
+	// 		killIMesh.setMatrixAt(idx, killerMatrix);
 
-			// // Create a line between the two;
-			// const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
-			// const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
-			// const line = new THREE.Line(lineGeo, lineMat);
-			// line.name = "Line";
-			// this.sceneManager.add(line);
-		});
+	// 		// // Create a line between the two;
+	// 		// const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
+	// 		// const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
+	// 		// const line = new THREE.Line(lineGeo, lineMat);
+	// 		// line.name = "Line";
+	// 		// this.sceneManager.add(line);
+	// 	});
 
-		victimAIMesh.name = "Victims";
-		victimBIMesh.name = "Victims";
-		killIMesh.name = "Killers";
+	// 	victimAIMesh.name = "Victims";
+	// 	victimBIMesh.name = "Victims";
+	// 	killIMesh.name = "Killers";
 
-		this.sceneManager.add(victimAIMesh);
-		this.sceneManager.add(victimBIMesh);
-		this.sceneManager.add(killIMesh);
-	}
+	// 	this.sceneManager.add(victimAIMesh);
+	// 	this.sceneManager.add(victimBIMesh);
+	// 	this.sceneManager.add(killIMesh);
+	// }
 
 	private packetIsInTimeframe(packet: RPCPacket) {
 		const fromRecordingStart = (packet.timestamp ?? Date.now()) - this.replayStartTime;
@@ -926,20 +942,26 @@ class Application {
 				this.client = new Client(packet.id);
 
 				// If we have an alpha key, lets send it now that we have our ID
-				const alphaKey = getCookie("alpha_key");
-				if (IS_ALPHA) {
-					if (alphaKey) {
-						console.log(`Sending alpha key`);
-						this.client.setAlphaKey(alphaKey);
-					} else if (Application.state == ApplicationRunningState.lobbySelect
-						&& IS_ALPHA
-						&& !getCookie("alpha_key")) {
-						const key = prompt("Enter alpha key:");
-						if (!key) {
-							return;
-						}
-						Application.instance.client.setAlphaKey(key);
-					}
+				// const alphaKey = getCookie("alpha_key");
+				// if (IS_ALPHA) {
+				// 	if (alphaKey) {
+				// 		console.log(`Sending alpha key`);
+				// 		this.client.setAlphaKey(alphaKey);
+				// 	} else if (Application.state == ApplicationRunningState.lobbySelect
+				// 		&& IS_ALPHA
+				// 		&& !getCookie("alpha_key")) {
+				// 		const key = prompt("Enter alpha key:");
+				// 		if (!key) {
+				// 			return;
+				// 		}
+				// 		Application.instance.client.setAlphaKey(key);
+				// 	}
+				// }
+
+				if (isLoggedIn()) {
+					this.client.setUser(readUserKey() as string);
+					const user = getLoggedInUser();
+					console.log(`Sending user key. Current scopes: ${user?.scopes.join(", ")}`);
 				}
 
 				console.log(`Received client ID: ${this.client.id}`);

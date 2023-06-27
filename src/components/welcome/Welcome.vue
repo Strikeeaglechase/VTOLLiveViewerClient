@@ -2,10 +2,11 @@
   <div class="welcome">
     <div class="blur-background"></div>
     <!-- <div class="main-background"></div> -->
+		<LoginSteam />
     <div class="content">
-      <h1 class="text">Headless Client</h1>
-      <p class="wip-text">Name still WIP</p>
-      <h2 class="text">Alpha Test</h2>
+      <h1 class="text" style="padding-top: 10px">Headless Client</h1>
+      <!-- <p class="wip-text">Name still WIP</p> -->
+      <!-- <h2 class="text">Alpha Test</h2> -->
       <p class="text" id="text-body">
         Headless Client is a live 3D viewer for
         <a
@@ -22,6 +23,7 @@
           ></td>
           <td>Lead Developer</td>
         </tr>
+        <br />
         <tr>
           <td><a href="https://github.com/AlexAndHisScripts" target="_blank"
           >IHave</a
@@ -58,8 +60,8 @@
       BahamutoD - For making an amazing game and putting up with our
       shenanigans <br/>
       </p>
-      <WelcomeStartButton text="Lobbies" redirect="lobbies" />
-      <WelcomeStartButton text="Recordings" redirect="replay"/>
+      <WelcomeStartButton text="Lobbies" redirect="lobbies" greyout=true />
+      <WelcomeStartButton text="Recordings" redirect="replay" greyout=false />
     </div>
     <WelcomeBottomBar/>
   </div>
@@ -70,9 +72,26 @@
 	import { Component, Vue } from "vue-property-decorator";
 	import WelcomeBottomBar from "./WelcomeBottomBar.vue";
 	import WelcomeStartButton from "./WelcomeStartButton.vue";
+	import LoginSteam from "../LoginSteam.vue";
+	import {
+		getLoggedInUser,
+		hasPerm,
+		isLoggedIn,
+	} from "../../viewer/client/cookies";
+	import { IS_ALPHA } from "../../config";
+	import { UserScopes } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 
-	@Component({ components: { WelcomeBottomBar, WelcomeStartButton } })
-	export default class Welcome extends Vue {}
+	@Component({ components: { WelcomeBottomBar, WelcomeStartButton, LoginSteam } })
+	export default class Welcome extends Vue {
+		canAccessLobbies = false;
+		mounted() {
+			this.canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS);
+
+			if (this.canAccessLobbies) {
+				console.log("User has access to lobbies");
+			}
+		}
+	}
 </script>
 
 <style scoped>

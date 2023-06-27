@@ -28,9 +28,16 @@
 	import { API_URL } from "../config";
 	import RecordedLobbyEntry from "./RecordedLobbyEntry.vue";
 	import ReplayUpload from "./ReplayUpload.vue";
+	import LoginSteam from "./LoginSteam.vue";
 
 	@Component({
-		components: { LobbyEntry, LobbySearch, RecordedLobbyEntry, ReplayUpload },
+		components: {
+			LobbyEntry,
+			LobbySearch,
+			RecordedLobbyEntry,
+			ReplayUpload,
+			LoginSteam,
+		},
 	})
 	export default class LobbyBrowser extends Vue {
 		lobbies: VTOLLobby[] = [];
@@ -57,9 +64,6 @@
 					this.replayLobbies = this.replayLobbies.filter(
 						(l) => l.recordingId == id
 					);
-					// if (lobby) {
-					// 	Application.joinLobby(lobby);
-					// }
 				}
 			}
 		}

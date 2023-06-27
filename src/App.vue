@@ -1,16 +1,19 @@
 <template>
 	<div id="app">
-		<div id="main-container" v-show="isRunning()">
+		<div id="main-container" class="page" v-show="isRunning()">
 			<Sidebar class="ui" />
 			<UnitRange class="ui" />
 			<ReplayInfo class="ui" />
 			<LogPanel class="ui" />
 		</div>
-		<div id="lobby-select-container" v-show="isLobbySelect()">
+		<div id="lobby-select-container" class="page" v-show="isLobbySelect()">
 			<LobbyBrowser :state="state" />
 		</div>
-		<div id="welcome-page" v-show="isWelcome()">
+		<div id="welcome-page" class="page" v-show="isWelcome()">
 			<Welcome />
+		</div>
+		<div id="admin-page" class="page" v-show="isAdmin()">
+			<AdminPage />
 		</div>
 	</div>
 </template>
@@ -26,6 +29,7 @@
 	import Welcome from "./components/welcome/Welcome.vue";
 	import ReplayInfo from "./components/ReplayInfo.vue";
 	import LogPanel from "./components/LogPanel.vue";
+	import AdminPage from "./components/admin/AdminPage.vue";
 
 	@Component({
 		components: {
@@ -35,6 +39,7 @@
 			Welcome,
 			ReplayInfo,
 			LogPanel,
+			AdminPage,
 		},
 	})
 	export default class App extends Vue {
@@ -59,6 +64,10 @@
 		isWelcome() {
 			return this.state == ApplicationRunningState.welcome;
 		}
+
+		isAdmin() {
+			return this.state == ApplicationRunningState.admin;
+		}
 	}
 </script>
 
@@ -67,13 +76,13 @@
 	height: 100%;
 	background-color: rgb(41, 41, 41);
 }
-#main-container {
-	height: 100%;
-}
+
 #lobby-select-container {
 	background-color: rgb(41, 41, 41);
 }
-#welcome-page {
+
+.page {
 	height: 100%;
+	overflow-y: hidden;
 }
 </style>

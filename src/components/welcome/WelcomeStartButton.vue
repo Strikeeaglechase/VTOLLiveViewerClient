@@ -1,21 +1,20 @@
 <template>
-	<a
-		href="javascript:void(0);"
-		id="start"
-		class="fancy-btn"
-		v-on:click="handleClick()"
-	>
-		<p class="btn-txt">View {{ text }}</p>
-	</a>
+	<div :class="{ 'greyout-wrapper': set_greyout }">
+		<a
+			href="javascript:void(0);"
+			id="start"
+			class="fancy-btn"
+			:class="{ greyout: set_greyout }"
+			v-on:click="handleClick()"
+		>
+			<p class="btn-txt">View {{ text }}</p>
+		</a>
+	</div>
 </template>
 
 
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
-	import { IS_ALPHA } from "../../config";
-	// import { getCookie } from "../../../../VTOLLiveViewerCommon/dist/src/cookieHelper";
-
-	import { Application, ApplicationRunningState } from "../../viewer/app";
 
 	@Component({})
 	export default class WelcomeStartButton extends Vue {
@@ -23,27 +22,16 @@
 		text: string;
 		@Prop()
 		redirect: string;
-		// viewValue = "Lobbies";
+		@Prop()
+		greyout: string;
 
-		// mounted() {
-		// 	this.viewValue =
-		// 		location.pathname == "/replay" ? "Recordings" : "Lobbies";
-		// }
+		set_greyout = false;
 
+		mounted() {
+			if (this.greyout == "true") this.set_greyout = true;
+			else this.set_greyout = false;
+		}
 		handleClick() {
-			// if (
-			// 	IS_ALPHA &&
-			// 	!getCookie("alpha_key") &&
-			// 	location.pathname != "/replay"
-			// ) {
-			// 	const key = prompt("Enter alpha key:");
-			// 	if (!key) {
-			// 		return;
-			// 	}
-			// 	Application.instance.client.setAlphaKey(key);
-			// }
-			// Application.setState(ApplicationRunningState.lobbySelect);
-
 			location.pathname = this.redirect;
 		}
 	}
@@ -96,6 +84,15 @@
 	text-align: center;
 	margin: 0px;
 	color: var(--color-white) !important;
+}
+
+.greyout {
+	pointer-events: none;
+	opacity: 0.4;
+}
+
+.greyout-wrapper {
+	cursor: not-allowed;
 }
 
 @keyframes animate {
