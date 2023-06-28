@@ -38,7 +38,7 @@ function readCookie(name: string) {
 }
 
 function eraseCookie(name: string, domain: string) {
-	createCookie(name, "", -1);
+	createCookie(name, "", -1, domain);
 }
 
 function readUserKey() {
