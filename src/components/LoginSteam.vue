@@ -46,6 +46,7 @@
 		handleClick() {
 			if (this.isLoggedIn) {
 				eraseCookie("user_token");
+				debugger;
 			}
 		}
 	}
