@@ -1,6 +1,6 @@
 <template>
 	<div class="steambutton">
-		<a v-bind:href="actionUrl">
+		<a v-bind:href="actionUrl" @click="handleClick()">
 			<div v-if="isLoggedIn" class="logout-pfp">
 				<img v-bind:src="user.pfpUrl" />
 				<p>{{ user.username }}</p>
@@ -19,7 +19,11 @@
 	import { Component, Vue } from "vue-property-decorator";
 	import { ENV_IS_DEV } from "../.env";
 	import { EventBus } from "../eventBus";
-	import { getLoggedInUser, isLoggedIn } from "../viewer/client/cookies";
+	import {
+		getLoggedInUser,
+		isLoggedIn,
+		eraseCookie,
+	} from "../viewer/client/cookies";
 	import { HCUser } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 	import { LOGIN_URL, LOGOUT_URL } from "../config";
 
@@ -36,6 +40,12 @@
 				this.actionUrl = LOGOUT_URL;
 			} else {
 				this.actionUrl = LOGIN_URL;
+			}
+		}
+
+		handleClick() {
+			if (this.isLoggedIn) {
+				eraseCookie("user_token");
 			}
 		}
 	}

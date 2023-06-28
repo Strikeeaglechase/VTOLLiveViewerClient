@@ -60,7 +60,7 @@
       BahamutoD - For making an amazing game and putting up with our
       shenanigans <br/>
       </p>
-      <WelcomeStartButton text="Lobbies" redirect="lobbies" greyout=true />
+      <WelcomeStartButton text="Lobbies" redirect="lobbies" :greyout=canAccessLobbies />
       <WelcomeStartButton text="Recordings" redirect="replay" greyout=false />
     </div>
     <WelcomeBottomBar/>

@@ -57,7 +57,9 @@ function getLoggedInUser(): HCUser | null {
 
 function hasPerm(perm: UserScopes) {
 	const user = getLoggedInUser();
+	// console.log(user);
 	if (user) {
+		// console.log(perm, user.scopes.includes(perm));
 		return user.scopes.includes(perm);
 	}
 	return false;
