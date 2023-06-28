@@ -49,7 +49,7 @@
 				this.scopes.push({
 					scopeName: scope,
 					value: scopeValue,
-					enabled: this.user.lastUserObject.scopes.includes(scopeValue),
+					enabled: this.user.scopes.includes(scopeValue),
 				});
 			});
 		}
