@@ -114,6 +114,11 @@
 <style>
 /* TODO CSS grid this so it's in a dynamic grid */
 
+.lobbyBrowser {
+	max-height: 99vh;
+	overflow: scroll;
+}
+
 @media only screen and (min-width: 3500px) {
 	.lobbyBrowser {
 		width: 100%;
