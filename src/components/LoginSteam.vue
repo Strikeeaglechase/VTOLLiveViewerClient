@@ -1,6 +1,6 @@
 <template>
 	<div class="steambutton">
-		<a v-bind:href="actionUrl" @click="handleClick()">
+		<div @click="handleClick()">
 			<div v-if="isLoggedIn" class="logout-pfp">
 				<img v-bind:src="user.pfpUrl" />
 				<p>{{ user.username }}</p>
@@ -11,7 +11,7 @@
 				<i class="fa fa-steam-square icon"></i>
 				<p>Login</p>
 			</div>
-		</a>
+		</div>
 	</div>
 </template>
 
@@ -44,10 +44,13 @@
 		}
 
 		handleClick() {
+			console.log(`LoginSteam: handleClick()`);
+			console.log(`LoginSteam: isLoggedIn: ${this.isLoggedIn}`);
 			if (this.isLoggedIn) {
 				eraseCookie("user_token");
-				debugger;
+				console.log(`LoginSteam: cookie erased`);
 			}
+			window.location.assign(this.actionUrl);
 		}
 	}
 </script>
@@ -78,5 +81,9 @@
 	font-size: 14px;
 	margin-top: 0px;
 	margin-bottom: 0;
+}
+
+.steambutton {
+	cursor: pointer;
 }
 </style>
