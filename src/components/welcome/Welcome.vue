@@ -60,8 +60,8 @@
       BahamutoD - For making an amazing game and putting up with our
       shenanigans <br/>
       </p>
-      <WelcomeStartButton text="Lobbies" redirect="lobbies" :greyout=canAccessLobbies />
-      <WelcomeStartButton text="Recordings" redirect="replay" greyout=false />
+      <WelcomeStartButton text="Lobbies" redirect="lobbies" :greyout=!canAccessLobbies />
+      <WelcomeStartButton text="Recordings" redirect="replay" :greyout=false />
     </div>
     <WelcomeBottomBar/>
   </div>
@@ -86,6 +86,7 @@
 		canAccessLobbies = false;
 		mounted() {
 			this.canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS);
+			// console.log(this.canAccessLobbies);
 
 			if (this.canAccessLobbies) {
 				console.log("User has access to lobbies");

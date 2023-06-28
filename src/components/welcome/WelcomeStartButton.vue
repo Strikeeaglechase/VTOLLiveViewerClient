@@ -1,10 +1,10 @@
 <template>
-	<div :class="{ 'greyout-wrapper': set_greyout }">
+	<div :class="{ 'greyout-wrapper': greyout == true }">
 		<a
 			href="javascript:void(0);"
 			id="start"
 			class="fancy-btn"
-			:class="{ greyout: set_greyout }"
+			:class="{ greyout: greyout == true }"
 			v-on:click="handleClick()"
 		>
 			<p class="btn-txt">View {{ text }}</p>
@@ -18,19 +18,18 @@
 
 	@Component({})
 	export default class WelcomeStartButton extends Vue {
-		@Prop()
-		text: string;
-		@Prop()
-		redirect: string;
-		@Prop()
-		greyout: string;
+		@Prop() text: string;
+		@Prop() redirect: string;
+		@Prop() greyout: string;
 
-		set_greyout = false;
+		// set_greyout = false;
 
-		mounted() {
-			if (this.greyout == "true") this.set_greyout = true;
-			else this.set_greyout = false;
-		}
+		// mounted() {
+		// console.log(this.greyout, typeof this.greyout);
+		// if (this.greyout == "true") this.set_greyout = true;
+		// else this.set_greyout = false;
+		// }
+
 		handleClick() {
 			location.pathname = this.redirect;
 		}
