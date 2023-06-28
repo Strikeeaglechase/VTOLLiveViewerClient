@@ -13,15 +13,17 @@ function parseJwt(token: string) {
 	return JSON.parse(jsonPayload);
 }
 
-function createCookie(name: string, value: string, expire_ms = 0) {
+function createCookie(name: string, value: string, expire_ms = 0, domain = "") {
 	let expires = "";
 	if (expire_ms) {
 		const date = new Date();
 		date.setTime(Date.now() + expire_ms);
-		expires = "; expires=" + date.toUTCString();
+		// expires = "; expires=" + date.toUTCString();
+		expires = `; expires=${date.toUTCString()}`;
 	}
 
-	document.cookie = name + "=" + value + expires + "; path=/";
+	// document.cookie = name + "=" + value + expires + "; path=/";
+	document.cookie = `${name}=${value}${expires}; path=/; domain=${domain}`;
 }
 
 function readCookie(name: string) {
@@ -35,7 +37,7 @@ function readCookie(name: string) {
 	return null;
 }
 
-function eraseCookie(name: string) {
+function eraseCookie(name: string, domain: string) {
 	createCookie(name, "", -1);
 }
 

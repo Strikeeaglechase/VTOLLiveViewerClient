@@ -25,7 +25,7 @@
 		eraseCookie,
 	} from "../viewer/client/cookies";
 	import { HCUser } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
-	import { LOGIN_URL, LOGOUT_URL } from "../config";
+	import { COOKIE_DOMAIN, LOGIN_URL, LOGOUT_URL } from "../config";
 
 	@Component({ components: {} })
 	export default class LoginSteam extends Vue {
@@ -44,11 +44,11 @@
 		}
 
 		handleClick() {
-			console.log(`LoginSteam: handleClick()`);
-			console.log(`LoginSteam: isLoggedIn: ${this.isLoggedIn}`);
+			// console.log(`LoginSteam: handleClick()`);
+			// console.log(`LoginSteam: isLoggedIn: ${this.isLoggedIn}`);
 			if (this.isLoggedIn) {
-				eraseCookie("user_token");
-				console.log(`LoginSteam: cookie erased`);
+				eraseCookie("user_token", COOKIE_DOMAIN);
+				// console.log(`LoginSteam: cookie erased`);
 			}
 			window.location.assign(this.actionUrl);
 		}
