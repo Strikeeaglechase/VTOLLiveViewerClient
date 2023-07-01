@@ -6,9 +6,14 @@ import { CameraController } from "../cameraController";
 import { CSS2DObject, CSS2DRenderer } from "../CSS2DRenderer";
 import { TextOverlay } from "../textOverlayHandler";
 
-const D_SCALE_MIN = 1000;
-const D_SCALE_MAX = 100000;
-const D_SCALE_MULT = 1000;
+// const D_SCALE_MIN = 1000;
+// const D_SCALE_MAX = 100000;
+// const D_SCALE_MULT = 1000;
+
+const MAX_SCALE = 30;
+const MIN_SCALE = 1;
+const SCALE_RANGE_MULT = 0.01;
+
 const STRICT_MESH_NAME = true; // Require all meshes to have a name
 
 enum SceneEvent {
@@ -64,38 +69,33 @@ class SceneManager {
 		this.scene.background = skybox;
 	}
 
+	private calculateScale(d: number) {
+		return Math.min(Math.max(d * SCALE_RANGE_MULT, MIN_SCALE), MAX_SCALE);
+	}
+
 	public run(): void {
 		this.cameraController.update();
 		this.renderer.render(this.scene, this.camera);
 
 		let overrideZoom = 0;
+
 		// If we are focused on something, all scale is relative to that
 		if (this.app.currentFocus != null) {
 			const d = this.app.currentFocus.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
-			const clampedD = Math.min(Math.max(d, D_SCALE_MIN), D_SCALE_MAX);
-			const val = Math.max(1, (clampedD - D_SCALE_MIN) / (D_SCALE_MAX - D_SCALE_MIN) * D_SCALE_MULT);
-			overrideZoom = val;
+			overrideZoom = this.calculateScale(d);
 		}
 
 		const camPos = this.camera.getWorldPosition(new THREE.Vector3());
 
-		// const m = this.lastCameraPos.sub(camPos).lengthSq();
-		// Why does this happen? m flickers up and down over and over again every frame
-		// This code is buggy and bad, but we really only need to update the scale when the camera moves
-		// TODO: Reenable this code (and fix it)
-		// if (m > 10 && m < 100000) {
 		this.app.entities.forEach(entity => {
 			if (!entity.isActive) return;
 			if (overrideZoom == 0) {
 				const d = entity.position.distanceTo(camPos);
-				const clampedD = Math.min(Math.max(d, D_SCALE_MIN), D_SCALE_MAX);
-				const val = Math.max(1, (clampedD - D_SCALE_MIN) / (D_SCALE_MAX - D_SCALE_MIN) * D_SCALE_MULT);
-				entity.scale = val;
+				entity.scale = this.calculateScale(d);
 			} else {
 				entity.scale = overrideZoom;
 			}
 		});
-		// }
 
 		this.overlayElements.forEach(overlay => overlay.updateBoundingRect());
 		this.overlayElements.forEach(overlay => overlay.update(this.overlayElements));
@@ -105,7 +105,7 @@ class SceneManager {
 
 	public postFrame() {
 		this.css2dRenderer.render(this.scene, this.camera, this.overlay2dObjects);
-		this.overlayElements.forEach(overlay => overlay.runBatchedUpdate()); 
+		this.overlayElements.forEach(overlay => overlay.runBatchedUpdate());
 	}
 
 	private spawnLights(): void {
