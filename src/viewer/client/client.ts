@@ -2,6 +2,7 @@
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { DbUserEntry, UserScopes } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
 class Client {
@@ -42,6 +43,17 @@ class Client {
 
 	@RPC("out")
 	adminSetUserScopes(id: string, scopes: UserScopes[]) { }
+
+	@RPC("out")
+	kickUser(id: string) { }
+
+	@RPC("in")
+	newToken(token: string) {
+		console.log(`Server sent new token`);
+		setNewUserToken(token);
+
+		this.setUser(token);
+	}
 }
 
 export { Client };

@@ -116,7 +116,7 @@
 
 .lobbyBrowser {
 	max-height: 99vh;
-	overflow: scroll;
+	overflow-y: scroll;
 }
 
 @media only screen and (min-width: 3500px) {

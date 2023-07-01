@@ -41,6 +41,10 @@ function eraseCookie(name: string, domain: string) {
 	createCookie(name, "", -1, domain);
 }
 
+function setNewUserToken(token: string) {
+	createCookie(authCookieKey, token, 1000 * 60 * 60 * 24 * 14, `.${window.location.hostname}`);
+}
+
 function readUserKey() {
 	return readCookie(authCookieKey);
 }
@@ -67,4 +71,4 @@ function hasPerm(perm: UserScopes) {
 	return false;
 }
 
-export { parseJwt, createCookie, readCookie, eraseCookie, isLoggedIn, getLoggedInUser, hasPerm, readUserKey };
+export { parseJwt, createCookie, readCookie, eraseCookie, isLoggedIn, getLoggedInUser, hasPerm, readUserKey, setNewUserToken };

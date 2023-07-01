@@ -9,6 +9,7 @@
 	>
 		<p>{{ entity.owner.pilotName }} ({{ entity.displayName }})</p>
 		<button v-on:click="focus()">Focus</button>
+		<button v-on:click="kick()" v-if="isAdmin">Kick</button>
 	</div>
 </template>
 
@@ -18,7 +19,12 @@
 	import { EventBus } from "../eventBus";
 	import { Entity } from "../viewer/entityBase/entity";
 
-	import { Team } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
+	import {
+		Team,
+		UserScopes,
+	} from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
+	import { Application } from "../viewer/app";
+	import { hasPerm } from "../viewer/client/cookies";
 
 	@Component
 	export default class EntityComponent extends Vue {
@@ -26,8 +32,17 @@
 		entity!: Entity;
 		teams = Team;
 
+		isAdmin = false;
+		mounted() {
+			this.isAdmin = hasPerm(UserScopes.ADMIN);
+		}
+
 		focus() {
 			this.entity.focus();
+		}
+
+		kick() {
+			Application.instance.client.kickUser(this.entity.owner.steamId);
 		}
 	}
 </script>
@@ -54,6 +69,7 @@ button {
 	padding-bottom: 2px;
 	transition: color 0.25s;
 	font-size: 1em;
+	margin-left: 5px;
 }
 
 button:hover {
