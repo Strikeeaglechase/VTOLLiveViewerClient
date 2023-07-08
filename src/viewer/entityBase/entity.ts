@@ -103,7 +103,7 @@ class Entity {
 	}
 	public get scale() { return this._scale; }
 	protected scaleDamper = 1;
-	private iMeshLoadScale = 1;
+	protected iMeshLoadScale = 1;
 	protected baseScaleSize: number;
 
 	public get isFocus() {
@@ -185,6 +185,7 @@ class Entity {
 
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
+		this.meshProxyObject.name = `${this} MeshProxyObject`;
 
 		if (enable_debug_sphere) {
 			this.meshProxyObject.add(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({ color: "#FF0000" })));
@@ -216,7 +217,7 @@ class Entity {
 			lastDamageAt: 0,
 		};
 
-		this.damage.mesh.name = "Entity Damage";
+		this.damage.mesh.name = `${this} Damage`;
 		this.damage.mesh.visible = false;
 		this.scene.add(this.damage.mesh);
 		markRaw(this.damage);
@@ -236,6 +237,7 @@ class Entity {
 
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
+		this.meshProxyObject.name = "Mesh Proxy Object";
 		this.object.add(this.meshProxyObject);
 
 		// Often there will be a motion update this frame as well, so defer updating this value until next
@@ -286,9 +288,11 @@ class Entity {
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
 
+
 		this.maybeCreateTextOverlay();
 
-		this.object.name = "Entity Mesh";
+		this.mesh.name = `${this} Mesh`;
+		this.object.name = `${this} Object`;
 		// this.scene.add(this.object);
 		// if (this.hasTrail) this.trail.init();
 		this.isActive = true;

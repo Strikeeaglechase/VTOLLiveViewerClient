@@ -173,6 +173,7 @@ class TextOverlay {
 	}
 
 	public isInBounds(x: number, y: number) {
+		if (!this.boundingRect) return false;
 		return x > this.boundingRect.left && x < this.boundingRect.right && y > this.boundingRect.top && y < this.boundingRect.bottom;
 	}
 

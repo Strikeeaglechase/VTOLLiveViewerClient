@@ -106,6 +106,7 @@ class MapLoader {
 			0,
 			chunkIdx.y * METERS_PER_PIXEL * chunkIdx.pixPerChunk,
 		);
+		mesh.name = `Chunk ${chunkIdx.x} ${chunkIdx.y}`;
 		this.heightMapMesh.add(mesh);
 	}
 

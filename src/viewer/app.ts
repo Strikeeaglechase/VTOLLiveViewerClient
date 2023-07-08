@@ -13,7 +13,7 @@ import {
 	AssignID, PacketType, Team, Vector3, VTOLLobby
 } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
-import { IS_DEV, REFRESH_URL, WS_URL } from "../config";
+import { IS_DEV, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
@@ -26,9 +26,11 @@ import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
 import { BulletManager } from "./managers/bulletManager";
 import { FlareManager } from "./managers/flareManager";
+import { LSOManager } from "./managers/lsoManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
+import { mark } from "./threeUtils";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
@@ -189,6 +191,7 @@ class Application {
 	public meshLoader: MeshLoader = new MeshLoader();
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;
+	public lsoManager: LSOManager;
 
 	// TODO: Move replay to its own class
 	public replayPackets: RPCPacket[] = [];
@@ -234,6 +237,14 @@ class Application {
 
 	private isUiHidden = false;
 	public isTextOverlayHidden = false;
+	private _isLsoMode = false;
+	public get isLsoMode() {
+		return this._isLsoMode;
+	}
+	public set isLsoMode(val: boolean) {
+		this._isLsoMode = val;
+		EventBus.$emit("lso-mode", val);
+	}
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
@@ -300,13 +311,13 @@ class Application {
 			}
 		});
 
-		const user = getLoggedInUser();
-		if (user) {
-			const daysTillExpire = (((user.exp ?? 0) * 1000) - Date.now()) / 1000 / 60 / 60 / 24;
-			if (daysTillExpire < 7) {
-				window.location.assign(REFRESH_URL);
-			}
-		}
+		// const user = getLoggedInUser();
+		// if (user) {
+		// 	const daysTillExpire = (((user.exp ?? 0) * 1000) - Date.now()) / 1000 / 60 / 60 / 24;
+		// 	if (daysTillExpire < 7) {
+		// 		window.location.assign(REFRESH_URL);
+		// 	}
+		// }
 
 		// EventBus.$emit("state", this.state);
 
@@ -331,6 +342,8 @@ class Application {
 		await this.sceneManager.init(this.container);
 		this.bulletManager = new BulletManager(this.sceneManager);
 		this.flareManager = new FlareManager(this.sceneManager);
+		this.lsoManager = new LSOManager(this);
+		this.lsoManager.init();
 
 		this.stats.showPanel(0);
 		document.body.appendChild(this.stats.dom);
@@ -377,7 +390,7 @@ class Application {
 		});
 	}
 
-	// Sets up a testing scene with a variety of entities
+	// Sets up a testing scene with a const iety of entities
 	private async offlineTestSetup() {
 		await this.start();
 		this.game = new VTOLLobby("0");
@@ -402,11 +415,11 @@ class Application {
 		const aircraft3 = new PlayerVehicle(this);
 		await aircraft3.spawn(id++, "0", "Vehicles/VTOL4", new Vector(-20, 0, 10000), new Vector(0, 0, 0), true);
 
-		const aircraft4 = new AIAirVehicle(this);
-		aircraft4.spawn(id++, "0", "Units/Allied/KC-49", new Vector(-40, 0, 0), new Vector(0, 0, 0), true);
-		aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
+		// const aircraft4 = new AIAirVehicle(this);
+		// aircraft4.spawn(id++, "0", "Units/Allied/KC-49", new Vector(-40, 0, 0), new Vector(0, 0, 0), true);
+		// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
 		// await aircraft4.spawn(id++, "0", "Vehicles/F117", new Vector(0, 0, 0), new Vector(0, 0, 0));
-		this.entities.push(aircraft, aircraft2, aircraft3, aircraft4);
+		this.entities.push(aircraft, aircraft2, aircraft3); //aircraft4
 
 		const missile = new MissileEntity(this);
 		missile.spawn(id++, "0", "Weapons/Missiles/AGM-145", new Vector(-20, 0, 0), new Vector(0, 0, 0));
@@ -424,14 +437,20 @@ class Application {
 		}
 
 		const carrier = new AIGroundUnit(this);
-		await carrier.spawn(id++, "0", "Units/Allied/AlliedCarrier", new Vector(-200, 0, 0), new Vector(0, 0, 0), true);
+		await carrier.spawn(id++, "0", "Units/Allied/AlliedCarrier", new Vector(-200, 0, 0), new Vector(0, -45, 0), true);
 		this.entities.push(carrier);
 
+		const landingAircraft = new PlayerVehicle(this);
+		await landingAircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
+		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
+		this.entities.push(landingAircraft);
 
 		const cam = this.sceneManager.cameraController.fakeCamera;
 		setTimeout(async () => {
-			cam.position.set(-2, 57, -90);
-			aircraft.focus();
+			// cam.position.set(-2, 57, -90);
+			// carrier.focus();
+
+			// aircraft.focus();
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 
@@ -439,11 +458,60 @@ class Application {
 			let r = 0;
 			setInterval(() => {
 				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0);
+				// landingAircraft.UpdateData(new Vector(-180 - r / 5, 70, -1000), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
+				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, (r-- / 10), 0));
+				// this.testRotate(carrier.position, carrier.rotation);
 			}, 0);
 
 			aircraft.SetLock(100, true);
 			// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
+			this.lsoManager.enableLSO(carrier);
+			this.lsoManager.trackAircraft(landingAircraft);
 		}, 250);
+	}
+
+	testPt = mark(5, 0xff0000);
+	added = false;
+	testPtParent = new THREE.Object3D();
+	private testRotate(pos: Vector, rot: Vector) {
+		if (!this.added) {
+			this.testPtParent.add(this.testPt);
+			this.sceneManager.scene.add(this.testPtParent);
+			this.added = true;
+		}
+
+		this.testPtParent.position.copy(pos.to(THREE.Vector3));
+
+		const cosa = Math.cos(rot.x);
+		const sina = Math.sin(rot.x);
+
+		const cosb = Math.cos(rot.y);
+		const sinb = Math.sin(rot.y);
+
+		const cosc = Math.cos(rot.z);
+		const sinc = Math.sin(rot.z);
+
+		const Axx = cosa * cosb;
+		const Axy = cosa * sinb * sinc - sina * cosc;
+		const Axz = cosa * sinb * cosc + sina * sinc;
+
+		const Ayx = sina * cosb;
+		const Ayy = sina * sinb * sinc + cosa * cosc;
+		const Ayz = sina * sinb * cosc - cosa * sinc;
+
+		const Azx = -sinb;
+		const Azy = cosb * sinc;
+		const Azz = cosb * cosc;
+
+		const x = 50;
+		const y = 50;
+		const z = 0;
+
+		this.testPt.position.set(
+			Axx * x + Axy * y + Axz * z,
+			Ayx * x + Ayy * y + Ayz * z,
+			Azx * x + Azy * y + Azz * z
+		);
 	}
 
 	// private async loadTestHSData() {
@@ -627,6 +695,7 @@ class Application {
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
+		this.lsoManager.update(dt);
 		this.runTimeouts();
 
 		this.sceneManager.run();
@@ -716,7 +785,40 @@ class Application {
 		EventBus.$emit("entities", this.entities);
 	}
 
+	public setFocusImmediately(entity: Entity): void {
+		if (this.isLsoMode) {
+			this.isLsoMode = false;
+			this.lsoManager.disableLSO();
+		}
+
+		console.log(`Setting focus to ${entity}`);
+		EventBus.$emit("focused-entity", entity);
+		if (this.currentFocus && this.currentFocus != entity) {
+			// Remove parenting from whatever we are currently focused on
+			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
+			this.currentFocus.object.remove(this.sceneManager.camera);
+			this.sceneManager.cameraController.set(camPos);
+		}
+
+		this.currentFocus = entity;
+
+		const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
+		camPos.subVectors(camPos, new THREE.Vector3(
+			entity.position.x,
+			entity.position.y,
+			entity.position.z,
+		));
+		this.sceneManager.cameraController.set(camPos);
+		this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
+		entity.object.add(this.sceneManager.camera);
+	}
+
 	public setFocusTo(entity: Entity): void {
+		if (this.isLsoMode) {
+			this.isLsoMode = false;
+			this.lsoManager.disableLSO();
+		}
+
 		console.log(`Setting focus to ${entity}`);
 		EventBus.$emit("focused-entity", entity);
 		if (this.currentFocus && this.currentFocus != entity) {

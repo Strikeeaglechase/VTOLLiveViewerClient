@@ -86,6 +86,7 @@ class MeshLoader {
 		if (config && config.loadScale) objGroup.scale.set(config.loadScale, config.loadScale, config.loadScale);
 
 		const mesh = new THREE.Group();
+		mesh.name = `Mesh ${entityKey}`;
 		mesh.add(objGroup);
 
 		return mesh;

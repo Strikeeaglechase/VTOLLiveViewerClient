@@ -18,7 +18,7 @@ class CameraController {
 		z: 0,
 	};
 	private onLerpDone?: () => void;
-	constructor(private camera: THREE.Camera, private domElement: HTMLCanvasElement) { }
+	constructor(public camera: THREE.PerspectiveCamera, private domElement: HTMLCanvasElement) { }
 
 	public init(): void {
 		this.fakeCamera = this.camera.clone();
@@ -119,7 +119,6 @@ class CameraController {
 		this.camera.position.copy(this.fakeCamera.position);
 		this.camera.quaternion.copy(this.fakeCamera.quaternion);
 		this.camera.scale.copy(this.fakeCamera.scale);
-
 	}
 
 	set(vec: THREE.Vector3) {

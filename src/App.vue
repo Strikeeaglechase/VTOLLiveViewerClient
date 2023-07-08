@@ -5,6 +5,7 @@
 			<UnitRange class="ui" />
 			<ReplayInfo class="ui" />
 			<LogPanel class="ui" />
+			<LSOOverlay class="ui" />
 		</div>
 		<div id="lobby-select-container" class="page" v-show="isLobbySelect()">
 			<LobbyBrowser :state="state" />
@@ -30,6 +31,7 @@
 	import ReplayInfo from "./components/ReplayInfo.vue";
 	import LogPanel from "./components/LogPanel.vue";
 	import AdminPage from "./components/admin/AdminPage.vue";
+	import LSOOverlay from "./components/LSOOverlay.vue";
 
 	@Component({
 		components: {
@@ -40,6 +42,7 @@
 			ReplayInfo,
 			LogPanel,
 			AdminPage,
+			LSOOverlay,
 		},
 	})
 	export default class App extends Vue {

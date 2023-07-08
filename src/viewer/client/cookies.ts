@@ -14,6 +14,7 @@ function parseJwt(token: string) {
 }
 
 function createCookie(name: string, value: string, expire_ms = 0, domain = "") {
+	console.log({ name, value, expire_ms, domain });
 	let expires = "";
 	if (expire_ms) {
 		const date = new Date();

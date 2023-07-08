@@ -37,6 +37,7 @@ class Bullet {
 		} else {
 			const cylinder = new THREE.Mesh(geometry, material);
 			cylinder.rotation.set(Math.PI / 2, 0, 0);
+			cylinder.name = "Bullet Cyl";
 
 			this.cylinder = new THREE.Object3D();
 			this.cylinder.add(cylinder);

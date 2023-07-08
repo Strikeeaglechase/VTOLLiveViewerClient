@@ -95,7 +95,6 @@ class DesignatorLine {
 			new THREE.Vector3(this.parent.position.x, this.parent.position.y, this.parent.position.z),
 			new THREE.Vector3(point.x, point.y, point.z)
 		]);
-		// this.line.matrixWorldNeedsUpdate = true;
 		this.line.computeLineDistances();
 
 		this.endingBox.position.set(point.x, point.y, point.z);

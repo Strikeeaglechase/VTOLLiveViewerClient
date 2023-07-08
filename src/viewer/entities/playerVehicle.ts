@@ -3,18 +3,42 @@ import * as THREE from "three";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
-import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
+import { addCommas, Application, deg, ftToMi, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
-import { Entity } from "../entityBase/entity";
+import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
+
+function mark(size: number, color: number) {
+	const markerGeom = new THREE.SphereGeometry(size, 8, 8);
+	const markerMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, side: THREE.DoubleSide });
+	const markerMesh = new THREE.Mesh(markerGeom, markerMat);
+	markerMesh.name = "marker";
+
+	return markerMesh;
+}
 
 @EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55"])
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
 	private throttle: number;
+	public isLandingLso = false;
 
 	private playerHeadLine: THREE.Line;
-	private playerHeadLineGeom: THREE.BufferGeometry;
+	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
+
+	// private velocityMarker: THREE.Mesh;
+	// private headingMarker: THREE.Mesh;
+
+	public set scale(scale: number) {
+		if (this.isLandingLso) {
+			scale = this.app.sceneManager.calculateScale(this.app.lsoManager.landingDist);
+		}
+
+		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
+
+		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
+		this.onScaleUpdate();
+	}
 
 	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55"];
 
@@ -43,6 +67,10 @@ class PlayerVehicle extends Entity {
 		this.playerHeadLine = new THREE.Line(this.playerHeadLineGeom, headMat);
 		this.playerHeadLine.frustumCulled = false;
 		this.meshProxyObject.add(this.playerHeadLine);
+
+		// this.velocityMarker = mark(1, 0x00ff00);
+		// this.headingMarker = mark(1, 0x0000ff);
+		// this.app.sceneManager.add(this.velocityMarker, this.headingMarker);
 	}
 
 	protected override onScaleUpdate(): void {
@@ -64,9 +92,56 @@ class PlayerVehicle extends Entity {
 		}
 
 		if (this.textOverlay) {
-			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-			this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+			if (!this.isLandingLso) {
+				const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
+				this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+			} else {
+				// const aoaRaw = deg(this.position.angleTo(this.velocity));
+				const aoaRaw = this.getAoa();
+				const aoa = isNaN(aoaRaw) ? 0 : aoaRaw.toFixed(1);
+
+				const distRaw = mToFt(this.app.lsoManager.landingDist);
+				const distRawNm = ftToMi(distRaw);
+				let resultDist = "";
+				if (distRawNm < 1) {
+					// resultDist = `${Math.floor(distRaw)}ft`;
+					resultDist = `${distRawNm.toFixed(2)}nm`;
+				} else {
+					resultDist = `${distRawNm.toFixed(1)}nm`;
+				}
+
+				this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\nR ${resultDist}\n∝ ${aoa}`);
+			}
 		}
+	}
+
+	private getAoa() {
+		const dist = 100;
+		// const velMarkerPos = this.position.add(this.velocity.clone().unit().multiply(dist));
+
+		const positionRef = new THREE.Object3D();
+		positionRef.position.set(this.position.x, this.position.y, this.position.z);
+
+		const rotationRef = new THREE.Object3D();
+		rotationRef.rotation.set(this.rotation.x, this.rotation.y, this.rotation.z);
+		positionRef.add(rotationRef);
+
+		const offsetRef = new THREE.Object3D();
+		offsetRef.position.set(0, 0, dist);
+		rotationRef.add(offsetRef);
+
+		const headingMarkerPos = new THREE.Vector3();
+		offsetRef.getWorldPosition(headingMarkerPos);
+
+		// this.velocityMarker.position.set(velMarkerPos.x, velMarkerPos.y, velMarkerPos.z);
+		// this.headingMarker.position.copy(headingMarkerPos);
+
+		const velAspect = this.velocity.clone().unit();
+		const headingAspect = headingMarkerPos.clone().sub(new THREE.Vector3(this.position.x, this.position.y, this.position.z)).normalize();
+		const aoaOffset = this.type == "Vehicles/FA-26B" ? 0.806 : 0; // 26b has weird aoa offset
+		const aoa = deg(velAspect.angleTo(Vector.from(headingAspect))) + aoaOffset;
+
+		return aoa;
 	}
 
 	public async remove(reason: string): Promise<void> {

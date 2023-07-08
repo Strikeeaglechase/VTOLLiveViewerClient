@@ -44,6 +44,7 @@ class InstancedGroupMesh extends THREE.Mesh {
 			instancedMesh.frustumCulled = false;
 
 			instanceCollect[uuid] = instancedMesh;
+			if (!instancedMesh.name) instancedMesh.name = `IMesh ${mesh.name}`;
 			this.add(instancedMesh);
 		});
 	}

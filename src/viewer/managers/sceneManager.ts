@@ -12,7 +12,11 @@ import { TextOverlay } from "../textOverlayHandler";
 
 const MAX_SCALE = 30;
 const MIN_SCALE = 1;
+const SCALE_OFFSET = 0;
 const SCALE_RANGE_MULT = 0.01;
+
+const CAM_NEAR = 10;
+const CAM_FAR = 1000000;
 
 const STRICT_MESH_NAME = true; // Require all meshes to have a name
 
@@ -48,7 +52,7 @@ class SceneManager {
 
 		container.appendChild(this.renderer.domElement);
 
-		this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 10, 1000000);
+		this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, CAM_NEAR, CAM_FAR);
 		this.cameraController = new CameraController(this.camera, this.renderer.domElement);
 		this.cameraController.init();
 
@@ -69,13 +73,14 @@ class SceneManager {
 		this.scene.background = skybox;
 	}
 
-	private calculateScale(d: number) {
-		return Math.min(Math.max(d * SCALE_RANGE_MULT, MIN_SCALE), MAX_SCALE);
+	public calculateScale(d: number) {
+		return Math.min(Math.max((d - SCALE_OFFSET) * SCALE_RANGE_MULT, MIN_SCALE), MAX_SCALE);
 	}
 
 	public run(): void {
 		this.cameraController.update();
-		this.renderer.render(this.scene, this.camera);
+		// if (this.camera.parent) this.camera.parent.updateMatrixWorld();
+		// this.camera.updateMatrixWorld();
 
 		let overrideZoom = 0;
 
@@ -100,6 +105,7 @@ class SceneManager {
 		this.overlayElements.forEach(overlay => overlay.updateBoundingRect());
 		this.overlayElements.forEach(overlay => overlay.update(this.overlayElements));
 
+		this.renderer.render(this.scene, this.camera);
 		this.lastCameraPos.copy(camPos);
 	}
 
@@ -166,7 +172,44 @@ class SceneManager {
 		object.children.forEach(child => this.notifyAllChildren(child, event));
 		object.dispatchEvent({ type: event });
 	}
+
+	private recurseCountChildren(object: THREE.Object3D): number {
+		let count = 0;
+		object.children.forEach(child => count += this.recurseCountChildren(child));
+		return count + object.children.length;
+	}
+
+	private buildChildrenTree(object: THREE.Object3D, depth = 0): string {
+		let vertsText = ``;
+		if (object instanceof THREE.Mesh) {
+			// object.geometry.
+			const verts = object?.geometry?.attributes?.position?.count;
+			vertsText = ` (${verts} verts)`;
+		}
+		let str = "";
+		str += "  ".repeat(depth);
+		str += (object.name || `ID ${object.id}`) + vertsText + "\n";
+		object.children.forEach(child => str += this.buildChildrenTree(child, depth + 1));
+		return str;
+
+	}
+
+	public debug() {
+		console.log(`${this.scene.children.length} direct scene children`);
+		console.log(`${this.recurseCountChildren(this.scene)} total scene children`);
+
+		const meshNames: Record<string, number> = {};
+		this.scene.children.forEach(child => {
+			if (child.name in meshNames) meshNames[child.name] += 1;
+			else meshNames[child.name] = 1;
+		});
+
+		console.log(meshNames);
+
+
+		console.log(this.buildChildrenTree(this.scene));
+	}
 }
 
 
-export { SceneManager, SceneEvent };
+export { SceneManager, SceneEvent, CAM_FAR, CAM_NEAR };

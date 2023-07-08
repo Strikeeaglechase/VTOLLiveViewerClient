@@ -1,6 +1,8 @@
 <template>
 	<div v-if="entity != null" class="equips">
-		<button class="equip-btn" v-on:click="dropDown()">Loadout</button>
+		<button class="equip-btn" v-on:click="dropDown()">
+			{{ buttonText }}
+		</button>
 		<div class="content" :class="{ shown: state, hidden: !state }">
 			<!-- <div v-for="(weapon, index) in equips()" v-bind:key="index">
 				<p>{{ weapon }}</p>
@@ -16,6 +18,8 @@
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { EventBus } from "../eventBus";
+	import { Application } from "../viewer/app";
+	import { AIGroundUnit } from "../viewer/entities/aiGroundUnit";
 	import { Entity } from "../viewer/entityBase/entity";
 
 	@Component
@@ -23,9 +27,16 @@
 		entity: Entity | null = null;
 		state = false;
 
+		buttonText = "loadout";
+
 		mounted() {
 			EventBus.$on("focused-entity", (entity: Entity) => {
 				this.entity = entity;
+				if (this.entity instanceof AIGroundUnit) {
+					this.buttonText = "LSO";
+				} else {
+					this.buttonText = "loadout";
+				}
 			});
 		}
 
@@ -46,7 +57,13 @@
 		}
 
 		dropDown() {
-			this.state = !this.state;
+			if (this.entity instanceof AIGroundUnit) {
+				if (!this.entity.isLsoTarget)
+					Application.instance.lsoManager.enableLSO(this.entity);
+				else Application.instance.setFocusTo(this.entity);
+			} else {
+				this.state = !this.state;
+			}
 		}
 	}
 </script>

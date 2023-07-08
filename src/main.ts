@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import Vue, { markRaw } from "vue";
 
 import { RPCController } from "../../VTOLLiveViewerCommon/dist/src/rpc.js";
@@ -31,5 +32,9 @@ window.onload = () => {
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.RPC = RPCController;
+
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+	//@ts-ignore
+	window.THREE = THREE;
 };
 

@@ -8,7 +8,9 @@
 		}"
 	>
 		<p>{{ entity.owner.pilotName }} ({{ entity.displayName }})</p>
-		<button v-on:click="focus()">Focus</button>
+		<button v-on:click="focus()">
+			{{ isLsoMode ? "LSO Target" : "Focus" }}
+		</button>
 		<button v-on:click="kick()" v-if="isAdmin">Kick</button>
 	</div>
 </template>
@@ -25,6 +27,7 @@
 	} from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 	import { Application } from "../viewer/app";
 	import { hasPerm } from "../viewer/client/cookies";
+	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
 
 	@Component
 	export default class EntityComponent extends Vue {
@@ -32,17 +35,27 @@
 		entity!: Entity;
 		teams = Team;
 
+		// focusButtonText = "Focus";
+		isLsoMode = false;
+
 		isAdmin = false;
 		mounted() {
 			this.isAdmin = hasPerm(UserScopes.ADMIN);
+			EventBus.$on("lso-mode", (newState: boolean) => {
+				this.isLsoMode = newState;
+			});
 		}
 
 		focus() {
-			this.entity.focus();
+			if (!this.isLsoMode) this.entity.focus();
+			else if (this.entity instanceof PlayerVehicle)
+				Application.instance.lsoManager.trackAircraft(this.entity);
 		}
 
 		kick() {
-			Application.instance.client.kickUser(this.entity.owner.steamId);
+			const conf = confirm("Are you sure you want to kick this user?");
+			if (conf)
+				Application.instance.client.kickUser(this.entity.owner.steamId);
 		}
 	}
 </script>
