@@ -49,7 +49,7 @@
 				console.log(
 					`Pushed onload request for replay ${this.lobby.recordingId}`
 				);
-				Application.onClientId(() => this.joinLobbyReq());
+				Application.instance.on("client_id", () => this.joinLobbyReq());
 			}
 		}
 
@@ -68,7 +68,7 @@
 			);
 
 			this.joinBtnText = "Loading...";
-			await Application.instance.requestReplay(
+			await Application.instance.replayController.requestReplay(
 				this.lobby.recordingId,
 				(n) => (this.joinBtnText = `${(n * 100).toFixed(0)}%`)
 			);

@@ -2,6 +2,7 @@
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { DbUserEntry, UserScopes } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { EventBus } from "../../eventBus";
 import { setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
@@ -35,6 +36,11 @@ class Client {
 
 	@RPC("out")
 	adminSearchUsers(query: string) { }
+
+	@RPC("in")
+	error(message: string) {
+		EventBus.$emit("error-message", message);
+	}
 
 	@RPC("in")
 	adminSearchUsersResult(users: DbUserEntry[]) {

@@ -64,7 +64,8 @@
 			} else {
 				Application.instance.requestJoinLobby(this.lobby.id);
 			}
-			this.lobby.waitForConnectionResult().then(({ status, reason }) => {
+			const connRes = this.lobby.waitForConnectionResult();
+			connRes.then(({ status, reason }) => {
 				if (status == LobbyConnectionStatus.Connected) {
 					Application.instance.subscribe(this.lobby);
 				} else if (status == LobbyConnectionStatus.Invalid) {

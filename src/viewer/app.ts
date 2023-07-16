@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 
+// Connection failed recieved on client but no err message
+
 import Stats from "stats.js";
 import * as THREE from "three";
 
 import {
 	decompressRpcPackets
 } from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
+import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import {
 	EnableRPCs, RPC, RPCController, RPCPacket
 } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
@@ -30,9 +33,8 @@ import { LSOManager } from "./managers/lsoManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
+import { ReplayController } from "./replay/replayController";
 import { mark } from "./threeUtils";
-
-const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 
 const rad = (deg: number): number => deg * Math.PI / 180;
 const deg = (rad: number): number => rad * 180 / Math.PI;
@@ -100,11 +102,7 @@ const stateChangeMap = {
 	"/admin": ApplicationRunningState.admin,
 };
 
-interface ReplaceRPCHandler {
-	className: string;
-	method: string;
-	handler: (app: Application, rpc: RPCPacket) => boolean | RPCPacket;
-}
+
 
 interface LogMessage {
 	message: string;
@@ -113,110 +111,28 @@ interface LogMessage {
 }
 let lmId = 0;
 
-// Handles "undoing" RPCs when the replay is running in reverse
-// Can return false to prevent the RPC from executing, or can return a different RPC to execute
-const replaceRPCHandlers: ReplaceRPCHandler[] = [
-	{
-		className: "MessageHandler",
-		method: "NetInstantiate",
-		handler: (app: Application, rpc: RPCPacket) => {
-			const [id, ownerId, path, pos, rot, active] = rpc.args;
-			console.log(`Reversing NetInstantiate for ${id}`);
-			app.messageHandler.NetDestroy(id);
-			return false;
-		}
-	},
-	{
-		className: "MessageHandler",
-		method: "NetDestroy",
-		handler: (app: Application, rpc: RPCPacket) => {
-			const [id] = rpc.args;
-			console.log(`Reversing NetDestroy for ${id}`);
-			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
-			if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);
-			else return spawnPacket;
-			return false;
-		}
-	},
-	{
-		className: "MissileEntity",
-		method: "Detonate",
-		handler: (app: Application, rpc: RPCPacket) => {
-			console.log(`Reversing Detonate for missile ${rpc.id}`);
-			const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == rpc.id);
-			if (!spawnPacket) console.error(`Attempting to undo detonate for ${rpc.id} but no spawn packet found`);
-			else return spawnPacket;
-			return false;
-		}
-	},
-	{
-		className: "PlayerVehicle",
-		method: "SetLock",
-		handler: (app: Application, rpc: RPCPacket) => {
-			console.log(`Reversing SetLock for ${rpc.id} -> ${rpc.args[0]} (was ${rpc.args[1]})`);
-			const rpcCopy = JSON.parse(JSON.stringify(rpc));
-			rpcCopy.args[1] = !rpcCopy.args[1];
-			return rpcCopy;
-		}
-	},
-	{
-		className: "VTOLLobby",
-		method: "LogMessage",
-		handler: (app: Application, rpc: RPCPacket) => {
-			let removeIndex = -1;
-			for (let i = app.logMessages.length - 1; i >= 0; i--) {
-				if (app.logMessages[i].message == rpc.args[0]) {
-					removeIndex = i;
-					break;
-				}
-			}
-
-			if (removeIndex == -1) {
-				console.warn(`Attempting to undo log message ${rpc.args[0]} but no message found`);
-			} else {
-				app.logMessages.splice(removeIndex, 1);
-			}
-		}
-	}
-];
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
-class Application {
+class Application extends EventEmitter<"running_state" | "replay_mode" | "client_id"> {
 	private container: HTMLDivElement;
 	public messageHandler: MessageHandler;
 	public client: Client;
 	public sceneManager = new SceneManager(this);
 	private mapLoader = new MapLoader(this.sceneManager);
+	public replayController: ReplayController = new ReplayController(this);
 	public meshLoader: MeshLoader = new MeshLoader();
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;
 	public lsoManager: LSOManager;
 
-	// TODO: Move replay to its own class
-	public replayPackets: RPCPacket[] = [];
-	private groupedReplayPackets: RPCPacket[][] = [];
-	private onReplayChunk: (() => void) | null = null;
 	public isReplay = false;
-	public replayStartTime = 0;
-	private currentReplayChunkReceive = 0;
-	private replayCurrentTime = 0;
-	private prevReplayTime = 0;
-	private firstRealReplayDataTime = 0;
-	private replaySpeed = 7;
-	private isInReplaySetup = false;
-	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
-	private previousReplayTimeDirection = 1;
-	// private packetHits: Record<number, { hits: number, time: number; hitTimes: number[][]; }> = {};
-	public get computedReplaySpeed(): number {
-		return REPLAY_SPEEDS[this.replaySpeed];
-	}
 	public get timeDirection(): number {
 		if (!this.isReplay) return 1;
-		return this.computedReplaySpeed >= 0 ? 1 : -1;
+		return this.replayController.computedReplaySpeed >= 0 ? 1 : -1;
 	}
 	public get time(): number {
-		if (this.isReplay) return this.replayCurrentTime;
+		if (this.isReplay) return this.replayController.replayCurrentTime;
 		return Date.now();
 	}
 	public static get time() {
@@ -250,19 +166,20 @@ class Application {
 	// Any entity that can be spawned must be added to this list
 	private spawnables = [PlayerVehicle, AIAirVehicle, MissileEntity, GunEntity, AIGroundUnit, HardpointEntity];
 
-	public static instance: Application;
+	public static get instance() {
+		if (this._instance) return this._instance;
+		this._instance = new Application();
+		this._instance.init();
+		return this._instance;
+	}
+	private static _instance: Application;
+
 	public static state: ApplicationRunningState = ApplicationRunningState.welcome;
 	public state: ApplicationRunningState = ApplicationRunningState.welcome;
 
-	private static onClientIdEvents: (() => void)[] = [];
-	private static hasGotClientId = false;
-	public static onClientId(cb: () => void) {
-		if (this.hasGotClientId) cb();
-		else this.onClientIdEvents.push(cb);
-	}
-
 	constructor() {
-		Application.instance = this;
+		console.log(`Application constructor called`);
+		super();
 		this.container = document.getElementById("main-container") as HTMLDivElement;
 		this.handleResize();
 		this.addWindowEventHandlers();
@@ -283,6 +200,7 @@ class Application {
 	}
 
 	public async init(): Promise<void> {
+		console.log(`Application init called`);
 		this.socket = new WebSocket(WS_URL);
 		await new Promise<void>(res => {
 			this.socket.onopen = () => {
@@ -588,80 +506,13 @@ class Application {
 	// 	this.sceneManager.add(killIMesh);
 	// }
 
-	private packetIsInTimeframe(packet: RPCPacket) {
-		const fromRecordingStart = (packet.timestamp ?? Date.now()) - this.replayStartTime;
-
-		if (this.computedReplaySpeed > 0) {
-			return fromRecordingStart <= this.replayCurrentTime && fromRecordingStart > this.prevReplayTime;
-		} else if (this.computedReplaySpeed < 0) {
-			return fromRecordingStart >= this.replayCurrentTime && fromRecordingStart < this.prevReplayTime;
-		}
-
-		return false;
-	}
-
-	private runReplay(expectedDt: number): number {
-		if (expectedDt > 1000) {
-			console.warn(`Expected dt excessive ${expectedDt}`);
-			expectedDt = 1000 / 60;
-		}
-		// console.log(expectedDt, this.computedReplaySpeed, this.replayCurrentTime);
-		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
-		const curSec = Math.floor(this.replayCurrentTime / 1000);
-		const prevSec = Math.floor(this.prevReplayTime / 1000);
-		const currentPacketGroup = this.groupedReplayPackets[curSec] ?? [];
-		const prevPacketGroup = this.groupedReplayPackets[prevSec] ?? [];
-
-		let packets: RPCPacket[];
-		if (curSec != prevSec) packets = [...currentPacketGroup, ...prevPacketGroup];
-		else packets = currentPacketGroup;
-		// if (this.computedReplaySpeed != 0) console.log(`${this.replayCurrentTime} - ${curSec}/${prevSec} - ${inTimeframePackets.length}/${packets.length}`);
-
-		const inTimeframePackets = packets.filter(packet => this.packetIsInTimeframe(packet));
-		this.runReplayOnPackets(inTimeframePackets);
-
-		this.prevReplayTime = this.replayCurrentTime;
-		return expectedDt * this.computedReplaySpeed;
-	}
-
-	private runReplayOnPackets(packets: RPCPacket[]) {
-		const resultPackets: RPCPacket[] = [];
-		packets.forEach(packet => {
-			if (this.computedReplaySpeed < 0) {
-				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
-				// if (packet.method == "NetDestroy") console.log(`Net destroy packet handled`);
-				if (handler) {
-					const res = handler.handler(this, packet);
-					if (!res) return;
-					if (typeof res == "object") resultPackets.push(res);
-					else resultPackets.push(packet);
-				} else {
-					resultPackets.push(packet);
-				}
-			} else {
-				resultPackets.push(packet);
-			}
-		});
-
-		resultPackets.forEach(packet => {
-			// console.log(`(${packet.id}) ${packet.className}.${packet.method}`);
-			// const hit = this.packetHits[packet.pid as number];
-			// hit.hits++;
-			// hit.hitTimes.push([this.prevReplayTime, this.replayCurrentTime]);
-			const untouchedTime = this.replayCurrentTime;
-			this.replayCurrentTime = (packet.timestamp ?? (this.replayCurrentTime + this.replayStartTime)) - this.replayStartTime;
-			RPCController.handlePacket(packet);
-			this.replayCurrentTime = untouchedTime;
-		});
-	}
-
 	private run(): void {
 		this.stats.begin();
 
 		const d = Date.now();
 		let dt = d - this.prevFrameTime;
-		if (this.isReplay && !this.isInReplaySetup) {
-			dt = this.runReplay(dt);
+		if (this.isReplay && !this.replayController.isInReplaySetup) {
+			dt = this.replayController.runReplay(dt);
 		}
 		this.prevFrameTime = d;
 
@@ -907,45 +758,22 @@ class Application {
 		this.client.subscribe(game.id);
 		this.game = game;
 		this.messageHandler = new MessageHandler(game.id, this);
-		this.game.onLobbyRestart = async () => {
+
+		this.game.on("lobby_restart", async () => {
 			console.log(`Lobby restarting, waiting for new connection...`);
 			const conRes = await this.game.waitForConnectionResult();
 			location.reload();
-		};
-		this.game.onLogMessage = (msg: string) => {
+		});
+
+		this.game.on("log_message", (msg: string) => {
 			console.log(`[GAME] ${msg}`);
 			this.addLogMessage(msg);
-		};
+		});
 
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 	}
 
-	public requestReplay(replayId: string, onProgress?: (progress: number) => void) {
-		this.client.replayGame(replayId);
-		return new Promise<void>(res => {
-			this.currentReplayChunkReceive = 0;
-			this.onReplayChunk = () => {
-				this.currentReplayChunkReceive++;
-				if (this.currentReplayChunkReceive == this.client.expectedReplayChunks) {
-					res();
-					this.onReplayChunk = null;
-				}
-				if (onProgress) onProgress(this.currentReplayChunkReceive / this.client.expectedReplayChunks);
-			};
-		});
-	}
-
 	public async beginReplay(lobbyId: string) {
-		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
-		this.isReplay = true;
-		this.isInReplaySetup = true;
-		if (this.replayPackets[0].timestamp == undefined) {
-			console.error(`Replay packet 0 has no timestamp`);
-			return;
-		}
-		this.replayStartTime = this.replayPackets[0].timestamp;
-		this.replayCurrentTime = 0;
-		this.messageHandler = new MessageHandler(lobbyId, this);
 		let game = this.gameList.find(g => g.id == lobbyId);
 		if (!game) {
 			// TODO: Research this more, seems like sometimes we have an existing game entry? Inconsistent behavior bad
@@ -953,17 +781,14 @@ class Application {
 			game = new VTOLLobby(lobbyId);
 		}
 		this.game = game;
-
+		this.isReplay = true;
+		this.emit("replay_mode", true);
+		this.messageHandler = new MessageHandler(lobbyId, this);
 		await this.start();
 
-		let initPackets: RPCPacket[] = [];
-		if (this.firstRealReplayDataTime != 0) {
-			initPackets = this.replayPackets.filter(p => ((p.timestamp ?? Date.now()) - this.replayStartTime) < this.firstRealReplayDataTime);
-		} else if (this.groupedReplayPackets[0]) {
-			initPackets = this.groupedReplayPackets[0];
-		}
-		console.log(`Handling ${initPackets.length} init packets`);
-		this.runReplayOnPackets(initPackets);
+		this.replayController.beginReplay();
+
+
 		// this.groupedReplayPackets[0] = []; So much debugging to find this line of code that was causing issues
 		// Remove all initPackets so they don't get handled again
 		// initPackets.forEach(p => {
@@ -980,13 +805,8 @@ class Application {
 		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 		console.log(`Got mission info!`);
-		if (this.replayCurrentTime < this.firstRealReplayDataTime) {
-			this.replayCurrentTime = this.firstRealReplayDataTime;
-			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
-		}
 
-		console.log(`-- Replay fully loaded --`);
-		this.isInReplaySetup = false;
+		this.replayController.skipToStart();
 	}
 
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {
@@ -1029,7 +849,6 @@ class Application {
 	private lMessages = 0;
 	private lBytes = 0;
 	private tick = 0;
-	private packetPid = 0;
 
 	public packets: RPCPacket[] = [];
 
@@ -1067,10 +886,7 @@ class Application {
 				}
 
 				console.log(`Received client ID: ${this.client.id}`);
-				console.log(`Calling Application.onClientId with ${Application.onClientIdEvents.length} callbacks`);
-				Application.onClientIdEvents.forEach(cb => cb());
-				Application.onClientIdEvents = [];
-				Application.hasGotClientId = true;
+				this.emit("client_id", this.client.id);
 			} else {
 				RPCController.handlePacket(packet as RPCPacket);
 				this.rpcs++;
@@ -1083,57 +899,13 @@ class Application {
 			const headerBytes = bytes.slice(0, "REPLAY".length);
 			const header = String.fromCharCode(...headerBytes);
 			if (header == "REPLAY") {
-				this.handleReplayChunk(bytes);
+				this.replayController.handleReplayChunk(bytes);
 			} else {
 				RPCController.handlePacket(bytes);
 				const rpcs = decompressRpcPackets([...bytes]);
 				this.rpcs += rpcs.length;
 			}
 		}
-	}
-
-	public handleReplayChunk(bytes: Uint8Array) {
-		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
-		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp ?? Date.now();
-		this.replayPackets.push(...rpcs);
-		console.log(`Got replay chunk ${this.currentReplayChunkReceive} with ${rpcs.length} packets (${bytes.length} bytes)`);
-
-		if (rpcs[0].timestamp == undefined) {
-			console.error(`Replay packet chunk ${this.currentReplayChunkReceive} packet 0 has no timestamp`);
-			// Interpolate timestamps
-			const msPerChunk = 30 * 1000;
-			const tsStep = msPerChunk / rpcs.length;
-			rpcs.forEach((rpc, idx) => {
-				rpc.timestamp = this.currentReplayChunkReceive * msPerChunk + tsStep * idx;
-			});
-		}
-
-		// const sec = Math.floor(((rpcs[0].timestamp ?? Date.now()) - this.replayStartTime) / 1000);
-
-
-		rpcs.forEach(rpc => {
-			const sec = Math.floor(((rpc.timestamp ?? Date.now()) - this.replayStartTime) / 1000);
-			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
-			this.groupedReplayPackets[sec].push(rpc);
-
-			// We want to start the replay back when the first player spawns
-			if (this.firstRealReplayDataTime == 0 && this.isPlayerVehicleSpawn(rpc)) {
-				this.firstRealReplayDataTime = (rpc.timestamp ?? Date.now()) - this.replayStartTime;
-				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
-			}
-
-			rpc.pid = this.packetPid++;
-			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
-		});
-
-		if (this.onReplayChunk) this.onReplayChunk();
-		else console.warn(`Received replay chunk without onReplayChunk callback`);
-	}
-
-	private isPlayerVehicleSpawn(rpc: RPCPacket) {
-		if (rpc.className != "MessageHandler" || rpc.method != "NetInstantiate") return false;
-		const [id, ownerId, path, pos, rot, active] = rpc.args;
-		return PlayerVehicle.spawnFor.includes(path);
 	}
 
 	public getEntityByUnitId(unitId: number) {
@@ -1189,27 +961,8 @@ class Application {
 		if (e.key == "f") this.toggleUI();
 		if (e.key == "o") this.toggleTextOverlay();
 
-		const prevReplay = REPLAY_SPEEDS[this.replaySpeed];
-		if (e.key == "ArrowLeft") this.replaySpeed = Math.max(this.replaySpeed - 1, 0);
-		if (e.key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
-
-		if (prevReplay != this.computedReplaySpeed) {
-			console.log(`New replay speed: ${this.computedReplaySpeed}x`);
-		}
-		// console.log(`Replay speed: ${REPLAY_SPEEDS[this.replaySpeed]}`);
-
-		// if (prevReplay < 0 && this.computedReplaySpeed > 0) {
-		// 	this.onTimeFlipHandlers.forEach(handler => handler(1));
-		// }
-		// 
-		// if (prevReplay > 0 && this.computedReplaySpeed < 0) {
-		// 	this.onTimeFlipHandlers.forEach(handler => handler(-1));
-		// }
-		if (this.computedReplaySpeed != 0) {
-			if (this.timeDirection != this.previousReplayTimeDirection) {
-				this.onTimeFlipHandlers.forEach(handler => handler(this.timeDirection));
-				this.previousReplayTimeDirection = this.timeDirection;
-			}
+		if (e.key == "ArrowLeft" || e.key == "ArrowRight") {
+			this.replayController.handleArrowKey(e.key);
 		}
 	}
 
@@ -1223,10 +976,6 @@ class Application {
 		window.addEventListener("dblclick", (e) => this.handleMouseClick(e));
 		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
 		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
-	}
-
-	public onTimeFlip(handler: (newDir: number) => void): void {
-		this.onTimeFlipHandlers.push(handler);
 	}
 
 	private runTimeouts() {

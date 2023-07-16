@@ -53,7 +53,7 @@ class AIGroundUnit extends Entity {
 		await super.setActive(reason);
 		// Make ground units generally bigger
 		// This is sorta scuffed, scale system needs looking at
-		if (this.scaleDamper == 1) this.scaleDamper = 5;
+		// if (this.scaleDamper == 1) this.scaleDamper = 5;
 	}
 
 	public update(dt: number): void {

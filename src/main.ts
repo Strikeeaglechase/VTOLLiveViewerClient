@@ -21,8 +21,7 @@ window.onload = () => {
 		};
 	}
 
-	const app = new Application();
-	app.init();
+	const app = Application.instance;
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.app = app;

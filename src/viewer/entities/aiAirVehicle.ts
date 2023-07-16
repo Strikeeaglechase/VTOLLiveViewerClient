@@ -30,6 +30,9 @@ class AIAirVehicle extends Entity {
 	@RPC("in")
 	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
 		this.updateMotion(pos, vel, accel, rot);
+		if (!this.isActive) {
+			console.log(`${this} received position update without being active`);
+		}
 	}
 
 	@RPC("in")

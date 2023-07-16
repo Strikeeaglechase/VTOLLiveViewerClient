@@ -1,5 +1,6 @@
 <template>
 	<div id="app">
+		<ErrorBanner />
 		<div id="main-container" class="page" v-show="isRunning()">
 			<Sidebar class="ui" />
 			<UnitRange class="ui" />
@@ -32,6 +33,7 @@
 	import LogPanel from "./components/LogPanel.vue";
 	import AdminPage from "./components/admin/AdminPage.vue";
 	import LSOOverlay from "./components/LSOOverlay.vue";
+	import ErrorBanner from "./components/ErrorBanner.vue";
 
 	@Component({
 		components: {
@@ -43,6 +45,7 @@
 			LogPanel,
 			AdminPage,
 			LSOOverlay,
+			ErrorBanner,
 		},
 	})
 	export default class App extends Vue {

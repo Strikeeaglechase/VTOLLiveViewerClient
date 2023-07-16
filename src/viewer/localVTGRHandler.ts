@@ -22,7 +22,7 @@ class LocalVTGRHandler {
 
 		header.chunks.forEach((chunk) => {
 			const chunkData = body.slice(chunk.start, chunk.start + chunk.length);
-			Application.instance.handleReplayChunk(chunkData);
+			Application.instance.replayController.handleReplayChunk(chunkData);
 		});
 		Application.instance.beginReplay(header.info.lobbyId);
 	}

@@ -11,7 +11,7 @@
 		<button v-on:click="focus()">
 			{{ isLsoMode ? "LSO Target" : "Focus" }}
 		</button>
-		<button v-on:click="kick()" v-if="isAdmin">Kick</button>
+		<button v-on:click="kick()" v-if="canKick">Kick</button>
 	</div>
 </template>
 
@@ -39,8 +39,14 @@
 		isLsoMode = false;
 
 		isAdmin = false;
+		canKick = false;
 		mounted() {
 			this.isAdmin = hasPerm(UserScopes.ADMIN);
+			// this.canKick = this.isAdmin && !Application.instance.isReplay;
+			Application.instance.on("replay_mode", (newState: boolean) => {
+				this.canKick = this.isAdmin && !newState;
+			});
+
 			EventBus.$on("lso-mode", (newState: boolean) => {
 				this.isLsoMode = newState;
 			});

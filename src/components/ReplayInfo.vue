@@ -42,7 +42,9 @@
 		}
 
 		getTime() {
-			const time = new Date(this.app.time + this.app.replayStartTime);
+			const time = new Date(
+				this.app.time + this.app.replayController.replayStartTime
+			);
 			const z = (v: number) => (v < 10 ? "0" + Math.floor(v) : Math.floor(v));
 			const minutes = z(time.getMinutes());
 			const hours = z(time.getHours());
@@ -57,7 +59,7 @@
 		}
 
 		getSpeed() {
-			const speed = Math.abs(this.app.computedReplaySpeed);
+			const speed = Math.abs(this.app.replayController.computedReplaySpeed);
 
 			if (speed != this.prevSpeed) {
 				this.hide = false;
@@ -76,7 +78,8 @@
 				this.isTimeout = true;
 			}
 
-			const sign = this.app.computedReplaySpeed < 0 ? "-" : "";
+			const sign =
+				this.app.replayController.computedReplaySpeed < 0 ? "-" : "";
 
 			if (speed < 1 && speed != 0) {
 				const dom = Math.round(1 / speed);

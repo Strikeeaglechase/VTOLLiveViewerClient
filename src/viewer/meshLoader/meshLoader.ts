@@ -95,6 +95,10 @@ class MeshLoader {
 	// Gets the next instance of a mesh for this entity
 	private getQueuedInstancedMesh(entityKey: string): { mesh: InstancedGroupMesh, id: number; } | null {
 		const iMesh = this.instancedMeshCache[entityKey];
+		if (!iMesh) {
+			console.warn(`CB called for ${entityKey} but no mesh found!`);
+			return null;
+		}
 		const id = ++iMesh.lastId;
 		if (id > iMesh.size) {
 			console.log(`${entityKey} out of instances!`);
@@ -143,7 +147,8 @@ class MeshLoader {
 			// eslint-disable-next-line @typescript-eslint/no-empty-function
 			obj = await new Promise((res, err) => loader.load(path, res, () => { }, err));
 		} catch (e) {
-			console.log(`Failed to load mesh from ${path} for ${entityKey}`, e);
+			console.error(`Failed to load mesh from ${path} for ${entityKey}`, e);
+			this.executeCBs(entityKey);
 			return null;
 		}
 
@@ -172,9 +177,7 @@ class MeshLoader {
 		const iMesh = new InstancedGroupMesh(meshGroup, INSTANCE_MESH_COUNT);
 		this.instancedMeshCache[entityKey] = { mesh: iMesh, lastId: 0, size: INSTANCE_MESH_COUNT };
 		// Call the callback for anything waiting on this mesh
-		this.currentLoadingQueueCBs[entityKey]?.forEach(cb => cb());
-		this.currentLoadingQueueCBs[entityKey] = [];
-		this.currentLoadingQueue.delete(entityKey);
+		this.executeCBs(entityKey);
 
 		iMesh.name = 'InstancedMesh';
 		iMesh.frustumCulled = false;
@@ -185,6 +188,12 @@ class MeshLoader {
 			mesh: iMesh,
 			id: 0
 		};
+	}
+
+	private executeCBs(entityKey: string) {
+		this.currentLoadingQueueCBs[entityKey]?.forEach(cb => cb());
+		this.currentLoadingQueueCBs[entityKey] = [];
+		this.currentLoadingQueue.delete(entityKey);
 	}
 
 	private computeBoundingBox(mesh: THREE.Group, entityKey: string) {

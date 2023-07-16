@@ -291,7 +291,7 @@ class Entity {
 
 		this.maybeCreateTextOverlay();
 
-		this.mesh.name = `${this} Mesh`;
+		if (this.mesh) this.mesh.name = `${this} Mesh`;
 		this.object.name = `${this} Object`;
 		// this.scene.add(this.object);
 		// if (this.hasTrail) this.trail.init();
@@ -361,7 +361,7 @@ class Entity {
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
 		// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
 
-		this.maybeCreateTextOverlay();
+		// this.maybeCreateTextOverlay();
 	}
 
 	protected async createMesh(): Promise<void> {
