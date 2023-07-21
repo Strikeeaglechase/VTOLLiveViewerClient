@@ -1,5 +1,5 @@
 {
-  "name": "vtol-radar",
+  "name": "vtol-live-viewer-client",
   "version": "0.1.0",
   "private": true,
   "scripts": {
