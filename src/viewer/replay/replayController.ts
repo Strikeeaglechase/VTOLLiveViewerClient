@@ -8,7 +8,6 @@ import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 class ReplayController {
-	// TODO: Move replay to its own class
 	public replayPackets: RPCPacket[] = [];
 	private groupedReplayPackets: RPCPacket[][] = [];
 	private onReplayChunk: (() => void) | null = null;

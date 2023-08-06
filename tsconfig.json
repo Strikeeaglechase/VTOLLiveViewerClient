@@ -14,17 +14,16 @@
 		"allowSyntheticDefaultImports": true,
 		"sourceMap": true,
 		"baseUrl": "src",
-		"types": [
-			"webpack-env"
-		],
+		"types": ["webpack-env"],
 		"paths": {
-			"@/*": [
-				"src/*"
-			],
-			"tslib": [
-				"./node_modules/tslib/tslib.d.ts"
-			]
+			"@/*": ["src/*"],
+			"tslib": ["./node_modules/tslib/tslib.d.ts"],
+			"@common/*": ["../VTOLLiveViewerCommon/dist/src/*"],
 		},
+		"plugins": [
+			{ "transform": "typescript-transform-paths" },
+			{ "transform": "typescript-transform-paths",	"afterDeclarations": true }
+		],
 		"lib": [
 			"esnext",
 			"dom",

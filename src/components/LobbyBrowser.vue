@@ -57,7 +57,7 @@
 			});
 
 			if (location.pathname == "/replay") {
-				const req = await fetch(`${API_URL}/recordings`);
+				const req = await fetch(`${API_URL}/replay/recordings`);
 				this.replayLobbies = await req.json();
 				const id = window.location.search.split("=")[1];
 				if (window.location.search.startsWith(`?replay=`)) {

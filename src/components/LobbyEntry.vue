@@ -84,8 +84,8 @@
 				return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
 
 			if (this.lobby.mission.isBuiltin)
-				return `${API_URL}/previewBuiltin/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
-			return `${API_URL}/preview/${this.lobby.mission.workshopId}/${this.lobby.mission.id}`;
+				return `${API_URL}/workshop/previewBuiltin/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
+			return `${API_URL}/workshop/preview/${this.lobby.mission.workshopId}/${this.lobby.mission.id}`;
 		}
 	}
 </script>

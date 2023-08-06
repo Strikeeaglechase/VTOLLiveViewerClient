@@ -42,9 +42,9 @@ class HeightMap {
 				image.crossOrigin = "Anonymous";
 
 				if (this.mission.isBuiltin) {
-					image.src = `${API_URL}/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
+					image.src = `${API_URL}/workshop/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
 				} else {
-					image.src = `${API_URL}/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
+					image.src = `${API_URL}/workshop/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
 				}
 
 				image.onerror = () => res(null);
