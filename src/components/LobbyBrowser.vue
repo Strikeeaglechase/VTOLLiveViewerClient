@@ -61,9 +61,12 @@
 				this.replayLobbies = await req.json();
 				const id = window.location.search.split("=")[1];
 				if (window.location.search.startsWith(`?replay=`)) {
+					console.log(window.location.search);
+					console.log(id);
 					this.replayLobbies = this.replayLobbies.filter(
 						(l) => l.recordingId == id
 					);
+					console.log(this.replayLobbies);
 				}
 			}
 		}

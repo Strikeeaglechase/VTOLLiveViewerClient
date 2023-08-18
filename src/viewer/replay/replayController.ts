@@ -1,19 +1,21 @@
 import {
 	decompressRpcPackets
 } from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
+import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
+import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
-class ReplayController {
+const HEADER_LENGTH = "REPLAY".length;
+class ReplayController extends EventEmitter<"replay_bytes"> {
 	public replayPackets: RPCPacket[] = [];
 	private groupedReplayPackets: RPCPacket[][] = [];
-	private onReplayChunk: (() => void) | null = null;
 	public isReplay = false;
 	public replayStartTime = 0;
-	private currentReplayChunkReceive = 0;
+	private replayDataReceived = 0;
 	public replayCurrentTime = 0;
 	private prevReplayTime = 0;
 	private firstRealReplayDataTime = 0;
@@ -23,11 +25,15 @@ class ReplayController {
 	private previousReplayTimeDirection = 1;
 	private packetPid = 0;
 
+	private receiveBytesBuffer: number[] = [];
+	private currentChunkIndex = 0;
+	private header: VTGRHeader;
+
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
 
-	constructor(public app: Application) { }
+	constructor(public app: Application) { super(); }
 
 	public runReplay(expectedDt: number): number {
 		if (expectedDt > 1000) {
@@ -96,19 +102,48 @@ class ReplayController {
 		return false;
 	}
 
-	public handleReplayChunk(bytes: Uint8Array) {
-		const rpcs = decompressRpcPackets([...bytes.slice("REPLAY".length)]);
+	public handleReplayBytes(bytes: Uint8Array) {
+		this.receiveBytesBuffer.push(...bytes.slice(HEADER_LENGTH)); // Append new bytes
+		if (!this.header) {
+			console.error(`Received replay data chunk before header`);
+			return;
+		}
+
+		const currentChunk = this.header.chunks[this.currentChunkIndex];
+		if (this.receiveBytesBuffer.length >= currentChunk.length) {
+			const chunkBytes = this.receiveBytesBuffer.splice(0, currentChunk.length);
+			console.log(`Handling chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
+			this.currentChunkIndex++;
+			this.handleReplayChunk(chunkBytes);
+		}
+
+		this.emit("replay_bytes", bytes);
+	}
+
+	// Empty remaining data in receive buffer
+	private finishReceivingData() {
+		while (this.receiveBytesBuffer.length > 0) {
+			const currentChunk = this.header.chunks[this.currentChunkIndex];
+			const chunkBytes = this.receiveBytesBuffer.splice(0, currentChunk.length);
+			console.log(`Handling chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
+			this.currentChunkIndex++;
+			this.handleReplayChunk(chunkBytes);
+		}
+	}
+
+	private handleReplayChunk(bytes: number[]) {
+		const rpcs = decompressRpcPackets(bytes);
 		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp ?? Date.now();
 		this.replayPackets.push(...rpcs);
-		console.log(`Got replay chunk ${this.currentReplayChunkReceive} with ${rpcs.length} packets (${bytes.length} bytes)`);
+		console.log(`Got replay chunk ${this.replayDataReceived} with ${rpcs.length} packets (${bytes.length} bytes)`);
 
 		if (rpcs[0].timestamp == undefined) {
-			console.error(`Replay packet chunk ${this.currentReplayChunkReceive} packet 0 has no timestamp`);
+			console.error(`Replay packet chunk ${this.replayDataReceived} packet 0 has no timestamp`);
 			// Interpolate timestamps
 			const msPerChunk = 30 * 1000;
 			const tsStep = msPerChunk / rpcs.length;
 			rpcs.forEach((rpc, idx) => {
-				rpc.timestamp = this.currentReplayChunkReceive * msPerChunk + tsStep * idx;
+				rpc.timestamp = this.replayDataReceived * msPerChunk + tsStep * idx;
 			});
 		}
 
@@ -130,8 +165,6 @@ class ReplayController {
 			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
 		});
 
-		if (this.onReplayChunk) this.onReplayChunk();
-		else console.warn(`Received replay chunk without onReplayChunk callback`);
 	}
 
 	private isPlayerVehicleSpawn(rpc: RPCPacket) {
@@ -141,17 +174,19 @@ class ReplayController {
 	}
 
 	public requestReplay(replayId: string, onProgress?: (progress: number) => void) {
+		this.app.client.on("replay_header", (header: VTGRHeader) => this.header = header);
 		this.app.client.replayGame(replayId);
 		return new Promise<void>(res => {
-			this.currentReplayChunkReceive = 0;
-			this.onReplayChunk = () => {
-				this.currentReplayChunkReceive++;
-				if (this.currentReplayChunkReceive == this.app.client.expectedReplayChunks) {
+			this.replayDataReceived = 0;
+
+			this.on("replay_bytes", (chunk: Uint8Array) => {
+				this.replayDataReceived += chunk.length - HEADER_LENGTH;
+				if (this.replayDataReceived == this.app.client.expectedReplaySize) {
+					this.finishReceivingData();
 					res();
-					this.onReplayChunk = null;
 				}
-				if (onProgress) onProgress(this.currentReplayChunkReceive / this.app.client.expectedReplayChunks);
-			};
+				if (onProgress) onProgress(this.replayDataReceived / this.app.client.expectedReplaySize);
+			});
 		});
 	}
 

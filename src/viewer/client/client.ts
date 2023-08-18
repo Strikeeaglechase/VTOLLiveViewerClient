@@ -1,15 +1,18 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 
+import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { DbUserEntry, UserScopes } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import {
+	DbUserEntry, UserScopes, VTGRHeader
+} from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { EventBus } from "../../eventBus";
 import { setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
-class Client {
-	public expectedReplayChunks = -1;
+class Client extends EventEmitter<"replay_header"> {
+	public expectedReplaySize = -1;
 	public onUserQueryResult: (users: DbUserEntry[]) => void = () => { };
-	constructor(public id: string) { }
+	constructor(public id: string) { super(); }
 
 	@RPC("out")
 	subscribe(gameId: string) { }
@@ -21,9 +24,14 @@ class Client {
 	replayGame(id: string) { }
 
 	@RPC("in")
-	expectChunks(count: number) {
-		this.expectedReplayChunks = count;
-		console.log(`Expecting ${count} chunks for replay`);
+	replayHeader(header: VTGRHeader) {
+		this.emit("replay_header", header);
+	}
+
+	@RPC("in")
+	expectReplaySize(size: number) {
+		this.expectedReplaySize = size;
+		console.log(`Expecting replay size of ${size} bytes`);
 	}
 
 	@RPC("in")

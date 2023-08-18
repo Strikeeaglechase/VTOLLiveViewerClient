@@ -899,7 +899,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			const headerBytes = bytes.slice(0, "REPLAY".length);
 			const header = String.fromCharCode(...headerBytes);
 			if (header == "REPLAY") {
-				this.replayController.handleReplayChunk(bytes);
+				this.replayController.handleReplayBytes(bytes);
 			} else {
 				RPCController.handlePacket(bytes);
 				const rpcs = decompressRpcPackets([...bytes]);

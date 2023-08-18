@@ -90,8 +90,14 @@
 
 		async download() {
 			const req = await fetch(
-				`${API_URL}/recordings/${this.lobby.recordingId}`
+				`${API_URL}/replay/recordings/${this.lobby.recordingId}`
 			);
+			if (req.status >= 300) {
+				alert(
+					`Failed to download replay: ${req.statusText} (${req.status})`
+				);
+				return;
+			}
 			const data = await req.blob();
 			const url = window.URL.createObjectURL(data);
 			const a = document.createElement("a");
