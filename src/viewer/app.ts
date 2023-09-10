@@ -13,10 +13,10 @@ import {
 	EnableRPCs, RPC, RPCController, RPCPacket
 } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import {
-	AssignID, PacketType, Team, Vector3, VTOLLobby
+	AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby
 } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
-import { IS_DEV, WS_URL } from "../config";
+import { API_URL, IS_DEV, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
@@ -511,7 +511,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		const d = Date.now();
 		let dt = d - this.prevFrameTime;
-		if (this.isReplay && !this.replayController.isInReplaySetup) {
+		if (this.isReplay) {
 			dt = this.replayController.runReplay(dt);
 		}
 		this.prevFrameTime = d;
@@ -769,8 +769,16 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			console.log(`[GAME] ${msg}`);
 			this.addLogMessage(msg);
 		});
+		const rpcMissionInfo = await this.game.waitForMissionInfo();
+		const missionInfoWithSpawns = await this.getMissionInfoFromAPI(rpcMissionInfo.workshopId, rpcMissionInfo.id);
+		this.meshLoader.prepareIMeshCounts(missionInfoWithSpawns.allUnitSpawns);
+		this.mapLoader.loadHeightmapFromMission(rpcMissionInfo);
+	}
 
-		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+	private async getMissionInfoFromAPI(workshopId: string, missionId: string) {
+		const req = await fetch(`${API_URL}/workshop/mission?workshopId=${encodeURIComponent(workshopId)}&missionId=${encodeURIComponent(missionId)}`);
+		const missionInfo = await req.json() as MissionInfo;
+		return missionInfo;
 	}
 
 	public async beginReplay(lobbyId: string) {
@@ -802,11 +810,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// 	}
 		// });
 
+
 		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
 		console.log(`Got mission info!`);
-
-		this.replayController.skipToStart();
 	}
 
 	private raycastEntitiesFromMouse(screenX: number, screenY: number, validEntities: Entity[]) {

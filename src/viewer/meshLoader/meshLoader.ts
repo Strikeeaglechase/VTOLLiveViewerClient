@@ -16,18 +16,14 @@ interface IMeshOffsets {
 // This needs looking at for performance.
 // TODO: Check vts file for how many instances of each entity we need. The less IMesh's we have, the better.
 const INSTANCE_MESH_COUNT = 128; // This might be too low! (or too high for many missions)
-const IMESH_SKIPPED = [
-	"Units/Allied/AlliedCarrier",
-	"Units/Allied/AlliedAAShip",
-	"Units/Allied/EscortCruiser",
-	"Units/Allied/DroneCarrier",
-	"Units/Allied/DroneGunBoat",
-	"Units/Allied/DroneMissileCruiser",
-	"Units/Allied/E-4",
-	"Units/Enemy/EnemyCarrier",
-	"Units/Enemy/EscortCruiser",
-	"Units/Enemy/ESuperMissileCruiser",
-];
+const IMESH_SKIPPED: string[] = [];
+
+function unitIdToEntityKeys(unitName: string): string[] {
+	return [
+		`Units/Allied/${unitName}`,
+		`Units/Enemy/${unitName}`
+	];
+}
 
 // Handles loading all entity meshes
 class MeshLoader {
@@ -41,6 +37,8 @@ class MeshLoader {
 	private currentLoadingQueueCBs: Record<string, (() => void)[]> = {};
 
 	private boundingBoxCache: Record<string, THREE.Box3> = {};
+
+	private imeshCounts: Record<string, number> = {};
 
 	public async load(entityKey: string): Promise<THREE.Group | null> {
 		if (entityKey.includes("/Missiles/")) return null;
@@ -174,8 +172,16 @@ class MeshLoader {
 
 		this.computeBoundingBox(meshGroup, entityKey);
 
-		const iMesh = new InstancedGroupMesh(meshGroup, INSTANCE_MESH_COUNT);
-		this.instancedMeshCache[entityKey] = { mesh: iMesh, lastId: 0, size: INSTANCE_MESH_COUNT };
+		let imeshCount = INSTANCE_MESH_COUNT;
+		if (this.imeshCounts[entityKey]) {
+			imeshCount = this.imeshCounts[entityKey];
+			console.log(`Loading IMesh for ${entityKey} with ${imeshCount} instances`);
+		} else {
+			console.warn(`No imesh count was provided for ${entityKey}!`);
+		}
+
+		const iMesh = new InstancedGroupMesh(meshGroup, imeshCount);
+		this.instancedMeshCache[entityKey] = { mesh: iMesh, lastId: 0, size: imeshCount };
 		// Call the callback for anything waiting on this mesh
 		this.executeCBs(entityKey);
 
@@ -200,6 +206,18 @@ class MeshLoader {
 		if (this.boundingBoxCache[entityKey]) return;
 		const box = new THREE.Box3().setFromObject(mesh);
 		this.boundingBoxCache[entityKey] = box;
+	}
+
+	public prepareIMeshCounts(units: { id: number, name: string; }[]) {
+		this.imeshCounts = {};
+		units.forEach(unit => {
+			const [allied, enemy] = unitIdToEntityKeys(unit.name);
+			if (!this.imeshCounts[allied]) this.imeshCounts[allied] = 0;
+			if (!this.imeshCounts[enemy]) this.imeshCounts[enemy] = 0;
+
+			this.imeshCounts[allied]++;
+			this.imeshCounts[enemy]++;
+		});
 	}
 
 	// Normal mesh uses offsets assigned on load, IMesh can't so offsets are given to the entity for management

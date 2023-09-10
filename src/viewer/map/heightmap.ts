@@ -1,4 +1,4 @@
-import { MissionInfo } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { API_URL } from "../../config";
 
 interface Chunk {
@@ -29,7 +29,7 @@ class HeightMap {
 
 	public images: { data: ImageData; }[] = [];
 	private map: number[][];
-	constructor(private mission: MissionInfo) { }
+	constructor(private mission: MissionInfoWithoutSpawns) { }
 
 	public async init() {
 		console.log(`Height map init start!`);

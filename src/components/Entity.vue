@@ -39,7 +39,7 @@
 		isLsoMode = false;
 
 		isAdmin = false;
-		canKick = false;
+		canKick = true;
 		mounted() {
 			this.isAdmin = hasPerm(UserScopes.ADMIN);
 			// this.canKick = this.isAdmin && !Application.instance.isReplay;

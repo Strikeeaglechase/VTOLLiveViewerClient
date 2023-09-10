@@ -23,7 +23,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private firstRealReplayDataTime = 0;
 	private registeredFirstRealReplayDataTime = false;
 	private replaySpeed = 7;
-	public isInReplaySetup = false;
+	private isReadyToRun = false;
 	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
 	private previousReplayTimeDirection = 1;
 	private packetPid = 0;
@@ -39,6 +39,8 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	constructor(public app: Application) { super(); }
 
 	public runReplay(expectedDt: number): number {
+		if (!this.isReadyToRun) return expectedDt;
+
 		if (expectedDt > 1000) {
 			console.warn(`Expected dt excessive ${expectedDt}`);
 			expectedDt = 1000 / 60;
@@ -206,11 +208,14 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		this.header = header;
 		console.log(`Got replay header with ${header.chunks.length} chunks`);
 		console.log(header);
+		const spawns = header.info?.missionInfo?.allUnitSpawns;
+		if (spawns) {
+			this.app.meshLoader.prepareIMeshCounts(spawns);
+		}
 	}
 
 	public beginReplay() {
 		console.log(`Beginning replay with ${this.replayPackets.length} packets`);
-		this.isInReplaySetup = true;
 		if (this.replayPackets[0].timestamp == undefined) {
 			console.error(`Replay packet 0 has no timestamp`);
 			return;
@@ -225,20 +230,14 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			console.log(`Handling ${initPackets.length} init packets`);
 			// console.log(JSON.stringify(initPackets));
 			this.runReplayOnPackets(initPackets);
+			this.replayCurrentTime = this.firstRealReplayDataTime;
+			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
 		} else {
 			console.log(`No init packets to handle`);
 		}
 
-	}
-
-	public skipToStart() {
-		if (this.registeredFirstRealReplayDataTime && this.replayCurrentTime < this.firstRealReplayDataTime) {
-			this.replayCurrentTime = this.firstRealReplayDataTime;
-			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
-		}
-
 		console.log(`-- Replay fully loaded --`);
-		this.isInReplaySetup = false;
+		this.isReadyToRun = true;
 	}
 
 	public handleArrowKey(key: string) {

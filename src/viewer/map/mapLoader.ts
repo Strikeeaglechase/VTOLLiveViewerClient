@@ -1,11 +1,11 @@
 import * as THREE from "three";
 
-import { MissionInfo } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { SceneManager } from "../managers/sceneManager";
 import { chunksPerSide, HeightMap } from "./heightmap";
 
 // This value may be the cause of the heightmap not lining up with the in game map
-const METERS_PER_PIXEL = 153;
+const METERS_PER_PIXEL = 153.6;
 
 // At some point would be nice to match the in game VTOL biomes
 enum Biome {
@@ -18,7 +18,7 @@ class MapLoader {
 
 	constructor(private sceneManager: SceneManager) { }
 
-	public async loadHeightmapFromMission(mission: MissionInfo) {
+	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
 		const start = Date.now();
 
 		const worker = new Worker(new URL("./mapLoad.worker.ts", import.meta.url));

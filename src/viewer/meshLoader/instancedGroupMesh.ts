@@ -27,11 +27,8 @@ class InstancedGroupMesh extends THREE.Mesh {
 			// same geometry and same material consider as the same mesh
 			const uuid = mesh.geometry.uuid + '/' + (mesh.material as THREE.Material).uuid;
 
-			if (meshCollect[uuid]) {
-				meshCollect[uuid].push(mesh);
-			} else {
-				meshCollect[uuid] = [mesh];
-			}
+			if (meshCollect[uuid]) meshCollect[uuid].push(mesh);
+			else meshCollect[uuid] = [mesh];
 		});
 
 		// create all instances
