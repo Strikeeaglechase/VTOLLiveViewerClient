@@ -121,10 +121,15 @@
 		getPreviewImageUrl() {
 			// if (!this.lobby.mission)
 			// 	return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
+			let wsId = this.lobby.workshopId;
+			// Support for old name scheme
+			if ("type" in this.lobby) {
+				wsId = this.lobby.type as string;
+			}
 
-			if (this.lobby.type == "built-in")
-				return `${API_URL}/workshop/previewBuiltin/${this.lobby.campaignId}/${this.lobby.missionId}`;
-			return `${API_URL}/workshop/preview/${this.lobby.campaignId}/${this.lobby.missionId}`;
+			if (wsId == "built-in" || !wsId || this.lobby.missionInfo?.isBuiltin)
+				return `${API_URL}/workshop/preview/${this.lobby.campaignId}/${this.lobby.missionId}`;
+			return `${API_URL}/workshop/preview/${wsId}/${this.lobby.missionId}`;
 		}
 	}
 </script>

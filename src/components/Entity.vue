@@ -50,6 +50,8 @@
 			EventBus.$on("lso-mode", (newState: boolean) => {
 				this.isLsoMode = newState;
 			});
+
+			this.canKick = this.isAdmin && !Application.instance.isReplay;
 		}
 
 		focus() {
