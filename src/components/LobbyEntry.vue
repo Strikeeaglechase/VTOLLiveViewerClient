@@ -23,9 +23,13 @@
 		</div>
 		<button
 			v-on:click="joinLobby()"
-			:class="{ disableBtn: lobby.playerCount >= lobby.maxPlayers }"
+			:class="{
+				disableBtn:
+					lobby.playerCount >= lobby.maxPlayers ||
+					lobby.readyStatus == 1,
+			}"
 		>
-			{{ joinBtnText }}
+			{{ lobby.readyStatus == 0 ? joinBtnText : "Invl Mission" }}
 		</button>
 	</div>
 </template>
