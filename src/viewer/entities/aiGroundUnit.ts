@@ -1,5 +1,3 @@
-
-
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
@@ -8,7 +6,49 @@ import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
 
 @EnableRPCs("instance")
 class AIGroundUnit extends Entity {
-	public static spawnFor: string[] = ["Units/Allied/AlliedAAShip", "Units/Allied/AlliedBackstopSAM", "Units/Allied/AlliedCarrier", "Units/Allied/alliedCylinderTent", "Units/Allied/AlliedEWRadar", "Units/Allied/alliedMBT1", "Units/Allied/AlliedSoldier", "Units/Allied/AlliedSoldierMANPAD", "Units/Enemy/EnemySoldierMANPAD", "Units/Allied/ARocketTruck", "Units/Enemy/Artillery", "Units/Allied/BSTOPRadar", "Units/Enemy/bunker1", "Units/Allied/bunker2", "Units/Enemy/cylinderTent", "Units/Enemy/DroneCarrier", "Units/Enemy/DroneGunBoat", "Units/Enemy/DroneGunBoatRocket", "Units/Enemy/DroneMissileCruiser", "Units/Enemy/EnemyCarrier", "Units/Enemy/enemyMBT1", "Units/Enemy/EnemySoldier", "Units/Enemy/ERocketTruck", "Units/Allied/EscortCruiser", "Units/Enemy/ESuperMissileCruiser", "Units/Enemy/IRAPC", "Units/Enemy/MAD-4Launcher", "Units/Enemy/MAD-4Radar", "Units/Enemy/MineBoat", "Units/Allied/PatRadarTrailer", "Units/Allied/PatriotLauncher", "Units/Allied/PhallanxTruck", "Units/Enemy/SAAW", "Units/Enemy/SamBattery1", "Units/Enemy/SamFCR", "Units/Enemy/SamFCR2", "Units/Allied/SLAIM120Truck", "Units/Allied/SRADTruck", "Units/Enemy/staticAAA-20x2", "Units/Allied/staticCIWS", "Units/Allied/WatchmanTruck"];
+	public static spawnFor: string[] = [
+		"Units/Allied/AlliedAAShip",
+		"Units/Allied/AlliedBackstopSAM",
+		"Units/Allied/AlliedCarrier",
+		"Units/Allied/alliedCylinderTent",
+		"Units/Allied/AlliedEWRadar",
+		"Units/Allied/alliedMBT1",
+		"Units/Allied/AlliedSoldier",
+		"Units/Allied/AlliedSoldierMANPAD",
+		"Units/Enemy/EnemySoldierMANPAD",
+		"Units/Allied/ARocketTruck",
+		"Units/Enemy/Artillery",
+		"Units/Allied/BSTOPRadar",
+		"Units/Enemy/bunker1",
+		"Units/Allied/bunker2",
+		"Units/Enemy/cylinderTent",
+		"Units/Enemy/DroneCarrier",
+		"Units/Enemy/DroneGunBoat",
+		"Units/Enemy/DroneGunBoatRocket",
+		"Units/Enemy/DroneMissileCruiser",
+		"Units/Enemy/EnemyCarrier",
+		"Units/Enemy/enemyMBT1",
+		"Units/Enemy/EnemySoldier",
+		"Units/Enemy/ERocketTruck",
+		"Units/Allied/EscortCruiser",
+		"Units/Enemy/ESuperMissileCruiser",
+		"Units/Enemy/IRAPC",
+		"Units/Enemy/MAD-4Launcher",
+		"Units/Enemy/MAD-4Radar",
+		"Units/Enemy/MineBoat",
+		"Units/Allied/PatRadarTrailer",
+		"Units/Allied/PatriotLauncher",
+		"Units/Allied/PhallanxTruck",
+		"Units/Enemy/SAAW",
+		"Units/Enemy/SamBattery1",
+		"Units/Enemy/SamFCR",
+		"Units/Enemy/SamFCR2",
+		"Units/Allied/SLAIM120Truck",
+		"Units/Allied/SRADTruck",
+		"Units/Enemy/staticAAA-20x2",
+		"Units/Allied/staticCIWS",
+		"Units/Allied/WatchmanTruck"
+	];
 
 	public isLsoTarget = false;
 

@@ -11,7 +11,7 @@ const USE_BULLET_LINE = true; // Either use a line, or using a cylinder
 enum BulletReturnState {
 	free, // Bullet is unused and can be reused
 	dying, // Bullet has timed out this frame
-	running // Bullet is in use 
+	running // Bullet is in use
 }
 
 class Bullet {
@@ -25,7 +25,12 @@ class Bullet {
 	private firedAt: number;
 	private isAlive = false;
 
-	constructor(geometry: THREE.CylinderGeometry, material: THREE.MeshBasicMaterial, lineMat: THREE.LineBasicMaterial, private masterBulletObject: THREE.Object3D) {
+	constructor(
+		geometry: THREE.CylinderGeometry,
+		material: THREE.MeshBasicMaterial,
+		lineMat: THREE.LineBasicMaterial,
+		private masterBulletObject: THREE.Object3D
+	) {
 		if (USE_BULLET_LINE) {
 			this.lineGeometry = new THREE.BufferGeometry();
 			this.lineGeometry.setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
@@ -50,7 +55,7 @@ class Bullet {
 		markRaw(this);
 	}
 
-	public fire(position: Vector, velocity: Vector,) {
+	public fire(position: Vector, velocity: Vector) {
 		this.position = position;
 		this.velocity = velocity;
 		this.firedAt = Application.time;
@@ -82,11 +87,7 @@ class Bullet {
 		} else {
 			this.cylinder.position.set(this.position.x, this.position.y, this.position.z);
 
-			this.cylinder.lookAt(new THREE.Vector3(
-				futurePos.x,
-				futurePos.y,
-				futurePos.z,
-			));
+			this.cylinder.lookAt(new THREE.Vector3(futurePos.x, futurePos.y, futurePos.z));
 
 			// Gravity? Whats that?
 			// this.velocity = this.velocity.add(new Vector(0, -9.8, 0).multiply(dt / 1000));

@@ -13,10 +13,10 @@ class CSS2DRenderer {
 
 	public domElement: HTMLDivElement;
 
-	private elementStyleUpdateCache: { element: HTMLElement, style: string; }[] = [];
+	private elementStyleUpdateCache: { element: HTMLElement; style: string }[] = [];
 
 	constructor() {
-		this.domElement = document.createElement('div');
+		this.domElement = document.createElement("div");
 		this.domElement.className = "overlay-main";
 		document.getElementById("main-container")?.appendChild(this.domElement);
 	}
@@ -35,8 +35,8 @@ class CSS2DRenderer {
 		this._widthHalf = this._width / 2;
 		this._heightHalf = this._height / 2;
 
-		this.domElement.style.width = width + 'px';
-		this.domElement.style.height = height + 'px';
+		this.domElement.style.width = width + "px";
+		this.domElement.style.height = height + "px";
 	}
 
 	private renderObject(object: CSS2DObject, camera: THREE.Camera, frustum: THREE.Frustum) {
@@ -48,7 +48,12 @@ class CSS2DRenderer {
 			this.vector.setFromMatrixPosition(object.matrixWorld);
 			this.vector.applyMatrix4(this.viewProjectionMatrix);
 
-			const style = 'translate(-50%,-50%) translate(' + (this.vector.x * this._widthHalf + this._widthHalf) + 'px,' + (-this.vector.y * this._heightHalf + this._heightHalf) + 'px)';
+			const style =
+				"translate(-50%,-50%) translate(" +
+				(this.vector.x * this._widthHalf + this._widthHalf) +
+				"px," +
+				(-this.vector.y * this._heightHalf + this._heightHalf) +
+				"px)";
 			this.elementStyleUpdateCache.push({ element: element, style: style });
 		}
 	}
@@ -69,7 +74,7 @@ class CSS2DRenderer {
 			this.renderObject(obj, camera, frustum);
 		});
 
-		this.elementStyleUpdateCache.forEach((cache) => {
+		this.elementStyleUpdateCache.forEach(cache => {
 			cache.element.style.transform = cache.style;
 
 			if (cache.element.parentNode !== this.domElement) {
@@ -85,7 +90,7 @@ class CSS2DObject extends THREE.Object3D {
 		super();
 
 		this.element.style.position = "absolute";
-		this.addEventListener('removed', () => {
+		this.addEventListener("removed", () => {
 			if (this.element.parentNode !== null) {
 				this.element.parentNode.removeChild(this.element);
 			}

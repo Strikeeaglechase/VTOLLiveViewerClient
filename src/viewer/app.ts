@@ -5,16 +5,10 @@
 import Stats from "stats.js";
 import * as THREE from "three";
 
-import {
-	decompressRpcPackets
-} from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
+import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
 import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
-import {
-	EnableRPCs, RPC, RPCController, RPCPacket
-} from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import {
-	AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby
-} from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { EnableRPCs, RPC, RPCController, RPCPacket } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
+import { AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
 import { API_URL, IS_DEV, WS_URL } from "../config";
 import { EventBus } from "../eventBus";
@@ -36,8 +30,8 @@ import { MeshLoader } from "./meshLoader/meshLoader";
 import { ReplayController } from "./replay/replayController";
 import { mark } from "./threeUtils";
 
-const rad = (deg: number): number => deg * Math.PI / 180;
-const deg = (rad: number): number => rad * 180 / Math.PI;
+const rad = (deg: number): number => (deg * Math.PI) / 180;
+const deg = (rad: number): number => (rad * 180) / Math.PI;
 
 const ftToMi = (ft: number): number => ft / 6076.12;
 const miToFt = (mi: number): number => mi * 6076.12;
@@ -62,7 +56,7 @@ const debug_ws_usage = false;
 // MessageHandler is a class within HC, this wrapper handles its RPCs
 @EnableRPCs("instance")
 class MessageHandler {
-	constructor(public id: string, private app: Application) { }
+	constructor(public id: string, private app: Application) {}
 
 	@RPC("in")
 	NetInstantiate(id: number, ownerId: string, path: string, pos: Vector3, rot: Vector3, active: boolean) {
@@ -93,16 +87,14 @@ enum ApplicationRunningState {
 	replaySelect = "replay_select",
 	admin = "admin",
 	running = "running",
-	lobbyEnd = "lobby_end",
+	lobbyEnd = "lobby_end"
 }
 
 const stateChangeMap = {
 	"/lobbies": ApplicationRunningState.lobbySelect,
 	"/replay": ApplicationRunningState.replaySelect,
-	"/admin": ApplicationRunningState.admin,
+	"/admin": ApplicationRunningState.admin
 };
-
-
 
 interface LogMessage {
 	message: string;
@@ -110,7 +102,6 @@ interface LogMessage {
 	id: number;
 }
 let lmId = 0;
-
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
@@ -149,7 +140,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
 	public socket: WebSocket;
-	private timeouts: { func: () => void; startAt: number; time: number; }[] = [];
+	private timeouts: { func: () => void; startAt: number; time: number }[] = [];
 
 	private isUiHidden = false;
 	public isTextOverlayHidden = false;
@@ -208,12 +199,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				res();
 			};
 			this.socket.onclose = () => console.log(`Websocket disconnected`);
-			this.socket.onerror = (e) => console.log(`Websocket error: `, e);
+			this.socket.onerror = e => console.log(`Websocket error: `, e);
 			this.socket.onmessage = (message: MessageEvent) => this.handleWSMessage(message);
-
 		});
 
-		RPCController.init((packet) => {
+		RPCController.init(packet => {
 			const pckt = {
 				...packet,
 				type: PacketType.rpcPacket
@@ -252,7 +242,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// this.quickTestSetup();
 
 		// EventBus.$emit("app", this);
-
 	}
 
 	public async start() {
@@ -302,7 +291,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(euler.x, euler.y, euler.z, "YXZ"));
 			const q = new THREE.Quaternion(quat.x, quat.y, quat.z, quat.w);
 
-			console.log(`Euler: (${deg(euler.x).toFixed(3)}, ${deg(euler.y).toFixed(3)}, ${deg(euler.z).toFixed(3)})  Quat: (${q.x.toFixed(3)}, ${q.y.toFixed(3)}, ${q.z.toFixed(3)} ${q.w.toFixed(3)})`);
+			console.log(
+				`Euler: (${deg(euler.x).toFixed(3)}, ${deg(euler.y).toFixed(3)}, ${deg(euler.z).toFixed(3)})  Quat: (${q.x.toFixed(3)}, ${q.y.toFixed(
+					3
+				)}, ${q.z.toFixed(3)} ${q.w.toFixed(3)})`
+			);
 
 			mesh.setRotationFromQuaternion(q);
 		});
@@ -350,7 +343,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		for (let i = 0; i < 1; i++) {
 			const ai = new AIGroundUnit(this);
-			ai.spawn(id++, "0", "Units/Enemy/EnemySoldier", new Vector(Math.cos(rad(i) * 4) * 100 * (1 + i / 100), 0, Math.sin(rad(i) * 4) * 100 * (1 + i / 100)), new Vector(0, 0, 0), true);
+			ai.spawn(
+				id++,
+				"0",
+				"Units/Enemy/EnemySoldier",
+				new Vector(Math.cos(rad(i) * 4) * 100 * (1 + i / 100), 0, Math.sin(rad(i) * 4) * 100 * (1 + i / 100)),
+				new Vector(0, 0, 0),
+				true
+			);
 			this.entities.push(ai);
 		}
 
@@ -377,7 +377,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			setInterval(() => {
 				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0);
 				// landingAircraft.UpdateData(new Vector(-180 - r / 5, 70, -1000), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
-				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, (r-- / 10), 0));
+				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r-- / 10, 0));
 				// this.testRotate(carrier.position, carrier.rotation);
 			}, 0);
 
@@ -425,11 +425,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		const y = 50;
 		const z = 0;
 
-		this.testPt.position.set(
-			Axx * x + Axy * y + Axz * z,
-			Ayx * x + Ayy * y + Ayz * z,
-			Azx * x + Azy * y + Azz * z
-		);
+		this.testPt.position.set(Axx * x + Axy * y + Axz * z, Ayx * x + Ayy * y + Ayz * z, Azx * x + Azy * y + Azz * z);
 	}
 
 	// private async loadTestHSData() {
@@ -471,7 +467,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	// 		new THREE.MeshBasicMaterial({ color: "#FF0000" }),
 	// 		kills.length
 	// 	);
-
 
 	// 	console.log(kills.length);
 
@@ -552,12 +547,15 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
 
-
 		// Track websocket usage
 		if (debug_ws_usage && this.tick++ % 60 == 0) {
 			const dBytes = this.bytes - this.lBytes;
 			const dMessages = this.messages - this.lMessages;
-			console.log(`Messages: ${this.messages} Bytes: ${(this.bytes / 1000).toFixed(0)}kb. Delta Messages: ${dMessages} Delta Bytes: ${(dBytes / 1000).toFixed(0)}kb. RPCs per packet: ${(this.rpcs / this.messages).toFixed(2)}`);
+			console.log(
+				`Messages: ${this.messages} Bytes: ${(this.bytes / 1000).toFixed(0)}kb. Delta Messages: ${dMessages} Delta Bytes: ${(dBytes / 1000).toFixed(
+					0
+				)}kb. RPCs per packet: ${(this.rpcs / this.messages).toFixed(2)}`
+			);
 			this.lBytes = this.bytes;
 			this.lMessages = this.messages;
 		}
@@ -589,7 +587,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		if (IS_DEV && !this.game) {
 			setTimeout(() => {
-				if (!this.game) { // Make sure we didn't get a game in the meantime
+				if (!this.game) {
+					// Make sure we didn't get a game in the meantime
 					const validGame = this.gameList.find(g => g.isConnected);
 					if (validGame) {
 						console.log(`Dev connecting to game ${validGame.name} (${validGame.id})`);
@@ -601,13 +600,13 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	@RPC("out")
-	public requestJoinLobby(id: string) { }
+	public requestJoinLobby(id: string) {}
 
 	@RPC("out")
-	public requestJoinPrivateLobby(id: string, password: string) { }
+	public requestJoinPrivateLobby(id: string, password: string) {}
 
 	@RPC("out")
-	public genNewAlphaKey(key: string, adminPassword: string) { }
+	public genNewAlphaKey(key: string, adminPassword: string) {}
 
 	@RPC("in")
 	public SyncLobbies(ids: string[]) {
@@ -654,11 +653,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.currentFocus = entity;
 
 		const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
-		camPos.subVectors(camPos, new THREE.Vector3(
-			entity.position.x,
-			entity.position.y,
-			entity.position.z,
-		));
+		camPos.subVectors(camPos, new THREE.Vector3(entity.position.x, entity.position.y, entity.position.z));
 		this.sceneManager.cameraController.set(camPos);
 		this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
 		entity.object.add(this.sceneManager.camera);
@@ -682,25 +677,17 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.currentFocus = entity;
 
 		// This bullshit is to parent the camera to the entity
-		this.sceneManager.cameraController.lerpCamTo(
-			entity.position.x,
-			entity.position.y,
-			entity.position.z,
-			() => {
-				const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
-				camPos.subVectors(camPos, new THREE.Vector3(
-					entity.position.x,
-					entity.position.y,
-					entity.position.z,
-				));
-				this.sceneManager.cameraController.set(camPos);
-				this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
-				entity.object.add(this.sceneManager.camera);
-			});
+		this.sceneManager.cameraController.lerpCamTo(entity.position.x, entity.position.y, entity.position.z, () => {
+			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
+			camPos.subVectors(camPos, new THREE.Vector3(entity.position.x, entity.position.y, entity.position.z));
+			this.sceneManager.cameraController.set(camPos);
+			this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
+			entity.object.add(this.sceneManager.camera);
+		});
 	}
 
 	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean) {
-		// Resolve the class that handles this type of entity 
+		// Resolve the class that handles this type of entity
 		let EntityClass = null;
 		for (let i = 0; i < this.spawnables.length; i++) {
 			const eClass = this.spawnables[i];
@@ -777,7 +764,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	private async getMissionInfoFromAPI(workshopId: string, missionId: string) {
 		const req = await fetch(`${API_URL}/workshop/mission?workshopId=${encodeURIComponent(workshopId)}&missionId=${encodeURIComponent(missionId)}`);
-		const missionInfo = await req.json() as MissionInfo;
+		const missionInfo = (await req.json()) as MissionInfo;
 		return missionInfo;
 	}
 
@@ -796,7 +783,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.replayController.beginReplay();
 
-
 		// this.groupedReplayPackets[0] = []; So much debugging to find this line of code that was causing issues
 		// Remove all initPackets so they don't get handled again
 		// initPackets.forEach(p => {
@@ -809,7 +795,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// 		if (index > -1) groupedPackets.splice(index, 1);
 		// 	}
 		// });
-
 
 		console.log(`Waiting for mission info`);
 		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
@@ -980,8 +965,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	private addWindowEventHandlers(): void {
 		window.addEventListener("resize", () => this.handleResize());
-		window.addEventListener("dblclick", (e) => this.handleMouseClick(e));
-		window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+		window.addEventListener("dblclick", e => this.handleMouseClick(e));
+		window.addEventListener("keydown", e => this.handleKeyDown(e));
 		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
 	}
 

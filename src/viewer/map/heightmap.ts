@@ -23,13 +23,13 @@ const chunksPerSide = 10;
 
 class HeightMap {
 	private maxHeight = 6000;
-	private minHeight = 80; // This is negative 
+	private minHeight = 80; // This is negative
 	public width: number;
 	public height: number;
 
-	public images: { data: ImageData; }[] = [];
+	public images: { data: ImageData }[] = [];
 	private map: number[][];
-	constructor(private mission: MissionInfoWithoutSpawns) { }
+	constructor(private mission: MissionInfoWithoutSpawns) {}
 
 	public async init() {
 		console.log(`Height map init start!`);
@@ -70,7 +70,7 @@ class HeightMap {
 		this.images.forEach(img => {
 			for (let y = 0; y < this.height; y++) {
 				for (let x = 0; x < this.width; x++) {
-					map[y][x] += img.data.data[(y * this.height * 4) + x * 4];
+					map[y][x] += img.data.data[y * this.height * 4 + x * 4];
 				}
 			}
 		});
@@ -81,7 +81,7 @@ class HeightMap {
 		this.map.forEach((row, y) => {
 			row.forEach((height, x) => {
 				// map[y][x] = lerp(this.minHeight, this.maxHeight, height / (4 * 256));
-				map[y][x] = (this.maxHeight + this.minHeight) / (this.images.length * 256) * height - this.minHeight;
+				map[y][x] = ((this.maxHeight + this.minHeight) / (this.images.length * 256)) * height - this.minHeight;
 			});
 		});
 
@@ -89,11 +89,11 @@ class HeightMap {
 	}
 
 	private imageToPixels(img: HTMLImageElement) {
-		const canvas = document.createElement('canvas');
+		const canvas = document.createElement("canvas");
 		canvas.width = img.width;
 		canvas.height = img.height;
 
-		const ctx = canvas.getContext('2d');
+		const ctx = canvas.getContext("2d");
 		if (ctx == null) throw "Unable to get 2d context";
 
 		ctx.drawImage(img, 0, 0);
@@ -106,7 +106,7 @@ class HeightMap {
 		return pixel;
 	}
 
-	public initFromImages(images: { data: ImageData; }[]) {
+	public initFromImages(images: { data: ImageData }[]) {
 		this.images = images;
 		this.width = images[0].data.width;
 		this.height = images[0].data.height;
@@ -158,16 +158,17 @@ class HeightMap {
 				const chunkX = Math.floor(x / pixPerChunk);
 				const chunkY = Math.floor(y / pixPerChunk);
 				if (!chunks[chunkY]) chunks[chunkY] = [];
-				if (!chunks[chunkY][chunkX]) chunks[chunkY][chunkX] = {
-					indexX: chunkX,
-					indexY: chunkY,
-					width: 0,
-					height: 0,
-					heights: []
-				};
+				if (!chunks[chunkY][chunkX])
+					chunks[chunkY][chunkX] = {
+						indexX: chunkX,
+						indexY: chunkY,
+						width: 0,
+						height: 0,
+						heights: []
+					};
 
-				const subX = x - (chunkX * pixPerChunk); // x within the chunk
-				const subY = y - (chunkY * pixPerChunk); // y within the chunk
+				const subX = x - chunkX * pixPerChunk; // x within the chunk
+				const subY = y - chunkY * pixPerChunk; // y within the chunk
 				if (!chunks[chunkY][chunkX].heights[subY]) chunks[chunkY][chunkX].heights[subY] = [];
 				chunks[chunkY][chunkX].heights[subY][subX] = this.map[y][x];
 			}
@@ -175,22 +176,24 @@ class HeightMap {
 
 		// Make sure the edge of the chunks line up
 		// Theres something fucky with the normals caused by this
-		chunks.forEach((row, y) => row.forEach((chunk, x) => {
-			if (y + 1 < chunks.length) {
-				const edge = chunks[y + 1][x];
-				chunk.heights.push(edge.heights[0]);
-			}
+		chunks.forEach((row, y) =>
+			row.forEach((chunk, x) => {
+				if (y + 1 < chunks.length) {
+					const edge = chunks[y + 1][x];
+					chunk.heights.push(edge.heights[0]);
+				}
 
-			if (x + 1 < chunks[y].length) {
-				const edge = chunks[y][x + 1];
-				edge.heights.forEach((row, edgeY) => {
-					chunk.heights[edgeY].push(row[0]);
-				});
-			}
+				if (x + 1 < chunks[y].length) {
+					const edge = chunks[y][x + 1];
+					edge.heights.forEach((row, edgeY) => {
+						chunk.heights[edgeY].push(row[0]);
+					});
+				}
 
-			chunk.width = chunk.heights[0].length;
-			chunk.height = chunk.heights.length;
-		}));
+				chunk.width = chunk.heights[0].length;
+				chunk.height = chunk.heights.length;
+			})
+		);
 
 		return {
 			chunks: chunks,

@@ -23,17 +23,13 @@ class DesignatorLine {
 	}
 
 	public init() {
-		this.geometry = new THREE.BufferGeometry().setFromPoints([
-			new THREE.Vector3(0, 0, 0),
-			new THREE.Vector3(0, 0, 0),
-		]);
+		this.geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)]);
 
 		const mat = new THREE.LineDashedMaterial({
 			color: this.color,
 			scale: 1,
 			dashSize: 50,
 			gapSize: 50
-
 		});
 		this.line = new THREE.Line(this.geometry, mat);
 		this.line.frustumCulled = false;
@@ -68,7 +64,9 @@ class DesignatorLine {
 		this.setVisible(true);
 	}
 
-	public isLockedTo(entity: Entity) { return this.lockedEntity == entity && this.line.visible && this.lockedEntity.isActive; }
+	public isLockedTo(entity: Entity) {
+		return this.lockedEntity == entity && this.line.visible && this.lockedEntity.isActive;
+	}
 
 	public update() {
 		if (!this.hasInit) return;
@@ -104,7 +102,9 @@ class DesignatorLine {
 		}
 	}
 
-	public hide() { this.setVisible(false); }
+	public hide() {
+		this.setVisible(false);
+	}
 
 	private setVisible(vis: boolean) {
 		if (!this.hasInit) return;

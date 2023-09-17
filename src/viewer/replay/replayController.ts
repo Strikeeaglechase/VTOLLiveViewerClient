@@ -1,6 +1,4 @@
-import {
-	decompressRpcPackets
-} from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
+import { decompressRpcPackets } from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
@@ -10,7 +8,7 @@ import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 const HEADER_LENGTH = "REPLAY".length;
-type RPCPacketT = RPCPacket & { timestamp: number; };
+type RPCPacketT = RPCPacket & { timestamp: number };
 
 class ReplayController extends EventEmitter<"replay_bytes"> {
 	public replayPackets: RPCPacketT[] = [];
@@ -36,7 +34,9 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
 
-	constructor(public app: Application) { super(); }
+	constructor(public app: Application) {
+		super();
+	}
 
 	public runReplay(expectedDt: number): number {
 		if (!this.isReadyToRun) return expectedDt;
@@ -159,7 +159,6 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			});
 		}
 
-
 		rpcs.forEach(rpc => {
 			const relativeTimestamp = rpc.timestamp - this.replayStartTime;
 			if (relativeTimestamp < 0) console.log(`Negative timestamp: ${relativeTimestamp} on packet: ${JSON.stringify(rpc)}`);
@@ -178,7 +177,6 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			rpc.pid = this.packetPid++;
 			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
 		});
-
 	}
 
 	private isPlayerVehicleSpawn(rpc: RPCPacket) {

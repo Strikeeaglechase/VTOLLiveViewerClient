@@ -1,13 +1,13 @@
 type ColorValue =
-	number |
-	string |
-	Color |
-	[number, number, number] |
-	[number, number, number, number] |
-	{ r: number, b: number, g: number; } |
-	{ r: number, b: number, g: number; a: number; } |
-	null |
-	undefined;
+	| number
+	| string
+	| Color
+	| [number, number, number]
+	| [number, number, number, number]
+	| { r: number; b: number; g: number }
+	| { r: number; b: number; g: number; a: number }
+	| null
+	| undefined;
 
 const numToHex = (value: number): string => {
 	const r = Math.floor(value).toString(16);
@@ -71,7 +71,7 @@ class Color {
 		if (arr[3] != undefined) this.a = arr[3];
 	}
 
-	fromObject(obj: { r: number, g: number, b: number, a?: number; }): void {
+	fromObject(obj: { r: number; g: number; b: number; a?: number }): void {
 		this.r = obj.r;
 		this.g = obj.g;
 		this.b = obj.b;

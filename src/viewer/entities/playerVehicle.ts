@@ -59,10 +59,7 @@ class PlayerVehicle extends Entity {
 		this.lockLine.init();
 
 		const headMat = new THREE.LineBasicMaterial({ color: "#1a15b0" });
-		this.playerHeadLineGeom = new THREE.BufferGeometry().setFromPoints([
-			new THREE.Vector3(0, 0, 0),
-			new THREE.Vector3(0, 0, 1000)
-		]);
+		this.playerHeadLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1000)]);
 
 		this.playerHeadLine = new THREE.Line(this.playerHeadLineGeom, headMat);
 		this.playerHeadLine.frustumCulled = false;
@@ -149,7 +146,7 @@ class PlayerVehicle extends Entity {
 		if (this.tgp) this.tgp.remove();
 		if (this.lockLine) this.lockLine.remove();
 		const ownedEntities = this.app.getEntitiesByOwnerId(this.ownerId);
-		ownedEntities.forEach(e => e.canShowAsEquip = false);
+		ownedEntities.forEach(e => (e.canShowAsEquip = false));
 	}
 
 	public getLockingMe() {

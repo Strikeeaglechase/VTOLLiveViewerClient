@@ -10,7 +10,7 @@ Vue.config.productionTip = false;
 
 new Vue({
 	render: h => h(App)
-}).$mount('#app');
+}).$mount("#app");
 
 // Master entry point, load application once the window is loaded
 window.onload = () => {
@@ -27,7 +27,6 @@ window.onload = () => {
 	window.app = app;
 	markRaw(app);
 
-
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.RPC = RPCController;
@@ -36,4 +35,3 @@ window.onload = () => {
 	//@ts-ignore
 	window.THREE = THREE;
 };
-

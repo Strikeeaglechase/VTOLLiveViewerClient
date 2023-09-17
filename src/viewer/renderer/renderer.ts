@@ -1,14 +1,17 @@
 import { Color, ColorValue } from "./color";
 
-export const rad = (deg: number): number => deg * Math.PI / 180;
-export const deg = (rad: number): number => rad * 180 / Math.PI;
+export const rad = (deg: number): number => (deg * Math.PI) / 180;
+export const deg = (rad: number): number => (rad * 180) / Math.PI;
 
-interface Point { x: number; y: number; }
+interface Point {
+	x: number;
+	y: number;
+}
 
 class Renderer {
 	private canvas: HTMLCanvasElement;
 	public ctx: CanvasRenderingContext2D;
-	private transformStack: Array<{ r: number, x: number, y: number; }> = [];
+	private transformStack: Array<{ r: number; x: number; y: number }> = [];
 	private prevArgs = { x: 0, y: 0, w: 0, h: 0 };
 
 	constructor(canvasId?: string) {
@@ -33,14 +36,14 @@ class Renderer {
 		this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 	}
 
-	private parseArgs(args: any[]): { x: number, y: number, w: number, h: number, c: ColorValue | null; } {
+	private parseArgs(args: any[]): { x: number; y: number; w: number; h: number; c: ColorValue | null } {
 		// Allowed formats:
 		// [color]
 		// [x,y,w]
 		// [x,y,w,color]
 		// [x,y,w,h]
 		// [x,y,w,h,color]
-		let ret: { x: number, y: number, w: number, h: number, c: ColorValue | null; };
+		let ret: { x: number; y: number; w: number; h: number; c: ColorValue | null };
 		if (args.length == 0) {
 			ret = {
 				...this.prevArgs,
@@ -216,8 +219,8 @@ class Renderer {
 		const yOffsetStart = y + r;
 		const yOffsetEnd = y + h - r;
 
-		this.rect(xOffsetStart, y, w - (2 * r), h, c); //x axis rect
-		this.rect(x, yOffsetStart, w, h - (2 * r), c); //y axis rect
+		this.rect(xOffsetStart, y, w - 2 * r, h, c); //x axis rect
+		this.rect(x, yOffsetStart, w, h - 2 * r, c); //y axis rect
 		this.ellipse(xOffsetStart, yOffsetStart, r, c); //top left corner
 		this.ellipse(xOffsetEnd, yOffsetStart, r, c); //top right corner
 		this.ellipse(xOffsetStart, yOffsetEnd, r, c); //bottom left corner
@@ -230,15 +233,16 @@ class Renderer {
 		const yOffsetStart = y + r;
 		const yOffsetEnd = y + h - r;
 
-		this.strokeRect(xOffsetStart, y, w - (2 * r), h, c); //x axis rect
-		this.strokeRect(x, yOffsetStart, w, h - (2 * r), c); //y axis rect
+		this.strokeRect(xOffsetStart, y, w - 2 * r, h, c); //x axis rect
+		this.strokeRect(x, yOffsetStart, w, h - 2 * r, c); //y axis rect
 		this.strokeEllipse(xOffsetStart, yOffsetStart, r, c); //top left corner
 		this.strokeEllipse(xOffsetEnd, yOffsetStart, r, c); //top right corner
 		this.strokeEllipse(xOffsetStart, yOffsetEnd, r, c); //bottom left corner
 		this.strokeEllipse(xOffsetEnd, yOffsetEnd, r, c); //bottom right corner
 	}
 
-	path(points: Point[], c?: ColorValue): void { //Argument as array?
+	path(points: Point[], c?: ColorValue): void {
+		//Argument as array?
 		this.ctx.strokeStyle = new Color(c).hex;
 		this.ctx.beginPath();
 		this.ctx.moveTo(points[0].x, points[0].y);
@@ -250,7 +254,8 @@ class Renderer {
 		this.ctx.stroke();
 	}
 
-	triangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: ColorValue): void { //not done
+	triangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: ColorValue): void {
+		//not done
 		this.ctx.fillStyle = new Color(c).hex;
 		this.ctx.beginPath();
 		this.ctx.moveTo(x1, y1);
@@ -259,7 +264,8 @@ class Renderer {
 		this.ctx.fill();
 	}
 
-	strokeTriangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: ColorValue): void { //not done
+	strokeTriangle(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, c: ColorValue): void {
+		//not done
 		this.ctx.strokeStyle = new Color(c).hex;
 		this.ctx.beginPath();
 		this.ctx.moveTo(x1, y1);

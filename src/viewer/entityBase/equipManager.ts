@@ -41,7 +41,7 @@ const displayEquips: Record<string, string> = {
 	"h70-x7ld-under": "Hydra 70 x7",
 	"h70-4x4": "Hydra 70 x16",
 	"h70-x19": "Hydra 70 x19",
-	"h70-x57": "Hydra 70 x57",
+	"h70-x57": "Hydra 70 x57"
 };
 
 function getDisplayEquipName(equipPath: string) {
@@ -60,8 +60,7 @@ class EquipManager {
 
 	public fuel = 1;
 
-	constructor(private entity: Entity) {
-	}
+	constructor(private entity: Entity) {}
 
 	public update(dt: number, force = false): void {
 		const d = Date.now();
@@ -74,7 +73,6 @@ class EquipManager {
 			return getDisplayEquipName(e.type) != null;
 		});
 	}
-
 
 	public getWeapons() {
 		const weapons: Record<string, number> = {};

@@ -20,7 +20,7 @@ interface ChunkDataMessage {
 class MapLoaderWorker {
 	private heightmap: HeightMap;
 
-	async handleMessage(e: MessageEvent<{ mission: MissionInfo, images: { data: ImageData; }[]; }>) {
+	async handleMessage(e: MessageEvent<{ mission: MissionInfo; images: { data: ImageData }[] }>) {
 		this.heightmap = new HeightMap(e.data.mission);
 		this.heightmap.initFromImages(e.data.images);
 
@@ -61,9 +61,9 @@ class MapLoaderWorker {
 		for (let z = 0; z < chunk.height - 1; z++) {
 			for (let x = 0; x < chunk.width - 1; x++) {
 				const a = x + z * chunk.width;
-				const b = (x + 1) + (z * chunk.width);
-				const c = x + ((z + 1) * chunk.width);
-				const d = (x + 1) + ((z + 1) * chunk.width);
+				const b = x + 1 + z * chunk.width;
+				const c = x + (z + 1) * chunk.width;
+				const d = x + 1 + (z + 1) * chunk.width;
 
 				indices.push(a, b, d);
 				indices.push(d, c, a);
@@ -81,6 +81,6 @@ class MapLoaderWorker {
 }
 
 const loader = new MapLoaderWorker();
-onmessage = (e) => loader.handleMessage(e);
+onmessage = e => loader.handleMessage(e);
 
 export { ChunkDataMessage };

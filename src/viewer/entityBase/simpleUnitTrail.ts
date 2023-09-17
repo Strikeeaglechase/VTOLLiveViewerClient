@@ -36,7 +36,7 @@ class SimpleUnitTrail {
 		markRaw(this);
 	}
 
-	public updateColor(color: { r: number; g: number; b: number; }): void {
+	public updateColor(color: { r: number; g: number; b: number }): void {
 		this.color = color;
 		if (this.hasInit) {
 			const mat = this.lineMesh.material as THREE.LineBasicMaterial;

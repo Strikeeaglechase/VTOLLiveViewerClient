@@ -5,7 +5,25 @@ import { Entity } from "../entityBase/entity";
 
 @EnableRPCs("instance")
 class AIAirVehicle extends Entity {
-	public static spawnFor: string[] = ["Units/Allied/ABomberAI", "Units/Enemy/AIUCAV", "Units/Enemy/ASF-30", "Units/Enemy/ASF-33", "Units/Enemy/ASF-58", "Units/Allied/AV-42CAI", "Units/Allied/E-4", "Units/Enemy/AEW-50", "Units/Enemy/EBomberAI", "Units/Allied/F-45A AI", "Units/Allied/FA-26A", "Units/Allied/FA-26B AI", "Units/Enemy/GAV-25", "Units/Allied/KC-49", "Units/Allied/MQ-31", "Units/Enemy/T-55 AI-E", "Units/Allied/T-55 AI"];
+	public static spawnFor: string[] = [
+		"Units/Allied/ABomberAI",
+		"Units/Enemy/AIUCAV",
+		"Units/Enemy/ASF-30",
+		"Units/Enemy/ASF-33",
+		"Units/Enemy/ASF-58",
+		"Units/Allied/AV-42CAI",
+		"Units/Allied/E-4",
+		"Units/Enemy/AEW-50",
+		"Units/Enemy/EBomberAI",
+		"Units/Allied/F-45A AI",
+		"Units/Allied/FA-26A",
+		"Units/Allied/FA-26B AI",
+		"Units/Enemy/GAV-25",
+		"Units/Allied/KC-49",
+		"Units/Allied/MQ-31",
+		"Units/Enemy/T-55 AI-E",
+		"Units/Allied/T-55 AI"
+	];
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInBra: false, showInSidebar: false, useInstancedMesh: true });

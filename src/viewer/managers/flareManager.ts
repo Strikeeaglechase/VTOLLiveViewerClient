@@ -40,18 +40,22 @@ class FlareManager {
 			if (!flare.isAlive) return;
 
 			// TODO: Make flares move a bit to match vtol better
-			flare.velocity = flare.velocity.multiply(FLARE_DRAG).add(new Vector(0, FLARE_GRAV * dt / 1000, 0));
+			flare.velocity = flare.velocity.multiply(FLARE_DRAG).add(new Vector(0, (FLARE_GRAV * dt) / 1000, 0));
 			flare.position = flare.position.add(flare.velocity.multiply(dt / 1000));
 			flare.mesh.position.set(flare.position.x, flare.position.y, flare.position.z);
 
-			const timeAlive = (now - flare.createdAt);
+			const timeAlive = now - flare.createdAt;
 
-			const amountThrough = 1 - (timeAlive / FLARE_LT);
+			const amountThrough = 1 - timeAlive / FLARE_LT;
 
 			// Make flares still half size when fully faded
-			const amountThroughAdjusted = 1 - ((timeAlive / FLARE_LT) * 0.8);
+			const amountThroughAdjusted = 1 - (timeAlive / FLARE_LT) * 0.8;
 
-			flare.mesh.scale.set(1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult, 1.5 * amountThroughAdjusted * this.scaleMult);
+			flare.mesh.scale.set(
+				1.5 * amountThroughAdjusted * this.scaleMult,
+				1.5 * amountThroughAdjusted * this.scaleMult,
+				1.5 * amountThroughAdjusted * this.scaleMult
+			);
 
 			// It always is, this is just to make TS happy
 			if (flare.mesh.material instanceof THREE.MeshStandardMaterial) {

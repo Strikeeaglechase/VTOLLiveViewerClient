@@ -150,8 +150,7 @@ class SceneManager {
 		this.overlayElements = this.overlayElements.filter(ov => ov != overlay);
 		this.overlay2dObjects = this.overlay2dObjects.filter(ov => ov != obj);
 
-		if (overlay.elm.parentElement?.parentElement == this.css2dRenderer.domElement)
-			this.css2dRenderer.domElement.removeChild(overlay.elm.parentElement);
+		if (overlay.elm.parentElement?.parentElement == this.css2dRenderer.domElement) this.css2dRenderer.domElement.removeChild(overlay.elm.parentElement);
 	}
 
 	public add(...object: THREE.Object3D[]): void {
@@ -175,7 +174,7 @@ class SceneManager {
 
 	private recurseCountChildren(object: THREE.Object3D): number {
 		let count = 0;
-		object.children.forEach(child => count += this.recurseCountChildren(child));
+		object.children.forEach(child => (count += this.recurseCountChildren(child)));
 		return count + object.children.length;
 	}
 
@@ -189,9 +188,8 @@ class SceneManager {
 		let str = "";
 		str += "  ".repeat(depth);
 		str += (object.name || `ID ${object.id}`) + vertsText + "\n";
-		object.children.forEach(child => str += this.buildChildrenTree(child, depth + 1));
+		object.children.forEach(child => (str += this.buildChildrenTree(child, depth + 1)));
 		return str;
-
 	}
 
 	public debug() {
@@ -206,10 +204,8 @@ class SceneManager {
 
 		console.log(meshNames);
 
-
 		console.log(this.buildChildrenTree(this.scene));
 	}
 }
-
 
 export { SceneManager, SceneEvent, CAM_FAR, CAM_NEAR };

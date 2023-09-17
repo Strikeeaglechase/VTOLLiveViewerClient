@@ -37,14 +37,13 @@ class TrailChunk {
 	public finished = false;
 	public id = Math.floor(Math.random() * 1000).toString();
 
-
-	constructor(private entity: Entity, private offsetRefs: THREE.Object3D[], private color: { r: number; g: number; b: number; }) {
+	constructor(private entity: Entity, private offsetRefs: THREE.Object3D[], private color: { r: number; g: number; b: number }) {
 		const material = new THREE.RawShaderMaterial({
 			uniforms: {
 				time: { value: 1.0 }
 			},
-			vertexShader: document.getElementById('vertexShader')?.textContent as string,
-			fragmentShader: document.getElementById('fragmentShader')?.textContent as string,
+			vertexShader: document.getElementById("vertexShader")?.textContent as string,
+			fragmentShader: document.getElementById("fragmentShader")?.textContent as string,
 			side: THREE.DoubleSide,
 			transparent: true,
 			wireframe: true
@@ -70,24 +69,34 @@ class TrailChunk {
 		this.verts.push(a, b, c);
 		this.verts.push(d, c, b);
 
-		this.normals.push(
-			0, 0, 1,
-			0, 0, 1,
-			0, 0, 1,
-			0, 0, 1,
-			0, 0, 1,
-			0, 0, 1,
-		);
+		this.normals.push(0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1);
 
 		this.colors.push(
-			this.color.r, this.color.g, this.color.b, LT_BASE,
-			this.color.r, this.color.g, this.color.b, LT_BASE,
-			this.color.r, this.color.g, this.color.b, LT_BASE,
-			this.color.r, this.color.g, this.color.b, LT_BASE,
-			this.color.r, this.color.g, this.color.b, LT_BASE,
-			this.color.r, this.color.g, this.color.b, LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE,
+			this.color.r,
+			this.color.g,
+			this.color.b,
+			LT_BASE
 		);
-
 
 		let idx = 0;
 		while (this.lifetimes[idx++] > LT_DROPOFF_START + LT_DROPOFF_LEN);
@@ -105,9 +114,9 @@ class TrailChunk {
 
 	private fullUpdateMesh() {
 		const vertices = new Float32Array(this.verts.map(v => v?.toArray()).flat());
-		this.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-		this.geometry.setAttribute('normal', new THREE.Float32BufferAttribute(this.normals, 3));
-		this.geometry.setAttribute('color', new THREE.Float32BufferAttribute(this.colors, 4));
+		this.geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+		this.geometry.setAttribute("normal", new THREE.Float32BufferAttribute(this.normals, 3));
+		this.geometry.setAttribute("color", new THREE.Float32BufferAttribute(this.colors, 4));
 		this.geometry.computeVertexNormals();
 		this.geometry.normalizeNormals();
 	}
@@ -122,13 +131,13 @@ class TrailChunk {
 			this.currentPoints[0].copy(a);
 			this.currentPoints[1].copy(b);
 			const vertices = new Float32Array(this.verts.map(v => v?.toArray()).flat());
-			this.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+			this.geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 		}
 
 		this.lifetimes.forEach((lt, idx) => {
 			this.lifetimes[idx]++;
 			if (lt > LT_DROPOFF_START) {
-				const v = Math.max((1 - ((lt - LT_DROPOFF_START) / LT_DROPOFF_LEN)) * LT_BASE, 0);
+				const v = Math.max((1 - (lt - LT_DROPOFF_START) / LT_DROPOFF_LEN) * LT_BASE, 0);
 				const i = idx * 24 + 3;
 				this.colors[i + 4 * 0] = v;
 				this.colors[i + 4 * 1] = v;
@@ -139,7 +148,7 @@ class TrailChunk {
 			}
 		});
 		if (this.lifetimes[this.lifetimes.length - 1] > LT_DROPOFF_LEN + LT_DROPOFF_START) this.finished = true;
-		/*if (this.isShown)*/ this.geometry.setAttribute('color', new THREE.Float32BufferAttribute(this.colors, 4));
+		/*if (this.isShown)*/ this.geometry.setAttribute("color", new THREE.Float32BufferAttribute(this.colors, 4));
 	}
 
 	public remove() {
@@ -170,7 +179,7 @@ class ChunkedUnitTrail {
 
 	private hasInit = false;
 
-	constructor(private entity: Entity) { }
+	constructor(private entity: Entity) {}
 
 	public init(): void {
 		// console.log(this.color);

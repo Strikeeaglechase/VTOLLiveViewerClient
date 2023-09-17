@@ -17,7 +17,7 @@ const hei = 3;
 
 const damageFadeTime = 1000; // How long the damage fade box should stick around
 
-const trailColors: { r: number; g: number; b: number; }[] = [];
+const trailColors: { r: number; g: number; b: number }[] = [];
 const alphaChars = "abcdefghijklmnopqrstuvwxyz".split("");
 
 trailColors[Team.A] = { r: 0, g: 100, b: 255 };
@@ -101,7 +101,9 @@ class Entity {
 		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
 		this.onScaleUpdate();
 	}
-	public get scale() { return this._scale; }
+	public get scale() {
+		return this._scale;
+	}
 	protected scaleDamper = 1;
 	protected iMeshLoadScale = 1;
 	protected baseScaleSize: number;
@@ -129,7 +131,9 @@ class Entity {
 		this._isActive = v;
 		console.log(`${this} is now ${v ? "active" : "inactive"}`);
 	}
-	public get isActive() { return this._isActive; }
+	public get isActive() {
+		return this._isActive;
+	}
 	public get isActivating() {
 		return !!this.activatingPromise;
 	}
@@ -206,7 +210,7 @@ class Entity {
 			// This could be pure white, subject to change
 			color: new THREE.Color("#d1d1d1"),
 			transparent: true,
-			opacity: 0.5,
+			opacity: 0.5
 		});
 		const damageGeom = new THREE.BoxGeometry(10, 10, 10);
 		this.damage = {
@@ -214,7 +218,7 @@ class Entity {
 			geom: damageGeom,
 			mat: damageMat,
 			active: false,
-			lastDamageAt: 0,
+			lastDamageAt: 0
 		};
 
 		this.damage.mesh.name = `${this} Damage`;
@@ -283,11 +287,10 @@ class Entity {
 
 		// Some things might want to wait for active to become true, so create a promise they can wait for
 		let res: () => void;
-		this.activatingPromise = new Promise<void>(resolve => res = resolve);
+		this.activatingPromise = new Promise<void>(resolve => (res = resolve));
 
 		if (!this.useInstancedMesh) await this.createMesh();
 		else await this.createInstancedMesh();
-
 
 		this.maybeCreateTextOverlay();
 
@@ -305,16 +308,8 @@ class Entity {
 
 	protected createDefaultMesh(): THREE.Group {
 		console.warn(`Entity ${this} is using default mesh`);
-		const base = new THREE.Shape([
-			new THREE.Vector2(0, 0),
-			new THREE.Vector2(-wid, -len),
-			new THREE.Vector2(wid, -len)
-		]);
-		const top = new THREE.Shape([
-			new THREE.Vector2(0, 0),
-			new THREE.Vector2(len, hei),
-			new THREE.Vector2(len, 0)
-		]);
+		const base = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(-wid, -len), new THREE.Vector2(wid, -len)]);
+		const top = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(len, hei), new THREE.Vector2(len, 0)]);
 
 		const group = new THREE.Group();
 		const mat = new THREE.MeshStandardMaterial({ color: "#00ff00", side: THREE.DoubleSide });
@@ -397,10 +392,7 @@ class Entity {
 		if (!this.hasOverlay) return;
 		const parent = this.useInstancedMesh ? this.object : this.mesh.children[0];
 
-		this.textOverlay = new TextOverlay(parent, this.type)
-			.edit(this.id.toString())
-			.offset(0, 10, 0)
-			.show();
+		this.textOverlay = new TextOverlay(parent, this.type).edit(this.id.toString()).offset(0, 10, 0).show();
 		this.textOverlay.onDblClick = () => {
 			this.focus();
 		};
@@ -534,7 +526,7 @@ class Entity {
 		this.velocity = this.velocity.add(this.acceleration.multiply(dt / 1000));
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));
 
-		this.gForce = (this.acceleration.length() / 9.8 + 1);
+		this.gForce = this.acceleration.length() / 9.8 + 1;
 		this.maxGForce = Math.max(this.maxGForce, this.gForce);
 
 		if (this.owner && this.useHostTeam) this.team = this.owner.team;
@@ -619,7 +611,9 @@ class Entity {
 			Application.time > activeAt && // Time is after activation time
 			(!inactiveAt || Application.time < inactiveAt) // Either we don't have an inactive time or time is before inactive time
 		) {
-			this.setActive(`Is currently inactive, but past the activeAt time (${activeAt}) and before the inactiveAt time (${inactiveAt}). Time: ${Application.time}`);
+			this.setActive(
+				`Is currently inactive, but past the activeAt time (${activeAt}) and before the inactiveAt time (${inactiveAt}). Time: ${Application.time}`
+			);
 		}
 	}
 
@@ -725,13 +719,13 @@ class Entity {
 		// If there wasn't a mapping, try to convert myEntityName to My Entity Name
 		const name = identifier.substring(identifier.lastIndexOf("/") + 1);
 		function convert(inp: string) {
-			return inp.replace(/([a-z][A-Z])/g, (str) => str[0] + " " + str[1].toUpperCase());
+			return inp.replace(/([a-z][A-Z])/g, str => str[0] + " " + str[1].toUpperCase());
 		}
 
 		// If a string has a letter followed by a number, add a space before the number, but don't add a space between numbers
 		// ie: "hello123" -> "hello 123"
 		function addSpace(inp: string): string {
-			return inp.replace(/([a-z])(\d)/gi, '$1 $2');
+			return inp.replace(/([a-z])(\d)/gi, "$1 $2");
 		}
 
 		return addSpace(convert(name));

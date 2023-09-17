@@ -15,10 +15,10 @@ class CameraController {
 	private lastPos = {
 		x: 0,
 		y: 0,
-		z: 0,
+		z: 0
 	};
 	private onLerpDone?: () => void;
-	constructor(public camera: THREE.PerspectiveCamera, private domElement: HTMLCanvasElement) { }
+	constructor(public camera: THREE.PerspectiveCamera, private domElement: HTMLCanvasElement) {}
 
 	public init(): void {
 		this.fakeCamera = this.camera.clone();
@@ -31,7 +31,7 @@ class CameraController {
 		this.orbit.minDistance = 20;
 		this.orbit.zoomSpeed = 1.5;
 
-		// Idfk what the defaults should be 
+		// Idfk what the defaults should be
 		// this.orbit.mouseButtons.LEFT = 2;
 		// this.orbit.mouseButtons.RIGHT = 0;
 		// this.orbit.mouseButtons.MIDDLE = -1;
@@ -42,8 +42,8 @@ class CameraController {
 		this.orbit.keys.BOTTOM = "";
 		this.orbit.enableDamping = true;
 
-		this.domElement.addEventListener("click", (e) => this.stopCurrentMove());
-		this.domElement.addEventListener("wheel", (e) => this.stopCurrentMove());
+		this.domElement.addEventListener("click", e => this.stopCurrentMove());
+		this.domElement.addEventListener("wheel", e => this.stopCurrentMove());
 
 		// window.addEventListener("keydown", (e) => {
 		// 	if (e.key == "Alt") {
@@ -62,9 +62,7 @@ class CameraController {
 
 	update() {
 		if (this.doPosLerp) {
-			if (
-				this.fakeCamera.position.distanceTo(this.lerpTarget) < ZOOM_INTO_DIST
-			) {
+			if (this.fakeCamera.position.distanceTo(this.lerpTarget) < ZOOM_INTO_DIST) {
 				this.doPosLerp = false;
 			} else {
 				this.fakeCamera.position.lerp(this.lerpTarget, 0.05);
@@ -73,11 +71,7 @@ class CameraController {
 		if (this.doRotLerp) {
 			const rotationMatrix = new THREE.Matrix4();
 			const targetQuaternion = new THREE.Quaternion();
-			rotationMatrix.lookAt(
-				this.fakeCamera.position,
-				this.lerpTarget,
-				this.fakeCamera.up
-			);
+			rotationMatrix.lookAt(this.fakeCamera.position, this.lerpTarget, this.fakeCamera.up);
 			targetQuaternion.setFromRotationMatrix(rotationMatrix);
 			this.fakeCamera.quaternion.rotateTowards(targetQuaternion, 0.05);
 			this.fakeCamera.updateMatrixWorld();
@@ -85,24 +79,16 @@ class CameraController {
 			vector.setFromMatrixPosition(this.frontRefPoint.matrixWorld);
 			this.orbit.target = vector;
 			if (this.fakeCamera.quaternion.equals(targetQuaternion)) {
-				this.orbit.target.set(
-					this.lerpTarget.x,
-					this.lerpTarget.y,
-					this.lerpTarget.z
-				);
+				this.orbit.target.set(this.lerpTarget.x, this.lerpTarget.y, this.lerpTarget.z);
 				this.doRotLerp = false;
 			}
 		}
 		const curPos = {
 			x: Math.round(this.fakeCamera.position.x),
 			y: Math.round(this.fakeCamera.position.y),
-			z: Math.round(this.fakeCamera.position.z),
+			z: Math.round(this.fakeCamera.position.z)
 		};
-		if (
-			curPos.x != this.lastPos.x ||
-			curPos.y != this.lastPos.y ||
-			curPos.z != this.lastPos.z
-		) {
+		if (curPos.x != this.lastPos.x || curPos.y != this.lastPos.y || curPos.z != this.lastPos.z) {
 			this.lastPos = {
 				x: curPos.x,
 				y: curPos.y,
@@ -138,7 +124,6 @@ class CameraController {
 		this.lerpTarget = new THREE.Vector3(x, y, z);
 		this.doPosLerp = true;
 	}
-
 
 	stopCurrentMove() {
 		this.doPosLerp = false;

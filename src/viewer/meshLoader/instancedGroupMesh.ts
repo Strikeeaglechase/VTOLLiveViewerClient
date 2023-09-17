@@ -17,15 +17,15 @@ class InstancedGroupMesh extends THREE.Mesh {
 		const { meshCollect, instanceCollect } = this;
 
 		// collect all mesh counts, in case there are more than one copy of the same mesh in this group
-		group.traverse((obj) => {
-			if (obj.type !== 'Mesh') return;
+		group.traverse(obj => {
+			if (obj.type !== "Mesh") return;
 			const mesh = obj as THREE.Mesh;
 
 			// this is important
 			mesh.updateMatrix();
 
 			// same geometry and same material consider as the same mesh
-			const uuid = mesh.geometry.uuid + '/' + (mesh.material as THREE.Material).uuid;
+			const uuid = mesh.geometry.uuid + "/" + (mesh.material as THREE.Material).uuid;
 
 			if (meshCollect[uuid]) meshCollect[uuid].push(mesh);
 			else meshCollect[uuid] = [mesh];

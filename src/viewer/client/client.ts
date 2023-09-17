@@ -2,26 +2,26 @@
 
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import {
-	DbUserEntry, UserScopes, VTGRHeader
-} from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { DbUserEntry, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { EventBus } from "../../eventBus";
 import { setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
 class Client extends EventEmitter<"replay_header"> {
 	public expectedReplaySize = -1;
-	public onUserQueryResult: (users: DbUserEntry[]) => void = () => { };
-	constructor(public id: string) { super(); }
+	public onUserQueryResult: (users: DbUserEntry[]) => void = () => {};
+	constructor(public id: string) {
+		super();
+	}
 
 	@RPC("out")
-	subscribe(gameId: string) { }
+	subscribe(gameId: string) {}
 
 	@RPC("out")
-	setUser(key: string) { }
+	setUser(key: string) {}
 
 	@RPC("out")
-	replayGame(id: string) { }
+	replayGame(id: string) {}
 
 	@RPC("in")
 	replayHeader(header: VTGRHeader) {
@@ -40,10 +40,10 @@ class Client extends EventEmitter<"replay_header"> {
 	}
 
 	@RPC("out")
-	pong(n: number) { }
+	pong(n: number) {}
 
 	@RPC("out")
-	adminSearchUsers(query: string) { }
+	adminSearchUsers(query: string) {}
 
 	@RPC("in")
 	error(message: string) {
@@ -56,10 +56,10 @@ class Client extends EventEmitter<"replay_header"> {
 	}
 
 	@RPC("out")
-	adminSetUserScopes(id: string, scopes: UserScopes[]) { }
+	adminSetUserScopes(id: string, scopes: UserScopes[]) {}
 
 	@RPC("out")
-	kickUser(id: string) { }
+	kickUser(id: string) {}
 
 	@RPC("in")
 	newToken(token: string) {

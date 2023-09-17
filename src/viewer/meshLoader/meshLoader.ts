@@ -12,17 +12,13 @@ interface IMeshOffsets {
 	rot: Vector | null;
 }
 
-
 // This needs looking at for performance.
 // TODO: Check vts file for how many instances of each entity we need. The less IMesh's we have, the better.
 const INSTANCE_MESH_COUNT = 128; // This might be too low! (or too high for many missions)
 const IMESH_SKIPPED: string[] = [];
 
 function unitIdToEntityKeys(unitName: string): string[] {
-	return [
-		`Units/Allied/${unitName}`,
-		`Units/Enemy/${unitName}`
-	];
+	return [`Units/Allied/${unitName}`, `Units/Enemy/${unitName}`];
 }
 
 // Handles loading all entity meshes
@@ -32,7 +28,7 @@ class MeshLoader {
 	private cache: Record<string, THREE.Group> = {};
 	private materialCache: Record<string, THREE.MeshStandardMaterial> = {};
 
-	private instancedMeshCache: Record<string, { mesh: InstancedGroupMesh, lastId: number, size: number; }> = {};
+	private instancedMeshCache: Record<string, { mesh: InstancedGroupMesh; lastId: number; size: number }> = {};
 	private currentLoadingQueue: Set<string> = new Set();
 	private currentLoadingQueueCBs: Record<string, (() => void)[]> = {};
 
@@ -59,7 +55,7 @@ class MeshLoader {
 		let obj: unknown;
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-empty-function
-			obj = await new Promise((res, err) => loader.load(path, res, () => { }, err));
+			obj = await new Promise((res, err) => loader.load(path, res, () => {}, err));
 		} catch (e) {
 			console.log(`Failed to load mesh from ${path} for ${entityKey}`, e);
 			return null;
@@ -91,7 +87,7 @@ class MeshLoader {
 	}
 
 	// Gets the next instance of a mesh for this entity
-	private getQueuedInstancedMesh(entityKey: string): { mesh: InstancedGroupMesh, id: number; } | null {
+	private getQueuedInstancedMesh(entityKey: string): { mesh: InstancedGroupMesh; id: number } | null {
 		const iMesh = this.instancedMeshCache[entityKey];
 		if (!iMesh) {
 			console.warn(`CB called for ${entityKey} but no mesh found!`);
@@ -108,7 +104,7 @@ class MeshLoader {
 		};
 	}
 
-	public async loadInstancedMesh(entityKey: string): Promise<{ mesh: InstancedGroupMesh, id: number; } | null> {
+	public async loadInstancedMesh(entityKey: string): Promise<{ mesh: InstancedGroupMesh; id: number } | null> {
 		if (IMESH_SKIPPED.includes(entityKey)) return null;
 
 		if (this.instancedMeshCache[entityKey]) {
@@ -143,7 +139,7 @@ class MeshLoader {
 		let obj: unknown;
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-empty-function
-			obj = await new Promise((res, err) => loader.load(path, res, () => { }, err));
+			obj = await new Promise((res, err) => loader.load(path, res, () => {}, err));
 		} catch (e) {
 			console.error(`Failed to load mesh from ${path} for ${entityKey}`, e);
 			this.executeCBs(entityKey);
@@ -185,7 +181,7 @@ class MeshLoader {
 		// Call the callback for anything waiting on this mesh
 		this.executeCBs(entityKey);
 
-		iMesh.name = 'InstancedMesh';
+		iMesh.name = "InstancedMesh";
 		iMesh.frustumCulled = false;
 
 		Application.instance.sceneManager.add(iMesh);
@@ -208,7 +204,7 @@ class MeshLoader {
 		this.boundingBoxCache[entityKey] = box;
 	}
 
-	public prepareIMeshCounts(units: { id: number, name: string; }[]) {
+	public prepareIMeshCounts(units: { id: number; name: string }[]) {
 		this.imeshCounts = {};
 		units.forEach(unit => {
 			const [allied, enemy] = unitIdToEntityKeys(unit.name);

@@ -8,26 +8,20 @@ import { SceneEvent } from "./managers/sceneManager";
 
 // Check if two HTML Elements are overlapping
 function elmOverlap(domRect1: DOMRect, domRect2: DOMRect) {
-
-	return !(
-		domRect1.top > domRect2.bottom ||
-		domRect1.right < domRect2.left ||
-		domRect1.bottom < domRect2.top ||
-		domRect1.left > domRect2.right
-	);
+	return !(domRect1.top > domRect2.bottom || domRect1.right < domRect2.left || domRect1.bottom < domRect2.top || domRect1.left > domRect2.right);
 }
-
 
 const enable_debug_border = false;
 const use_bounding_box = false;
 
-
 function hashCode(str: string) {
-	let hash = 0, i, chr;
+	let hash = 0,
+		i,
+		chr;
 	if (str.length === 0) return hash;
 	for (i = 0; i < str.length; i++) {
 		chr = str.charCodeAt(i);
-		hash = ((hash << 5) - hash) + chr;
+		hash = (hash << 5) - hash + chr;
 		hash |= 0; // Convert to 32bit integer
 	}
 	return hash;
@@ -67,7 +61,9 @@ class TextOverlay {
 		if (typeof id == "string") this._combineId = hashCode(id);
 		else this._combineId = id ?? -1;
 	}
-	get combineId() { return this._combineId; }
+	get combineId() {
+		return this._combineId;
+	}
 
 	constructor(private object: THREE.Object3D, combineId: string | null = null) {
 		this.outerElm = document.createElement("div");
@@ -91,8 +87,8 @@ class TextOverlay {
 
 		Application.instance.sceneManager.registerOverlay(this, this.cssObj);
 
-		this.elm.addEventListener("mouseenter", () => this.isHovered = true);
-		this.elm.addEventListener("mouseleave", () => this.isHovered = false);
+		this.elm.addEventListener("mouseenter", () => (this.isHovered = true));
+		this.elm.addEventListener("mouseleave", () => (this.isHovered = false));
 
 		this.combineId = combineId ?? -1;
 
@@ -119,8 +115,14 @@ class TextOverlay {
 		return this;
 	}
 
-	public hide() { this.setVisible(false); return this; }
-	public show() { this.setVisible(true); return this; }
+	public hide() {
+		this.setVisible(false);
+		return this;
+	}
+	public show() {
+		this.setVisible(true);
+		return this;
+	}
 	public setVisible(visible: boolean) {
 		const elm = this.elm.children[0] as HTMLElement;
 		if (elm) elm.style.visibility = visible ? "inherit" : "hidden";
@@ -167,7 +169,7 @@ class TextOverlay {
 
 		if (this.needsTextUpdate) {
 			this.textElm.innerText = this.text;
-			this.elm.style.bottom = (this.text.split("\n").length * 10) + "px";
+			this.elm.style.bottom = this.text.split("\n").length * 10 + "px";
 			this.needsTextUpdate = false;
 		}
 	}
@@ -231,18 +233,10 @@ class TextOverlay {
 		let pos = new Vector();
 		if (use_bounding_box) {
 			const box = new THREE.Box3().setFromObject(this.object);
-			pos = pos.set(
-				(box.min.x + box.max.x) / 2 + this.posOffset.x,
-				box.max.y + this.posOffset.y,
-				(box.min.z + box.max.z) / 2 + this.posOffset.z
-			);
+			pos = pos.set((box.min.x + box.max.x) / 2 + this.posOffset.x, box.max.y + this.posOffset.y, (box.min.z + box.max.z) / 2 + this.posOffset.z);
 		} else {
 			const worldPos = this.object.getWorldPosition(new THREE.Vector3());
-			pos = pos.set(
-				worldPos.x + this.posOffset.x,
-				worldPos.y + this.posOffset.y,
-				worldPos.z + this.posOffset.z
-			);
+			pos = pos.set(worldPos.x + this.posOffset.x, worldPos.y + this.posOffset.y, worldPos.z + this.posOffset.z);
 		}
 
 		this.nextPos = pos;

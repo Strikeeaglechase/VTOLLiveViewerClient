@@ -38,20 +38,11 @@ class MissileEntity extends Entity {
 		// if (path.includes("Enemy")) this.team = Team.B;
 
 		this.tryFindOwner();
-
 	}
 
 	protected createDefaultMesh(): THREE.Group {
-		const base = new THREE.Shape([
-			new THREE.Vector2(0, 0),
-			new THREE.Vector2(-wid, -len),
-			new THREE.Vector2(wid, -len)
-		]);
-		const top = new THREE.Shape([
-			new THREE.Vector2(0, 0),
-			new THREE.Vector2(len, hei),
-			new THREE.Vector2(len, 0)
-		]);
+		const base = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(-wid, -len), new THREE.Vector2(wid, -len)]);
+		const top = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(len, hei), new THREE.Vector2(len, 0)]);
 
 		const group = new THREE.Group();
 		const mat = new THREE.MeshStandardMaterial({ color: "#ff0000", side: THREE.DoubleSide });
@@ -113,4 +104,4 @@ class MissileEntity extends Entity {
 	}
 }
 
-export { MissileEntity }; 
+export { MissileEntity };

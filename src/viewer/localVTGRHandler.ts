@@ -4,7 +4,6 @@ import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Application } from "./app";
 
 class LocalVTGRHandler {
-
 	public static async handleFile(file: File) {
 		const zip = new JSZip();
 		const fileArrBuff = await file.arrayBuffer();
@@ -20,7 +19,7 @@ class LocalVTGRHandler {
 		const header = JSON.parse(headerText) as VTGRHeader;
 		console.log(`Loading VTGR file ${header.info.lobbyName} (${header.id}) ${header.chunks.length} chunks`);
 
-		header.chunks.forEach((chunk) => {
+		header.chunks.forEach(chunk => {
 			const chunkData = body.slice(chunk.start, chunk.start + chunk.length);
 			Application.instance.replayController.handleReplayChunk(chunkData);
 		});

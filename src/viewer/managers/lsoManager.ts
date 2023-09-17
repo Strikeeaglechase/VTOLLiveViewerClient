@@ -25,12 +25,12 @@ class LSOManager {
 	private childrenOfScene: THREE.Object3D[] = [];
 
 	public landingDist = 0;
-	constructor(private app: Application) { }
+	constructor(private app: Application) {}
 
 	public init() {
 		this.render = new Renderer("lso-overlay");
 		this.render.resize(window.innerWidth, window.innerHeight);
-		window.addEventListener("resize", (e) => {
+		window.addEventListener("resize", e => {
 			this.render.resize(window.innerWidth, window.innerHeight);
 		});
 	}
@@ -47,18 +47,10 @@ class LSOManager {
 		const correctLineupPoint = new THREE.Vector3();
 		this.distancePoint.getWorldPosition(correctLineupPoint);
 
-		const aircraftPosition = new THREE.Vector3(
-			this.landingAircraft.position.x,
-			this.landingAircraft.position.y,
-			this.landingAircraft.position.z,
-		);
+		const aircraftPosition = new THREE.Vector3(this.landingAircraft.position.x, this.landingAircraft.position.y, this.landingAircraft.position.z);
 
 		this.landingAircraftPlane.position.copy(correctLineupPoint);
-		this.landingAircraftPlane.rotation.set(
-			this.landingTarget.rotation.x,
-			this.landingTarget.rotation.y,
-			this.landingTarget.rotation.z,
-		);
+		this.landingAircraftPlane.rotation.set(this.landingTarget.rotation.x, this.landingTarget.rotation.y, this.landingTarget.rotation.z);
 
 		const plane = this.landingAircraftPlane.getWorldDirection(new THREE.Vector3()).normalize();
 		const projectedAircraftPoint = aircraftPosition.clone().projectOnPlane(plane);
@@ -72,7 +64,6 @@ class LSOManager {
 		const offsetYRealPoint = new THREE.Vector3();
 		this.offsetXChild.getWorldPosition(offsetXRealPoint);
 		this.offsetYChild.getWorldPosition(offsetYRealPoint);
-
 
 		this.offsetXMesh.geometry.setFromPoints([correctLineupPoint, offsetXRealPoint]);
 		this.offsetXMesh.computeLineDistances();
@@ -110,7 +101,7 @@ class LSOManager {
 
 		const camController = this.app.sceneManager.cameraController;
 
-		// Configure LSO camera 
+		// Configure LSO camera
 		this.app.setFocusImmediately(entity);
 		camController.camera.near = 0.1;
 		camController.camera.updateProjectionMatrix();
@@ -121,7 +112,6 @@ class LSOManager {
 
 		// Don't enable LSO mode until camera focus is already set
 		this.app.isLsoMode = true;
-
 
 		const landingPointMarker = mark(2, 0x0000ff);
 		landingPointMarker.rotation.set(rad(3.5), rad(10.1), 0);
