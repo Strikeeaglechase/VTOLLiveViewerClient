@@ -7,6 +7,16 @@
 			placeholder="Search.."
 			@input="updateSearch()"
 		/>
+
+		<div v-if="isReplay" class="replay-search">
+			<input
+				class="lobby-input"
+				id="replayUserInp"
+				type="text"
+				placeholder="Search by player.."
+				@input="updateUserSearch()"
+			/>
+		</div>
 	</div>
 </template>
 
@@ -18,10 +28,15 @@
 
 	@Component({ components: {} })
 	export default class LobbySearch extends Vue {
+		isReplay = false;
+
 		mounted() {
 			// EventBus.$on("lobbies", (lobbies: VTOLLobby[]) => {
 			// 	this.lobbies = lobbies;
 			// });
+			if (location.pathname == "/replay") {
+				this.isReplay = true;
+			}
 		}
 
 		updateSearch() {
@@ -30,6 +45,15 @@
 				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 				// @ts-ignore
 				document.getElementById("lobbyInp").value
+			);
+		}
+
+		updateUserSearch() {
+			EventBus.$emit(
+				"user-search",
+				// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+				// @ts-ignore
+				document.getElementById("replayUserInp").value
 			);
 		}
 	}
@@ -46,5 +70,10 @@
 	font-family: monospace;
 	border: 1px white solid;
 	background: none;
+	margin-right: 25px;
+}
+
+.replay-search {
+	display: inline-block;
 }
 </style>

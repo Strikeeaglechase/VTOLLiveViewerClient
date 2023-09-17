@@ -47,6 +47,7 @@
 		state: ApplicationRunningState;
 
 		searchStr = "";
+		userSearchStr = "";
 
 		async mounted() {
 			EventBus.$on("lobbies", (lobbies: VTOLLobby[]) => {
@@ -55,18 +56,18 @@
 			EventBus.$on("lobby-search", (searchStr: string) => {
 				this.searchStr = searchStr;
 			});
+			EventBus.$on("user-search", (searchStr: string) => {
+				this.userSearchStr = searchStr;
+			});
 
 			if (location.pathname == "/replay") {
 				const req = await fetch(`${API_URL}/replay/recordings`);
 				this.replayLobbies = await req.json();
 				const id = window.location.search.split("=")[1];
 				if (window.location.search.startsWith(`?replay=`)) {
-					console.log(window.location.search);
-					console.log(id);
 					this.replayLobbies = this.replayLobbies.filter(
 						(l) => l.recordingId == id
 					);
-					console.log(this.replayLobbies);
 				}
 			}
 		}
@@ -97,6 +98,15 @@
 			});
 
 			return resLobbies.filter((g) => {
+				if (this.userSearchStr) {
+					if (!g.metadata) return false;
+					return g.metadata.players.some((p) =>
+						p.name
+							.toLowerCase()
+							.includes(this.userSearchStr.toLowerCase())
+					);
+				}
+
 				return (
 					g.lobbyName
 						.toLowerCase()
