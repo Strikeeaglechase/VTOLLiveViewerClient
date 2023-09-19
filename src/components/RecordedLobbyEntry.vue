@@ -29,11 +29,7 @@
 
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
-	import {
-		LobbyConnectionStatus,
-		RecordedLobbyInfo,
-		VTOLLobby,
-	} from "../../../VTOLLiveViewerCommon/dist/src/shared";
+	import { LobbyConnectionStatus, RecordedLobbyInfo, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import { API_URL } from "../config";
 	import { Application } from "../viewer/app";
 
@@ -46,10 +42,13 @@
 
 		async mounted() {
 			if (window.location.search == `?replay=${this.lobby.recordingId}`) {
-				console.log(
-					`Pushed onload request for replay ${this.lobby.recordingId}`
-				);
-				Application.instance.on("client_id", () => this.joinLobbyReq());
+				if (Application.instance?.client?.id != undefined) {
+					console.log(`Already have client id, starting replay load immediately`);
+					this.joinLobby();
+				} else {
+					console.log(`Pushed onload request for replay ${this.lobby.recordingId}`);
+					Application.instance.on("client_id", () => this.joinLobbyReq());
+				}
 			}
 		}
 
@@ -63,15 +62,10 @@
 
 		async joinLobbyReq() {
 			// document.getElementById("start")?.click();
-			console.log(
-				`Requesting replay for ${this.lobby.lobbyName} Recording ID: ${this.lobby.recordingId}`
-			);
+			console.log(`Requesting replay for ${this.lobby.lobbyName} Recording ID: ${this.lobby.recordingId}`);
 
 			this.joinBtnText = "Loading...";
-			await Application.instance.replayController.requestReplay(
-				this.lobby.recordingId,
-				(n) => (this.joinBtnText = `${(n * 100).toFixed(0)}%`)
-			);
+			await Application.instance.replayController.requestReplay(this.lobby.recordingId, n => (this.joinBtnText = `${(n * 100).toFixed(0)}%`));
 			this.joinBtnText = "Starting";
 			Application.instance.beginReplay(this.lobby.lobbyId);
 		}
@@ -89,22 +83,16 @@
 		}
 
 		async download() {
-			const req = await fetch(
-				`${API_URL}/replay/recordings/${this.lobby.recordingId}`
-			);
+			const req = await fetch(`${API_URL}/replay/recordings/${this.lobby.recordingId}`);
 			if (req.status >= 300) {
-				alert(
-					`Failed to download replay: ${req.statusText} (${req.status})`
-				);
+				alert(`Failed to download replay: ${req.statusText} (${req.status})`);
 				return;
 			}
 			const data = await req.blob();
 			const url = window.URL.createObjectURL(data);
 			const a = document.createElement("a");
 			a.style.display = "none";
-			a.download = `${this.lobby.lobbyName}-${new Date(
-				this.lobby.startTime || Date.now()
-			).toISOString()}.vtgr`;
+			a.download = `${this.lobby.lobbyName}-${new Date(this.lobby.startTime || Date.now()).toISOString()}.vtgr`;
 			a.href = url;
 			document.body.appendChild(a);
 			a.click();
@@ -113,9 +101,7 @@
 		}
 
 		getDate() {
-			return new Date(this.lobby.startTime || Date.now())
-				.toISOString()
-				.substring(0, 10);
+			return new Date(this.lobby.startTime || Date.now()).toISOString().substring(0, 10);
 		}
 
 		getPreviewImageUrl() {
