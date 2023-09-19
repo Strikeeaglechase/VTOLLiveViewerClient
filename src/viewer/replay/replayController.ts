@@ -171,6 +171,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			// We want to start the replay back when the first player spawns
 			if (!this.registeredFirstRealReplayDataTime && this.isPlayerVehicleSpawn(rpc)) {
 				this.firstRealReplayDataTime = rpc.timestamp;
+				this.registeredFirstRealReplayDataTime = true;
 				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
 			}
 
