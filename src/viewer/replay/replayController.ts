@@ -28,6 +28,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 
 	private receiveBytesBuffer: number[] = [];
 	private currentChunkIndex = 0;
+	private lastLoadedTimestamp = 0;
 	private header: VTGRHeader;
 
 	public get computedReplaySpeed(): number {
@@ -115,7 +116,11 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	}
 
 	public handleReplayBytes(bytes: Uint8Array) {
-		this.receiveBytesBuffer.push(...bytes.slice(HEADER_LENGTH)); // Append new bytes
+		// this.receiveBytesBuffer.push(...bytes.slice(HEADER_LENGTH));
+		for (let i = HEADER_LENGTH; i < bytes.length; i++) {
+			this.receiveBytesBuffer.push(bytes[i]);
+		}
+
 		if (!this.header) {
 			console.error(`Received replay data chunk before header`);
 			return;
@@ -145,8 +150,13 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 
 	private handleReplayChunk(bytes: number[]) {
 		const rpcs = decompressRpcPackets(bytes) as RPCPacketT[];
-		if (this.replayPackets.length == 0) this.replayStartTime = rpcs[0].timestamp;
-		this.replayPackets.push(...rpcs);
+		if (this.replayPackets.length == 0) {
+			this.replayStartTime = rpcs[0].timestamp;
+			console.log(`Setting replay start time to ${this.replayStartTime}`);
+		}
+
+		// this.replayPackets.push(...rpcs);
+		rpcs.forEach(rpc => this.replayPackets.push(rpc));
 		console.log(`Got replay chunk with ${rpcs.length} packets (${bytes.length} bytes)`);
 
 		if (rpcs[0].timestamp == undefined) {
@@ -159,9 +169,29 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			});
 		}
 
+		// let lastTimeStamp = rpcs[0].timestamp;
+		// let prevPacketRaw = JSON.stringify(rpcs[0]);
 		rpcs.forEach(rpc => {
-			const relativeTimestamp = rpc.timestamp - this.replayStartTime;
+			// console.log(rpc.timestamp);
+			// const delta = rpc.timestamp - lastTimeStamp;
+			// if (delta > 1000) {
+			// 	console.error(`High packet delta: ${delta}ms. Packet: ${JSON.stringify(rpc)}`);
+			// }
+			// lastTimeStamp = rpc.timestamp;
+			// prevPacketRaw = JSON.stringify(rpc);
+
+			let relativeTimestamp = rpc.timestamp - this.replayStartTime;
+			// console.log(`Rel: ${relativeTimestamp}, Delta: ${delta}`);
 			if (relativeTimestamp < 0) console.log(`Negative timestamp: ${relativeTimestamp} on packet: ${JSON.stringify(rpc)}`);
+
+			const delta = rpc.timestamp - this.lastLoadedTimestamp;
+			if (delta > 30 * 1000 && this.lastLoadedTimestamp > 0) {
+				console.error(`There was an extremely high delta of ${delta}ms between packets, changing start time to here`);
+				this.replayStartTime = rpc.timestamp;
+				relativeTimestamp = 0;
+			}
+			this.lastLoadedTimestamp = rpc.timestamp;
+
 			rpc.timestamp = relativeTimestamp; // Map all timestamps to start at 0
 
 			const sec = Math.floor(relativeTimestamp / 1000);

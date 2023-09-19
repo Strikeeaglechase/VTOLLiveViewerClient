@@ -44,7 +44,7 @@
 			if (window.location.search == `?replay=${this.lobby.recordingId}`) {
 				if (Application.instance?.client?.id != undefined) {
 					console.log(`Already have client id, starting replay load immediately`);
-					this.joinLobby();
+					this.joinLobbyReq();
 				} else {
 					console.log(`Pushed onload request for replay ${this.lobby.recordingId}`);
 					Application.instance.on("client_id", () => this.joinLobbyReq());
