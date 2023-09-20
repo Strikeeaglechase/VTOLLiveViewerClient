@@ -28,6 +28,7 @@ import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 import { ReplayController } from "./replay/replayController";
+import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
 
 const rad = (deg: number): number => (deg * Math.PI) / 180;
@@ -101,11 +102,11 @@ interface LogMessage {
 	timestamp: number;
 	id: number;
 }
-let lmId = 0;
+let logMessageId = 0;
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
-class Application extends EventEmitter<"running_state" | "replay_mode" | "client_id"> {
+class Application extends EventEmitter<"running_state" | "replay_mode" | "client_id" | "unit_scale"> {
 	private container: HTMLDivElement;
 	public messageHandler: MessageHandler;
 	public client: Client;
@@ -362,6 +363,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		await landingAircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
 		this.entities.push(landingAircraft);
+
+		const waypointMarker = new Marker(MarkerType.Waypoint, "Waypoint", new Vector(0, 50, 0), this);
+		const gpsMarker = new Marker(MarkerType.GPSPoint, "GPS", new Vector(-10, 50, 0), this);
+		const bullsMarker = new Marker(MarkerType.Bullseye, "Bullseye", new Vector(10, 50, 0), this);
 
 		const cam = this.sceneManager.cameraController.fakeCamera;
 		setTimeout(async () => {
@@ -753,13 +758,25 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		});
 
 		this.game.on("log_message", (msg: string) => {
-			console.log(`[GAME] ${msg}`);
 			this.addLogMessage(msg);
 		});
 		const rpcMissionInfo = await this.game.waitForMissionInfo();
-		const missionInfoWithSpawns = await this.getMissionInfoFromAPI(rpcMissionInfo.workshopId, rpcMissionInfo.id);
-		this.meshLoader.prepareIMeshCounts(missionInfoWithSpawns.allUnitSpawns);
+		const fullMissionInfo = await this.getMissionInfoFromAPI(rpcMissionInfo.workshopId, rpcMissionInfo.id);
+		this.meshLoader.prepareIMeshCounts(fullMissionInfo.allUnitSpawns);
 		this.mapLoader.loadHeightmapFromMission(rpcMissionInfo);
+		this.loadMarkers(fullMissionInfo);
+	}
+
+	public async loadMarkers(missionInfo: MissionInfo) {
+		missionInfo?.waypoints.forEach(wp => {
+			let wpType = MarkerType.Waypoint;
+			if (wp.id == missionInfo.bullseye[Team.A] || wp.id == missionInfo.bullseye[Team.B]) {
+				wpType = MarkerType.Bullseye;
+			}
+
+			const marker = new Marker(wpType, wp.name, new Vector(-wp.position.x, wp.position.y, wp.position.z), this);
+			marker.init();
+		});
 	}
 
 	private async getMissionInfoFromAPI(workshopId: string, missionId: string) {
@@ -959,7 +976,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	private addLogMessage(message: string) {
-		this.logMessages.push({ message, timestamp: this.time, id: lmId++ });
+		console.log(`[GAME] ${message}`);
+		this.logMessages.push({ message, timestamp: this.time, id: logMessageId++ });
 		EventBus.$emit("log-messages", this.logMessages);
 	}
 

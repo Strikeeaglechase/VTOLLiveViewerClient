@@ -4,13 +4,14 @@
 		v-bind:class="{
 			'team-a': entity.team == teams.A,
 			'team-b': entity.team == teams.B,
-			'thick-border': entity.app.currentFocus == entity,
+			'thick-border': entity.app.currentFocus == entity
 		}"
+		v-on:click="focus()"
 	>
-		<p>{{ entity.owner.pilotName }} ({{ entity.displayName }})</p>
-		<button v-on:click="focus()">
+		<!-- <button v-on:click="focus()">
 			{{ isLsoMode ? "LSO Target" : "Focus" }}
-		</button>
+		</button> -->
+		<p>{{ entity.owner.pilotName }} ({{ entity.displayName }})</p>
 		<button v-on:click="kick()" v-if="canKick">Kick</button>
 	</div>
 </template>
@@ -21,10 +22,7 @@
 	import { EventBus } from "../eventBus";
 	import { Entity } from "../viewer/entityBase/entity";
 
-	import {
-		Team,
-		UserScopes,
-	} from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
+	import { Team, UserScopes } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
 	import { Application } from "../viewer/app";
 	import { hasPerm } from "../viewer/client/cookies";
 	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
@@ -42,28 +40,26 @@
 		canKick = true;
 		mounted() {
 			this.isAdmin = hasPerm(UserScopes.ADMIN);
-			// this.canKick = this.isAdmin && !Application.instance.isReplay;
-			Application.instance.on("replay_mode", (newState: boolean) => {
-				this.canKick = this.isAdmin && !newState;
-			});
+			// Application.instance.on("replay_mode", (newState: boolean) => {
+			// 	this.canKick = this.isAdmin && !newState;
+			// });
 
 			EventBus.$on("lso-mode", (newState: boolean) => {
 				this.isLsoMode = newState;
 			});
 
-			this.canKick = this.isAdmin && !Application.instance.isReplay;
+			// this.canKick = this.isAdmin && !Application.instance.isReplay;
+			this.canKick = false;
 		}
 
 		focus() {
 			if (!this.isLsoMode) this.entity.focus();
-			else if (this.entity instanceof PlayerVehicle)
-				Application.instance.lsoManager.trackAircraft(this.entity);
+			else if (this.entity instanceof PlayerVehicle) Application.instance.lsoManager.trackAircraft(this.entity);
 		}
 
 		kick() {
 			const conf = confirm("Are you sure you want to kick this user?");
-			if (conf)
-				Application.instance.client.kickUser(this.entity.owner.steamId);
+			if (conf) Application.instance.client.kickUser(this.entity.owner.steamId);
 		}
 	}
 </script>
@@ -90,7 +86,8 @@ button {
 	padding-bottom: 2px;
 	transition: color 0.25s;
 	font-size: 1em;
-	margin-left: 5px;
+	/* margin-left: 5px; */
+	margin-right: 5px;
 }
 
 button:hover {
@@ -101,7 +98,7 @@ button:hover {
 }
 
 .entity {
-	max-width: 250px;
+	max-width: 300px;
 	background-color: rgba(50, 50, 50, 0.6);
 	color: white;
 	margin-right: 10px;
@@ -114,6 +111,13 @@ button:hover {
 	pointer-events: auto;
 
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%239C92AC' fill-opacity='0.4' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
+}
+
+.entity:hover {
+	background-color: #434c53;
+	-webkit-box-shadow: inset 0px 0px 6px 5px rgb(0 0 0 / 30%);
+	box-shadow: inset 0px 0px 6px 5px rgb(0 0 0 / 30%);
+	transition: color 0.25s;
 }
 
 .team-a {

@@ -88,6 +88,7 @@ class SceneManager {
 		if (this.app.currentFocus != null) {
 			const d = this.app.currentFocus.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
 			overrideZoom = this.calculateScale(d);
+			this.app.emit("unit_scale", overrideZoom);
 		}
 
 		const camPos = this.camera.getWorldPosition(new THREE.Vector3());

@@ -241,6 +241,10 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		if (spawns) {
 			this.app.meshLoader.prepareIMeshCounts(spawns);
 		}
+
+		if (header.info?.missionInfo?.waypoints) {
+			this.app.loadMarkers(header.info.missionInfo);
+		}
 	}
 
 	public beginReplay() {
