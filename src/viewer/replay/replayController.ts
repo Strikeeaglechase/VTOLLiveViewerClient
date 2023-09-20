@@ -176,7 +176,6 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		const timeBudget = 10; // 10ms before must yield
 		const rpcGen = decompressRpcPacketsGen(bytes);
 
-		let first = true;
 		let count = 0;
 		for (const _rpc of rpcGen) {
 			const rpc = _rpc as RPCPacketT;
@@ -186,11 +185,10 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 				timeLastSleep = Date.now();
 			}
 
-			if (first && this.replayPackets.length == 0) {
+			if (this.replayPackets.length == 0) {
 				this.replayStartTime = rpc.timestamp;
 				console.log(`Setting replay start time to ${this.replayStartTime}`);
 			}
-			first = false;
 
 			this.replayPackets.push(rpc);
 
@@ -198,6 +196,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			if (relativeTimestamp < 0) console.log(`Negative timestamp: ${relativeTimestamp} on packet: ${JSON.stringify(rpc)}`);
 
 			const delta = rpc.timestamp - this.lastLoadedTimestamp;
+
 			if (delta > 30 * 1000 && this.lastLoadedTimestamp > 0) {
 				console.error(`There was an extremely high delta of ${delta}ms between packets, changing start time to here`);
 				this.replayStartTime = rpc.timestamp;
@@ -273,7 +272,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			return;
 		}
 
-		this.replayStartTime = this.replayPackets[0].timestamp;
+		// this.replayStartTime = this.replayPackets[0].timestamp;
 		this.replayCurrentTime = 0;
 
 		let initPackets: RPCPacketT[] = [];
