@@ -1,4 +1,4 @@
-import { decompressRpcPackets } from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
+import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
@@ -9,6 +9,8 @@ import { replaceRPCHandlers } from "./rpcReverseHandlers";
 const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
 const HEADER_LENGTH = "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
+
+const ALLOW_RUN_WHILE_LOADING = true;
 
 class ReplayController extends EventEmitter<"replay_bytes"> {
 	public replayPackets: RPCPacketT[] = [];
@@ -30,6 +32,12 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private currentChunkIndex = 0;
 	private lastLoadedTimestamp = 0;
 	private header: VTGRHeader;
+
+	private loadingResolver: () => void;
+	private hasStartedLoadSkip = false;
+	private replayChunkQueue: number[][] = [];
+	private replayChunkQueueStarted = false;
+	private totalChunksFullyProcessed = 0;
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
@@ -131,7 +139,14 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			const chunkBytes = this.receiveBytesBuffer.splice(0, currentChunk.length);
 			console.log(`Handling chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
 			this.currentChunkIndex++;
-			this.handleReplayChunk(chunkBytes);
+			// this.handleReplayChunk(chunkBytes);
+			this.replayChunkQueue.push(chunkBytes);
+			if (!this.replayChunkQueueStarted) this.handleReplayChunk();
+
+			if (this.totalChunksFullyProcessed > 4 && ALLOW_RUN_WHILE_LOADING && !this.hasStartedLoadSkip) {
+				this.loadingResolver();
+				this.hasStartedLoadSkip = true;
+			}
 		}
 
 		this.emit("replay_bytes", bytes);
@@ -144,44 +159,42 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			const chunkBytes = this.receiveBytesBuffer.splice(0, currentChunk.length);
 			console.log(`Handling chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
 			this.currentChunkIndex++;
-			this.handleReplayChunk(chunkBytes);
+			this.replayChunkQueue.push(chunkBytes);
 		}
 	}
 
-	private handleReplayChunk(bytes: number[]) {
-		const rpcs = decompressRpcPackets(bytes) as RPCPacketT[];
-		if (this.replayPackets.length == 0) {
-			this.replayStartTime = rpcs[0].timestamp;
-			console.log(`Setting replay start time to ${this.replayStartTime}`);
+	private async handleReplayChunk() {
+		this.replayChunkQueueStarted = true;
+		const bytes = this.replayChunkQueue.shift();
+		if (!bytes) {
+			setTimeout(() => this.handleReplayChunk(), 1000 / 60);
+			return;
 		}
+		console.log(`Handling queued chunk, ${this.replayChunkQueue.length} left`);
 
-		// this.replayPackets.push(...rpcs);
-		rpcs.forEach(rpc => this.replayPackets.push(rpc));
-		console.log(`Got replay chunk with ${rpcs.length} packets (${bytes.length} bytes)`);
+		let timeLastSleep = Date.now();
+		const timeBudget = 10; // 10ms before must yield
+		const rpcGen = decompressRpcPacketsGen(bytes);
 
-		if (rpcs[0].timestamp == undefined) {
-			console.error(`Replay packet chunk ${this.replayDataReceived} packet 0 has no timestamp`);
-			// Interpolate timestamps
-			const msPerChunk = 30 * 1000;
-			const tsStep = msPerChunk / rpcs.length;
-			rpcs.forEach((rpc, idx) => {
-				rpc.timestamp = this.replayDataReceived * msPerChunk + tsStep * idx;
-			});
-		}
+		let first = true;
+		let count = 0;
+		for (const _rpc of rpcGen) {
+			const rpc = _rpc as RPCPacketT;
+			count++;
+			if (Date.now() - timeLastSleep > timeBudget) {
+				await new Promise(res => setTimeout(res, timeBudget));
+				timeLastSleep = Date.now();
+			}
 
-		// let lastTimeStamp = rpcs[0].timestamp;
-		// let prevPacketRaw = JSON.stringify(rpcs[0]);
-		rpcs.forEach(rpc => {
-			// console.log(rpc.timestamp);
-			// const delta = rpc.timestamp - lastTimeStamp;
-			// if (delta > 1000) {
-			// 	console.error(`High packet delta: ${delta}ms. Packet: ${JSON.stringify(rpc)}`);
-			// }
-			// lastTimeStamp = rpc.timestamp;
-			// prevPacketRaw = JSON.stringify(rpc);
+			if (first && this.replayPackets.length == 0) {
+				this.replayStartTime = rpc.timestamp;
+				console.log(`Setting replay start time to ${this.replayStartTime}`);
+			}
+			first = false;
+
+			this.replayPackets.push(rpc);
 
 			let relativeTimestamp = rpc.timestamp - this.replayStartTime;
-			// console.log(`Rel: ${relativeTimestamp}, Delta: ${delta}`);
 			if (relativeTimestamp < 0) console.log(`Negative timestamp: ${relativeTimestamp} on packet: ${JSON.stringify(rpc)}`);
 
 			const delta = rpc.timestamp - this.lastLoadedTimestamp;
@@ -206,8 +219,13 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			}
 
 			rpc.pid = this.packetPid++;
-			// this.packetHits[rpc.pid] = { hits: 0, time: (rpc.timestamp ?? Date.now()) - this.replayStartTime, hitTimes: [] };
-		});
+		}
+
+		// rpcs.forEach(rpc => this.replayPackets.push(rpc));
+		console.log(`Got replay chunk with ${count} packets (${bytes.length} bytes)`);
+		this.totalChunksFullyProcessed++;
+
+		setTimeout(() => this.handleReplayChunk(), 1000 / 60);
 	}
 
 	private isPlayerVehicleSpawn(rpc: RPCPacket) {
@@ -221,6 +239,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		this.app.client.replayGame(replayId);
 		return new Promise<void>(res => {
 			this.replayDataReceived = 0;
+			this.loadingResolver = res;
 
 			this.on("replay_bytes", (chunk: Uint8Array) => {
 				this.replayDataReceived += chunk.length - HEADER_LENGTH;
