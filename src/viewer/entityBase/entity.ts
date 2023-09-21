@@ -43,12 +43,13 @@ type EntityConfig = Partial<{
 interface PersistentEntityData {
 	setActiveAt: number;
 	setInactiveAt: number;
+	setDeadAt: number;
 }
 
 class Entity {
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
-		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = { setActiveAt: 0, setInactiveAt: 0 };
+		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = { setActiveAt: 0, setInactiveAt: 0, setDeadAt: 0 };
 		return Entity.persistentData[this.id];
 	}
 
@@ -591,6 +592,10 @@ class Entity {
 		if (Application.time < this.persistentData.setActiveAt) {
 			this.setInactive(`Time is before the activation time (${this.persistentData.setActiveAt})`);
 		}
+
+		if (!this.hasDied && this.persistentData.setDeadAt && Application.time > this.persistentData.setDeadAt) {
+			this.triggerDeath();
+		}
 	}
 
 	public runInactiveUpdate(dt: number): void {
@@ -630,10 +635,18 @@ class Entity {
 		this.hasDied = true;
 		console.log(`Entity ${this} has died`);
 		this.triggerDamage();
-		this.app.setTimeout(() => {
-			// this.setInactive(`Entity died`);
-			this.remove(`Death triggered`);
-		}, damageFadeTime * 3);
+		if (this.textOverlay) {
+			this.textOverlay.color = "#FF0000";
+		}
+
+		this.persistentData.setDeadAt = Application.time;
+	}
+
+	public reverseDeath() {
+		this.hasDied = false;
+		if (this.textOverlay) {
+			this.textOverlay.color = "#FFFFFF";
+		}
 	}
 
 	protected updateDamage() {

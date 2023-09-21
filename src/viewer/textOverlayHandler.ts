@@ -55,6 +55,10 @@ class TextOverlay {
 
 	public onDblClick: ((e: MouseEvent) => void) | null = null;
 
+	public set color(value: string) {
+		if (this.textElm?.style) this.textElm.style.color = value;
+	}
+
 	// combineId controls what elements can be parented to each other
 	private _combineId = -1;
 	set combineId(id: string | number | null) {

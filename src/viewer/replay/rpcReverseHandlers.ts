@@ -19,6 +19,7 @@ replaceRPCHandlers.push({
 		return false;
 	}
 });
+
 replaceRPCHandlers.push({
 	className: "MessageHandler",
 	method: "NetDestroy",
@@ -31,6 +32,7 @@ replaceRPCHandlers.push({
 		return false;
 	}
 });
+
 replaceRPCHandlers.push({
 	className: "MissileEntity",
 	method: "Detonate",
@@ -42,6 +44,7 @@ replaceRPCHandlers.push({
 		return false;
 	}
 });
+
 replaceRPCHandlers.push({
 	className: "PlayerVehicle",
 	method: "SetLock",
@@ -52,6 +55,7 @@ replaceRPCHandlers.push({
 		return rpcCopy;
 	}
 });
+
 replaceRPCHandlers.push({
 	className: "VTOLLobby",
 	method: "LogMessage",
@@ -69,6 +73,27 @@ replaceRPCHandlers.push({
 		} else {
 			controller.app.logMessages.splice(removeIndex, 1);
 		}
+
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "PlayerVehicle",
+	method: "Die",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		console.log(`Reversing Die for ${rpc.id}`);
+		if (!rpc.id) {
+			console.warn(`Die RPC has no id`);
+			return false;
+		}
+		const entity = controller.app.getEntityById(parseInt(rpc.id));
+		if (!entity) {
+			console.warn(`Die RPC has no entity`);
+			return false;
+		}
+
+		entity.reverseDeath();
 
 		return false;
 	}
