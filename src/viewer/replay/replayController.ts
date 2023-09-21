@@ -192,15 +192,15 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 
 			this.replayPackets.push(rpc);
 
-			let relativeTimestamp = rpc.timestamp - this.replayStartTime;
+			const relativeTimestamp = rpc.timestamp - this.replayStartTime;
 			if (relativeTimestamp < 0) console.log(`Negative timestamp: ${relativeTimestamp} on packet: ${JSON.stringify(rpc)}`);
 
 			const delta = rpc.timestamp - this.lastLoadedTimestamp;
 
 			if (delta > 30 * 1000 && this.lastLoadedTimestamp > 0) {
 				console.error(`There was an extremely high delta of ${delta}ms between packets, changing start time to here`);
-				this.replayStartTime = rpc.timestamp;
-				relativeTimestamp = 0;
+				// this.replayStartTime = rpc.timestamp;
+				// relativeTimestamp = 0;
 			}
 			this.lastLoadedTimestamp = rpc.timestamp;
 

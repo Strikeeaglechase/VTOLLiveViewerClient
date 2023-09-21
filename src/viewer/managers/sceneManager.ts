@@ -37,6 +37,8 @@ class SceneManager {
 	private lastCameraPos: THREE.Vector3 = new THREE.Vector3();
 	public primaryLight: THREE.DirectionalLight;
 
+	private sceneAddQueue: THREE.Object3D[] = [];
+
 	private hasInit = false;
 	constructor(private app: Application) {
 		markRaw(this);
@@ -61,6 +63,8 @@ class SceneManager {
 
 		this.spawnLights();
 		this.setupBg();
+
+		this.sceneAddQueue.forEach(obj => this.scene.add(obj));
 
 		this.hasInit = true;
 	}
@@ -158,8 +162,8 @@ class SceneManager {
 		object.forEach(obj => {
 			if (obj.name == "" && STRICT_MESH_NAME) throw new Error("Mesh added without a name!");
 		});
-
-		this.scene.add(...object);
+		if (!this.hasInit) this.sceneAddQueue.push(...object);
+		else this.scene.add(...object);
 	}
 
 	public remove(...object: THREE.Object3D[]): void {
