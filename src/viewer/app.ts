@@ -761,7 +761,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			this.addLogMessage(msg);
 		});
 		const rpcMissionInfo = await this.game.waitForMissionInfo();
-		const fullMissionInfo = await this.getMissionInfoFromAPI(rpcMissionInfo.workshopId, rpcMissionInfo.id);
+		const campaignId = rpcMissionInfo.isBuiltin ? rpcMissionInfo.campaignId : rpcMissionInfo.workshopId;
+		const fullMissionInfo = await this.getMissionInfoFromAPI(campaignId, rpcMissionInfo.id);
 		this.meshLoader.prepareIMeshCounts(fullMissionInfo.allUnitSpawns);
 		this.mapLoader.loadHeightmapFromMission(rpcMissionInfo);
 		this.loadMarkers(fullMissionInfo);

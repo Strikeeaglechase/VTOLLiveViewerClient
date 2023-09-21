@@ -206,6 +206,7 @@ class MeshLoader {
 
 	public prepareIMeshCounts(units: { id: number; name: string }[]) {
 		this.imeshCounts = {};
+		if (!units) return;
 		units.forEach(unit => {
 			const [allied, enemy] = unitIdToEntityKeys(unit.name);
 			if (!this.imeshCounts[allied]) this.imeshCounts[allied] = 0;

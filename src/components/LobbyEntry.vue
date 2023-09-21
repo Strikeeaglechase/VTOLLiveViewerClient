@@ -11,22 +11,15 @@
 			</div>
 		</div>
 
-		<div
-			class="long-text"
-			:class="{ grey: lobby.playerCount >= lobby.maxPlayers }"
-		>
+		<div class="long-text" :class="{ grey: lobby.playerCount >= lobby.maxPlayers }">
 			<span class="name">{{ lobby.name }} &nbsp; </span>
 			<span class="mission"> {{ lobby.missionName }} &nbsp; </span>
-			<span class="players">
-				{{ lobby.playerCount }} / {{ lobby.maxPlayers }}
-			</span>
+			<span class="players"> {{ lobby.playerCount }} / {{ lobby.maxPlayers }} </span>
 		</div>
 		<button
 			v-on:click="joinLobby()"
 			:class="{
-				disableBtn:
-					lobby.playerCount >= lobby.maxPlayers ||
-					lobby.readyStatus == 1,
+				disableBtn: lobby.playerCount >= lobby.maxPlayers || lobby.readyStatus == 1
 			}"
 		>
 			{{ lobby.readyStatus == 0 ? joinBtnText : "Invl Mission" }}
@@ -36,10 +29,7 @@
 
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
-	import {
-		LobbyConnectionStatus,
-		VTOLLobby,
-	} from "../../../VTOLLiveViewerCommon/dist/src/shared";
+	import { LobbyConnectionStatus, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import { API_URL } from "../config";
 	import { Application } from "../viewer/app";
 
@@ -61,10 +51,7 @@
 			if (this.lobby.isPrivate) {
 				const password = prompt("Enter password");
 				if (!password) return;
-				Application.instance.requestJoinPrivateLobby(
-					this.lobby.id,
-					password
-				);
+				Application.instance.requestJoinPrivateLobby(this.lobby.id, password);
 			} else {
 				Application.instance.requestJoinLobby(this.lobby.id);
 			}
@@ -84,11 +71,9 @@
 		}
 
 		getPreviewImageUrl() {
-			if (!this.lobby.mission)
-				return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
+			if (!this.lobby.mission) return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
 
-			if (this.lobby.mission.isBuiltin)
-				return `${API_URL}/workshop/preview/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
+			if (this.lobby.mission.isBuiltin) return `${API_URL}/workshop/preview/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
 			return `${API_URL}/workshop/preview/${this.lobby.mission.workshopId}/${this.lobby.mission.id}`;
 		}
 	}
