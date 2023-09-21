@@ -373,7 +373,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			// cam.position.set(-2, 57, -90);
 			// carrier.focus();
 
-			// aircraft.focus();
+			aircraft2.focus();
+			// aircraft2.UpdateData(new Vector(20, 0, 0), new Vector(0, 0, 1000), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 

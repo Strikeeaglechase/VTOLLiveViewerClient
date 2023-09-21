@@ -115,8 +115,8 @@ class SceneManager {
 	}
 
 	public postFrame() {
-		this.css2dRenderer.render(this.scene, this.camera, this.overlay2dObjects);
 		this.overlayElements.forEach(overlay => overlay.runBatchedUpdate());
+		this.css2dRenderer.render(this.scene, this.camera, this.overlay2dObjects);
 	}
 
 	private spawnLights(): void {

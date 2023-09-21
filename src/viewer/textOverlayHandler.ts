@@ -43,6 +43,7 @@ class TextOverlay {
 	private prevPos: Vector = new Vector(0, 0, 0);
 	private nextPos: Vector = new Vector(0, 0, 0);
 	private lastUpdateTime = 0;
+	private positionSource: IVector3 | null = null;
 
 	debugBoxHelper: THREE.BoxHelper;
 
@@ -123,15 +124,22 @@ class TextOverlay {
 		this.setVisible(false);
 		return this;
 	}
+
 	public show() {
 		this.setVisible(true);
 		return this;
 	}
+
 	public setVisible(visible: boolean) {
 		const elm = this.elm.children[0] as HTMLElement;
 		if (elm) elm.style.visibility = visible ? "inherit" : "hidden";
 
 		this.isVisible = visible;
+	}
+
+	public setPosSource(source: IVector3 | null) {
+		this.positionSource = source;
+		return this;
 	}
 
 	public updateBoundingRect() {
@@ -239,8 +247,11 @@ class TextOverlay {
 			const box = new THREE.Box3().setFromObject(this.object);
 			pos = pos.set((box.min.x + box.max.x) / 2 + this.posOffset.x, box.max.y + this.posOffset.y, (box.min.z + box.max.z) / 2 + this.posOffset.z);
 		} else {
-			const worldPos = this.object.getWorldPosition(new THREE.Vector3());
-			pos = pos.set(worldPos.x + this.posOffset.x, worldPos.y + this.posOffset.y, worldPos.z + this.posOffset.z);
+			let posSource: IVector3;
+			if (this.positionSource) posSource = this.positionSource;
+			else posSource = this.object.getWorldPosition(new THREE.Vector3());
+
+			pos = pos.set(posSource.x + this.posOffset.x, posSource.y + this.posOffset.y, posSource.z + this.posOffset.z);
 		}
 
 		this.nextPos = pos;
