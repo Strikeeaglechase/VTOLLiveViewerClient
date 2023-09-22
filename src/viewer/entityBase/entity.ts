@@ -17,12 +17,12 @@ const hei = 3;
 
 const damageFadeTime = 1000; // How long the damage fade box should stick around
 
-const trailColors: { r: number; g: number; b: number }[] = [];
+export const teamColors: { r: number; g: number; b: number }[] = [];
 const alphaChars = "abcdefghijklmnopqrstuvwxyz".split("");
 
-trailColors[Team.A] = { r: 0, g: 100, b: 255 };
-trailColors[Team.B] = { r: 255, g: 0, b: 0 };
-trailColors[Team.Unknown] = { r: 255, g: 0, b: 0 };
+teamColors[Team.A] = { r: 0, g: 100, b: 255 };
+teamColors[Team.B] = { r: 255, g: 0, b: 0 };
+teamColors[Team.Unknown] = { r: 255, g: 0, b: 0 };
 
 const enable_debug_box = false;
 const enable_debug_sphere = false;
@@ -355,9 +355,8 @@ class Entity {
 
 		this.boundingBox = this.app.meshLoader.getBoundingBox(this.type);
 		this.baseScaleSize = this.boundingBox.min.distanceTo(this.boundingBox.max);
-		// This is bad, really bad, but I have no idea why the text overlay count is buggy so lets just delay things a bit :)
 
-		// this.maybeCreateTextOverlay();
+		// this.addObjectMeshToScene();
 	}
 
 	protected async createMesh(): Promise<void> {
@@ -514,7 +513,7 @@ class Entity {
 		}
 
 		this.team = team;
-		this.trail.updateColor(trailColors[this.team]);
+		this.trail.updateColor(teamColors[this.team]);
 	}
 
 	public update(dt: number): void {
@@ -532,7 +531,7 @@ class Entity {
 
 		if (this.owner && this.useHostTeam) this.team = this.owner.team;
 
-		// Object gets position, meshProxyObject gets rotation, things that want to parent to pos but not rot can use `object`
+		// Object gets position, meshProxyObject gets rotation and scale, things that want to parent to pos but not rot can use `object`
 		this.object.position.set(this.position.x, this.position.y, this.position.z);
 		this.meshProxyObject.rotation.set(this.rotation.x, this.rotation.y, this.rotation.z);
 		this.object.updateMatrixWorld();

@@ -1,8 +1,11 @@
+import * as THREE from "three";
+
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
-import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
+import { Entity, MAX_OBJECT_SIZE, teamColors } from "../entityBase/entity";
+import { radarLaunchRanges } from "./radarLaunchRanges";
 
 @EnableRPCs("instance")
 class AIGroundUnit extends Entity {
@@ -51,6 +54,7 @@ class AIGroundUnit extends Entity {
 	];
 
 	public isLsoTarget = false;
+	private threatRingGeom: THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>;
 
 	public set scale(scale: number) {
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
@@ -81,6 +85,11 @@ class AIGroundUnit extends Entity {
 		if (this.team != Team.Unknown && this.team != team) return;
 
 		super.setTeam(team);
+
+		if (this.threatRingGeom) {
+			const teamColor = teamColors[this.team];
+			this.threatRingGeom.material.color = new THREE.Color(teamColor.r, teamColor.g, teamColor.b);
+		}
 	}
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
@@ -89,8 +98,42 @@ class AIGroundUnit extends Entity {
 		if (isActive) await this.setActive(`AI spawned as active`);
 	}
 
+	private addSamThreatRing() {
+		const radarLaunchRangesObj = radarLaunchRanges.find(rlr => rlr.path == this.type);
+		if (!radarLaunchRangesObj) return;
+		console.log(`Loading ${radarLaunchRangesObj.radarLaunchRanges.length} SAM threat rings for ${this}`);
+
+		const teamColor = teamColors[this.team];
+		const sphereMat = new THREE.MeshBasicMaterial({
+			color: new THREE.Color(teamColor.r, teamColor.g, teamColor.b),
+			wireframe: false,
+			transparent: true,
+			opacity: 0.2,
+			side: THREE.DoubleSide
+		});
+
+		// let lastRange = 0;
+		// const reqDiffToAdd = 1000;
+		const range = Math.max(...radarLaunchRangesObj.radarLaunchRanges);
+		// radarLaunchRangesObj.radarLaunchRanges.forEach(range => {
+		// if (lastRange > 0 && Math.abs(lastRange - range) < reqDiffToAdd) return;
+		// lastRange = range;
+
+		let parts = 8;
+		if (range > 10000) parts = 16;
+		if (range > 20000) parts = 32;
+		const geom = new THREE.SphereGeometry(range, parts, parts);
+		const mesh = new THREE.Mesh(geom, sphereMat);
+		mesh.name = "SAMThreatRing";
+
+		this.object.add(mesh);
+		this.threatRingGeom = mesh;
+		// });
+	}
+
 	public async setActive(reason: string): Promise<void> {
 		await super.setActive(reason);
+		// this.addSamThreatRing();
 		// Make ground units generally bigger
 		// This is sorta scuffed, scale system needs looking at
 		// if (this.scaleDamper == 1) this.scaleDamper = 5;

@@ -15,7 +15,7 @@ html {
 	font-family: monospace;
 	color: white;
 	position: relative;
-	pointer-events: auto;
+	pointer-events: none;
 }
 
 .debug-overlay-text {

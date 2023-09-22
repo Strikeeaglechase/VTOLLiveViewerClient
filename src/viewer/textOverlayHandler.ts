@@ -42,7 +42,8 @@ class TextOverlay {
 	private posOffset: IVector3 = new Vector(0, 0, 0);
 	private prevPos: Vector = new Vector(0, 0, 0);
 	private nextPos: Vector = new Vector(0, 0, 0);
-	private lastUpdateTime = 0;
+	private lastTimeGotPosUpdate = 0;
+	private lastTimeCheckedPosUpdate = 0;
 	private positionSource: IVector3 | null = null;
 
 	debugBoxHelper: THREE.BoxHelper;
@@ -147,7 +148,16 @@ class TextOverlay {
 	}
 
 	public update(overlays: TextOverlay[]) {
-		this.updatePosition();
+		if (Date.now() - this.lastTimeGotPosUpdate > 1000) {
+			// No pos update in one second, start doing low-rate checks
+			const timeFromLastCheck = Date.now() - this.lastTimeCheckedPosUpdate;
+			if (timeFromLastCheck > 5000) {
+				this.updatePosition();
+			}
+		} else {
+			this.updatePosition();
+		}
+
 		if (Application.instance.isTextOverlayHidden) {
 			if (!this.elm.classList.contains("hide")) this.elm.classList.add("hide");
 		} else {
@@ -177,6 +187,7 @@ class TextOverlay {
 
 			this.cssObj.position.set(this.nextPos.x, this.nextPos.y, this.nextPos.z);
 			this.cssObj.updateWorldMatrix(true, true);
+			this.lastTimeGotPosUpdate = Date.now();
 		}
 
 		if (this.needsTextUpdate) {
@@ -242,6 +253,8 @@ class TextOverlay {
 	}
 
 	private updatePosition() {
+		this.lastTimeCheckedPosUpdate = Date.now();
+
 		let pos = new Vector();
 		if (use_bounding_box) {
 			const box = new THREE.Box3().setFromObject(this.object);

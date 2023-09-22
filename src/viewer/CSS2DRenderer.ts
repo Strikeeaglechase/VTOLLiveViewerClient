@@ -2,10 +2,10 @@ import * as THREE from "three";
 
 // Handle the updating/rendering of 2D text overlays
 class CSS2DRenderer {
-	private _width = 0;
-	private _height = 0;
-	private _widthHalf = 0;
-	private _heightHalf = 0;
+	private width = 0;
+	private height = 0;
+	private widthHalf = 0;
+	private heightHalf = 0;
 
 	private vector: THREE.Vector3 = new THREE.Vector3();
 	private viewMatrix = new THREE.Matrix4();
@@ -23,17 +23,17 @@ class CSS2DRenderer {
 
 	public getSize() {
 		return {
-			width: this._width,
-			height: this._height
+			width: this.width,
+			height: this.height
 		};
 	}
 
 	public setSize(width: number, height: number) {
-		this._width = width;
-		this._height = height;
+		this.width = width;
+		this.height = height;
 
-		this._widthHalf = this._width / 2;
-		this._heightHalf = this._height / 2;
+		this.widthHalf = this.width / 2;
+		this.heightHalf = this.height / 2;
 
 		this.domElement.style.width = width + "px";
 		this.domElement.style.height = height + "px";
@@ -50,9 +50,9 @@ class CSS2DRenderer {
 
 			const style =
 				"translate(-50%,-50%) translate(" +
-				(this.vector.x * this._widthHalf + this._widthHalf) +
+				(this.vector.x * this.widthHalf + this.widthHalf) +
 				"px," +
-				(-this.vector.y * this._heightHalf + this._heightHalf) +
+				(-this.vector.y * this.heightHalf + this.heightHalf) +
 				"px)";
 			this.elementStyleUpdateCache.push({ element: element, style: style });
 		}
@@ -60,9 +60,8 @@ class CSS2DRenderer {
 
 	public render(scene: THREE.Scene, camera: THREE.Camera, objects: CSS2DObject[]) {
 		// These aren't super great for performance, possible todo to optimize
-		scene.updateMatrixWorld();
-
-		if (camera.parent === null) camera.updateMatrixWorld();
+		// scene.updateMatrixWorld();
+		// if (camera.parent === null) camera.updateMatrixWorld();
 
 		this.viewMatrix.copy(camera.matrixWorldInverse);
 		this.viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, this.viewMatrix);
