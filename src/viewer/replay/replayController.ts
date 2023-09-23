@@ -2,11 +2,12 @@ import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/s
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { EventBus } from "../../eventBus";
 import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
-const REPLAY_SPEEDS = [-8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32];
+const REPLAY_SPEEDS = [-256, -64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 256];
 const HEADER_LENGTH = "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
@@ -22,7 +23,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private prevReplayTime = -1;
 	private firstRealReplayDataTime = 0;
 	private registeredFirstRealReplayDataTime = false;
-	private replaySpeed = 7;
+	private replaySpeed = REPLAY_SPEEDS.indexOf(1);
 	private isReadyToRun = false;
 	private onTimeFlipHandlers: ((newDir: number) => void)[] = [];
 	private previousReplayTimeDirection = 1;
@@ -38,6 +39,10 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private replayChunkQueue: number[][] = [];
 	private replayChunkQueueStarted = false;
 	private totalChunksFullyProcessed = 0;
+
+	private hasReceivedAllBytes = false;
+	private hasLoadedEntireReplay = false;
+	private lastPacketTimestamp = 0;
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
@@ -55,25 +60,36 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			expectedDt = 1000 / 60;
 		}
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
-		const curSec = Math.floor(this.replayCurrentTime / 1000);
-		const prevSec = Math.floor(this.prevReplayTime / 1000);
-		const currentPacketGroup = this.groupedReplayPackets[curSec] ?? [];
-		const prevPacketGroup = this.groupedReplayPackets[prevSec] ?? [];
 
-		let packets: RPCPacketT[];
-		if (curSec != prevSec) packets = [...currentPacketGroup, ...prevPacketGroup];
-		else packets = currentPacketGroup;
-		// if (this.computedReplaySpeed != 0) console.log(`${this.replayCurrentTime} - ${curSec}/${prevSec} - ${inTimeframePackets.length}/${packets.length}`);
+		const seconds = Math.abs(Math.floor(this.replayCurrentTime / 1000) - Math.floor(this.prevReplayTime / 1000));
+		const startInSeconds = Math.max(0, Math.floor(this.prevReplayTime / 1000));
+		const packets: RPCPacketT[] = [];
+		for (let i = 0; i < seconds + 1; i++) {
+			const timeslot = this.groupedReplayPackets[startInSeconds + i * Math.sign(this.computedReplaySpeed)];
+			if (timeslot) {
+				for (let j = 0; j < timeslot.length; j++) packets.push(timeslot[j]);
+			}
+		}
+
+		if (this.replayCurrentTime > this.lastPacketTimestamp) {
+			if (!this.hasLoadedEntireReplay) {
+				console.warn(`Replay is still buffering`);
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+				EventBus.$emit("error-message", `Buffering. Wait a moment then increase the replay speed`);
+				this.replayCurrentTime = this.lastPacketTimestamp;
+			} else if (this.computedReplaySpeed > 0) {
+				console.log(`Replay has ended`);
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+				EventBus.$emit("error-message", `End of replay file`);
+			}
+		}
+
+		if (this.replayCurrentTime < 0) {
+			this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+			this.replayCurrentTime = 0;
+		}
 
 		const inTimeframePackets = packets.filter(packet => this.packetIsInTimeframe(packet));
-		// const minPid = Math.min(...inTimeframePackets.map(p => p.pid ?? 0));
-		// const maxPid = Math.max(...inTimeframePackets.map(p => p.pid ?? 0));
-		// if (this.computedReplaySpeed > 0) {
-		// 	console.log(`Previous time: ${this.prevReplayTime}, Current time: ${this.replayCurrentTime}`);
-		// 	console.log({ curSec, prevSec });
-		// 	console.log({ currentPacketGroup, prevPacketGroup });
-		// 	console.log({ minPid, maxPid });
-		// }
 
 		this.runReplayOnPackets(inTimeframePackets);
 
@@ -161,6 +177,9 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			this.currentChunkIndex++;
 			this.replayChunkQueue.push(chunkBytes);
 		}
+
+		this.hasReceivedAllBytes = true;
+		console.log(`Replay bytes fully received!`);
 	}
 
 	private async handleReplayChunk() {
@@ -198,13 +217,12 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			const delta = rpc.timestamp - this.lastLoadedTimestamp;
 
 			if (delta > 30 * 1000 && this.lastLoadedTimestamp > 0) {
-				console.error(`There was an extremely high delta of ${delta}ms between packets, changing start time to here`);
-				// this.replayStartTime = rpc.timestamp;
-				// relativeTimestamp = 0;
+				console.error(`There was an extremely high delta of ${delta}ms between packets`);
 			}
 			this.lastLoadedTimestamp = rpc.timestamp;
 
 			rpc.timestamp = relativeTimestamp; // Map all timestamps to start at 0
+			this.lastPacketTimestamp = rpc.timestamp;
 
 			const sec = Math.floor(relativeTimestamp / 1000);
 			if (!this.groupedReplayPackets[sec]) this.groupedReplayPackets[sec] = [];
@@ -223,6 +241,12 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		// rpcs.forEach(rpc => this.replayPackets.push(rpc));
 		console.log(`Got replay chunk with ${count} packets (${bytes.length} bytes)`);
 		this.totalChunksFullyProcessed++;
+
+		if (this.hasReceivedAllBytes && this.replayChunkQueue.length == 0) {
+			this.hasLoadedEntireReplay = true;
+			console.log(`Loaded entire replay`);
+			EventBus.$emit("success-message", `Loaded entire replay`);
+		}
 
 		setTimeout(() => this.handleReplayChunk(), 1000 / 60);
 	}
@@ -275,12 +299,12 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		// this.replayStartTime = this.replayPackets[0].timestamp;
 		this.replayCurrentTime = 0;
 
-		let initPackets: RPCPacketT[] = [];
+		// let initPackets: RPCPacketT[] = [];
 		if (this.registeredFirstRealReplayDataTime && this.firstRealReplayDataTime != 0) {
-			initPackets = this.replayPackets.filter(p => p.timestamp < this.firstRealReplayDataTime);
-			console.log(`Handling ${initPackets.length} init packets`);
+			// initPackets = this.replayPackets.filter(p => p.timestamp < this.firstRealReplayDataTime);
+			// console.log(`Handling ${initPackets.length} init packets`);
 			// console.log(JSON.stringify(initPackets));
-			this.runReplayOnPackets(initPackets);
+			// this.runReplayOnPackets(initPackets);
 			this.replayCurrentTime = this.firstRealReplayDataTime;
 			console.log(`Skipping to first real replay data time: ${this.firstRealReplayDataTime}`);
 		} else {

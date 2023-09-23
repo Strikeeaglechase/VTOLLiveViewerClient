@@ -17,7 +17,14 @@
 
 		mounted() {
 			EventBus.$on("error-message", (err: string) => {
-				// this.lobbies = lobbies;
+				this.message = err;
+				this.visible = true;
+				setTimeout(() => {
+					this.visible = false;
+				}, 4000);
+			});
+
+			EventBus.$on("success-message", (err: string) => {
 				this.message = err;
 				this.visible = true;
 				setTimeout(() => {
