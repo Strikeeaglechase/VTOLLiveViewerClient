@@ -5,6 +5,7 @@ import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { addCommas, Application, msToKnots, mToFt } from "../app";
 import { Entity } from "../entityBase/entity";
+import { Settings } from "../settings";
 
 const len = 3;
 const wid = 0.8;
@@ -60,12 +61,17 @@ class MissileEntity extends Entity {
 		super.update(dt);
 		if (!this.isActive) return;
 
-		const baseText = `${this.displayName} [${this.owner.pilotName}]`;
+		const labelOption = Settings.get("Missile Labels");
+		if (labelOption == "Off") this.textOverlay.hide();
+		else this.textOverlay.show();
+
 		if (this.textOverlay.isHovered) {
 			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-			this.textOverlay.edit(`${baseText}\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+			this.textOverlay.edit(`${this.displayName} [${this.owner.pilotName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
 		} else {
-			this.textOverlay.edit(baseText + "\n");
+			let text = `${this.displayName}`;
+			if (labelOption == "All") text += ` [${this.owner.pilotName}]`;
+			this.textOverlay.edit(text + "\n");
 		}
 	}
 

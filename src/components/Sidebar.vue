@@ -1,6 +1,6 @@
 <template>
 	<div id="sidebar">
-		<!-- <SettingsPopoutButton /> -->
+		<SettingsPopoutButton />
 		<div v-for="entity in filterSidebar(entities)" :key="entity.id">
 			<EntityComponent :entity="entity" />
 		</div>
@@ -28,19 +28,14 @@
 		filterSidebar(e: Entity[]): Entity[] {
 			// return e.filter((e) => e.showInSidebar);
 			return e
-				.filter((e) => {
+				.filter(e => {
 					if (e instanceof MissileEntity) return false;
 					if (!e.isActive) return false;
 					if (e.showInSidebar) return true;
 					if (e.isFocus) return true;
 
-					if (!e.hasFoundValidOwner || e.app.currentFocus == null)
-						return false;
-					return (
-						e.app.currentFocus.id == e.owner.entityId &&
-						e.id == e.owner.entityId &&
-						e.isActive
-					);
+					if (!e.hasFoundValidOwner || e.app.currentFocus == null) return false;
+					return e.app.currentFocus.id == e.owner.entityId && e.id == e.owner.entityId && e.isActive;
 				})
 				.slice()
 				.sort((a, b) => this.sortEntitys(a, b));

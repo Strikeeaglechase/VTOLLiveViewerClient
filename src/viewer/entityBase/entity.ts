@@ -37,6 +37,7 @@ type EntityConfig = Partial<{
 	hasOverlay: boolean;
 	useInstancedMesh: boolean;
 	useHostTeam: boolean;
+	onlyShowTypeOnOverlay: boolean;
 }>;
 
 // Used for storing replay data, the entity class may be removed but this data should be kept
@@ -151,6 +152,7 @@ class Entity {
 	public showInBra = false;
 	protected hasBaseLine = false;
 	protected hasOverlay = true;
+	protected onlyShowTypeOnOverlay = false;
 	protected useInstancedMesh = false;
 	protected useHostTeam = true;
 
@@ -166,7 +168,7 @@ class Entity {
 	protected debugBoxHelper: THREE.BoxHelper;
 
 	protected textOverlay: TextOverlay;
-	private textOverlayHasHadFirstUpdate = false;
+	protected textOverlayHasHadFirstUpdate = false;
 
 	public __name: string;
 
@@ -181,6 +183,7 @@ class Entity {
 		this.hasOverlay = config.hasOverlay ?? this.hasOverlay;
 		this.useInstancedMesh = config.useInstancedMesh ?? this.useInstancedMesh;
 		this.useHostTeam = config.useHostTeam ?? this.useHostTeam;
+		this.onlyShowTypeOnOverlay = config.onlyShowTypeOnOverlay ?? this.onlyShowTypeOnOverlay;
 
 		if (!this.showInBra && !this.showInSidebar) {
 			markRaw(this);
@@ -511,7 +514,7 @@ class Entity {
 		if (this.team != Team.Unknown && this.team != team) {
 			console.warn(`Entity ${this} already has team ${this.team}, overwriting with ${team}`);
 		}
-
+		console.log(`Entity ${this} set team to ${Team[team]}`);
 		this.team = team;
 		this.trail.updateColor(teamColors[this.team]);
 	}
@@ -574,7 +577,8 @@ class Entity {
 				const spdText = this.velocity.length() > 25 ? `\n${speed}kn` : "";
 				const alt = this.position.y != -17 ? `${Math.floor(mToFt(this.position.y))}ft` : "";
 				if (this.textOverlay.subOverlays.length == 0) {
-					this.textOverlay.edit(`${this.displayName}\n${alt}${spdText}`);
+					if (this.onlyShowTypeOnOverlay) this.textOverlay.edit(`${this.displayName}`);
+					else this.textOverlay.edit(`${this.displayName}\n${alt}${spdText}`);
 				} else {
 					this.textOverlay.edit(`${this.textOverlay.subOverlays.length + 1}x ${this.displayName}\n${alt}`);
 				}

@@ -164,6 +164,15 @@ class TextOverlay {
 			if (this.elm.classList.contains("hide")) this.elm.classList.remove("hide");
 		}
 
+		this.updateBoundingRect();
+		const mx = Application.instance.mouseX;
+		const my = Application.instance.mouseY;
+		if (this.isInBounds(mx, my)) {
+			this.isHovered = true;
+		} else {
+			this.isHovered = false;
+		}
+
 		// const d = Date.now();
 		// if (d - this.lastUpdateTime < 100) return;
 		// this.lastUpdateTime = d;

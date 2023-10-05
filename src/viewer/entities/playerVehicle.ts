@@ -6,6 +6,7 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
 import { addCommas, Application, deg, ftToMi, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
+import { Settings } from "../settings";
 
 function mark(size: number, color: number) {
 	const markerGeom = new THREE.SphereGeometry(size, 8, 8);
@@ -90,8 +91,14 @@ class PlayerVehicle extends Entity {
 
 		if (this.textOverlay) {
 			if (!this.isLandingLso) {
+				const textOptions = Settings.get("Player Labels");
+				if (textOptions == "Off") this.textOverlay.hide();
+				else this.textOverlay.show();
+
 				const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-				this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`);
+				let text = `${this.owner.pilotName} [${this.displayName}]`;
+				if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
+				this.textOverlay.edit(text);
 			} else {
 				// const aoaRaw = deg(this.position.angleTo(this.velocity));
 				const aoaRaw = this.getAoa();

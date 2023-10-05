@@ -4,6 +4,7 @@ import Vue, { markRaw } from "vue";
 import { RPCController } from "../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import App from "./App.vue";
 import { USE_TIMED_LOG } from "./config";
+// import { THREE } from "./safeThree";
 import { Application } from "./viewer/app";
 
 Vue.config.productionTip = false;

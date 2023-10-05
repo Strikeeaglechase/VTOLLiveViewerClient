@@ -131,6 +131,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		return this.instance.time;
 	}
 
+	public mouseX = 0;
+	public mouseY = 0;
+
 	public entities: Entity[] = [];
 	private entitiesByOwner: Record<string, Entity[]> = {};
 	private entitiesToDelete: Entity[] = [];
@@ -977,6 +980,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		}
 	}
 
+	private handleMouseOver(e: MouseEvent) {
+		this.mouseX = e.clientX;
+		this.mouseY = e.clientY;
+	}
+
 	private addLogMessage(message: string) {
 		console.log(`[GAME] ${message}`);
 		this.logMessages.push({ message, timestamp: this.time, id: logMessageId++ });
@@ -987,6 +995,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		window.addEventListener("resize", () => this.handleResize());
 		window.addEventListener("dblclick", e => this.handleMouseClick(e));
 		window.addEventListener("keydown", e => this.handleKeyDown(e));
+		window.addEventListener("mousemove", e => this.handleMouseOver(e));
 		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
 	}
 

@@ -2,6 +2,7 @@ import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.j
 import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
+import { Settings } from "../settings";
 
 @EnableRPCs("instance")
 class AIAirVehicle extends Entity {
@@ -26,7 +27,12 @@ class AIAirVehicle extends Entity {
 	];
 
 	constructor(app: Application) {
-		super(app, { hasTrail: true, showInBra: false, showInSidebar: false, useInstancedMesh: true });
+		const braSetting = Settings.get("BRA Readouts");
+		super(app, { hasTrail: true, showInBra: braSetting == "Players and AI", showInSidebar: false, useInstancedMesh: true, useHostTeam: false });
+
+		Settings.instance.on("BRA Readouts", (braSetting: string) => {
+			this.showInBra = braSetting == "Players and AI";
+		});
 	}
 
 	// Protect AI team, don't want to inherit from host

@@ -5,6 +5,7 @@ import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
 import { Entity, MAX_OBJECT_SIZE, teamColors } from "../entityBase/entity";
+import { Settings } from "../settings";
 import { radarLaunchRanges } from "./radarLaunchRanges";
 
 @EnableRPCs("instance")
@@ -74,7 +75,8 @@ class AIGroundUnit extends Entity {
 			hasOverlay: true,
 			useInstancedMesh: true,
 			showInBra: false,
-			useHostTeam: false
+			useHostTeam: false,
+			onlyShowTypeOnOverlay: Settings.get("AI Labels") == "Type Only"
 		});
 
 		this.equipManager = null;
@@ -137,6 +139,20 @@ class AIGroundUnit extends Entity {
 		// Make ground units generally bigger
 		// This is sorta scuffed, scale system needs looking at
 		// if (this.scaleDamper == 1) this.scaleDamper = 5;
+
+		if (Settings.get("AI Labels") == "Off") {
+			this.textOverlay?.hide();
+		}
+
+		Settings.instance.on("AI Labels", (labelSetting: string) => {
+			if (labelSetting == "Off") {
+				this.textOverlay?.hide();
+			} else {
+				this.textOverlay?.show();
+				this.onlyShowTypeOnOverlay = labelSetting == "Type Only";
+				this.textOverlayHasHadFirstUpdate = false;
+			}
+		});
 	}
 
 	public update(dt: number): void {

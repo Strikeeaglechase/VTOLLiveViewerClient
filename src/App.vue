@@ -7,6 +7,7 @@
 			<ReplayInfo class="ui" />
 			<LogPanel class="ui" />
 			<LSOOverlay class="ui" />
+			<SettingsPanel class="ui" />
 		</div>
 		<div id="lobby-select-container" class="page" v-show="isLobbySelect()">
 			<LobbyBrowser :state="state" />
@@ -34,6 +35,7 @@
 	import AdminPage from "./components/admin/AdminPage.vue";
 	import LSOOverlay from "./components/LSOOverlay.vue";
 	import ErrorBanner from "./components/ErrorBanner.vue";
+	import SettingsPanel from "./components/settings/SettingsPane.vue";
 
 	@Component({
 		components: {
@@ -46,7 +48,8 @@
 			AdminPage,
 			LSOOverlay,
 			ErrorBanner,
-		},
+			SettingsPanel
+		}
 	})
 	export default class App extends Vue {
 		state: ApplicationRunningState = ApplicationRunningState.welcome;
@@ -61,10 +64,7 @@
 		}
 
 		isLobbySelect() {
-			return (
-				this.state == ApplicationRunningState.lobbySelect ||
-				this.state == ApplicationRunningState.replaySelect
-			);
+			return this.state == ApplicationRunningState.lobbySelect || this.state == ApplicationRunningState.replaySelect;
 		}
 
 		isWelcome() {
