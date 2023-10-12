@@ -148,9 +148,9 @@ class TextOverlay {
 	}
 
 	public update(overlays: TextOverlay[]) {
-		if (Date.now() - this.lastTimeGotPosUpdate > 1000) {
+		if (Application.deltaTime(this.lastTimeGotPosUpdate) > 1000) {
 			// No pos update in one second, start doing low-rate checks
-			const timeFromLastCheck = Date.now() - this.lastTimeCheckedPosUpdate;
+			const timeFromLastCheck = Application.deltaTime(this.lastTimeCheckedPosUpdate);
 			if (timeFromLastCheck > 5000) {
 				this.updatePosition();
 			}

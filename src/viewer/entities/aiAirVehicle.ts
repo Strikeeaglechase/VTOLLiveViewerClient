@@ -28,7 +28,14 @@ class AIAirVehicle extends Entity {
 
 	constructor(app: Application) {
 		const braSetting = Settings.get("BRA Readouts");
-		super(app, { hasTrail: true, showInBra: braSetting == "Players and AI", showInSidebar: false, useInstancedMesh: true, useHostTeam: false });
+		super(app, {
+			hasTrail: true,
+			showInBra: braSetting == "Players and AI",
+			showInSidebar: false,
+			useInstancedMesh: true,
+			useHostTeam: false,
+			removeAfterDeath: true
+		});
 
 		Settings.instance.on("BRA Readouts", (braSetting: string) => {
 			this.showInBra = braSetting == "Players and AI";

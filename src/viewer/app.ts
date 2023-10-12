@@ -130,6 +130,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public static get time() {
 		return this.instance.time;
 	}
+	static deltaTime(from: number) { 
+		return Math.abs(this.time - from);
+	}
 
 	public mouseX = 0;
 	public mouseY = 0;

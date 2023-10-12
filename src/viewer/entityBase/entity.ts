@@ -38,6 +38,7 @@ type EntityConfig = Partial<{
 	useInstancedMesh: boolean;
 	useHostTeam: boolean;
 	onlyShowTypeOnOverlay: boolean;
+	removeAfterDeath: boolean;
 }>;
 
 // Used for storing replay data, the entity class may be removed but this data should be kept
@@ -155,6 +156,7 @@ class Entity {
 	protected onlyShowTypeOnOverlay = false;
 	protected useInstancedMesh = false;
 	protected useHostTeam = true;
+	protected removeAfterDeath = false;
 
 	private isCreatingMesh = false;
 	public canShowAsEquip = true;
@@ -184,6 +186,7 @@ class Entity {
 		this.useInstancedMesh = config.useInstancedMesh ?? this.useInstancedMesh;
 		this.useHostTeam = config.useHostTeam ?? this.useHostTeam;
 		this.onlyShowTypeOnOverlay = config.onlyShowTypeOnOverlay ?? this.onlyShowTypeOnOverlay;
+		this.removeAfterDeath = config.removeAfterDeath ?? this.removeAfterDeath;
 
 		if (!this.showInBra && !this.showInSidebar) {
 			markRaw(this);
@@ -640,6 +643,13 @@ class Entity {
 		this.triggerDamage();
 		if (this.textOverlay) {
 			this.textOverlay.color = "#FF0000";
+		}
+
+		if (this.removeAfterDeath) {
+			this.app.setTimeout(() => {
+				// this.setInactive(`Entity died`);
+				this.remove(`Death triggered`);
+			}, damageFadeTime * 3);
 		}
 
 		this.persistentData.setDeadAt = Application.time;

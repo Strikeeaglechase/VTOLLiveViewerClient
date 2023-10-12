@@ -76,7 +76,8 @@ class AIGroundUnit extends Entity {
 			useInstancedMesh: true,
 			showInBra: false,
 			useHostTeam: false,
-			onlyShowTypeOnOverlay: Settings.get("AI Labels") == "Type Only"
+			onlyShowTypeOnOverlay: Settings.get("AI Labels") == "Type Only",
+			removeAfterDeath: true
 		});
 
 		this.equipManager = null;
