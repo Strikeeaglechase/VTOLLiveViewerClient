@@ -18,10 +18,7 @@
 <script lang="ts">
 	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { EventBus } from "../eventBus";
-	import {
-		RecordedLobbyInfo,
-		VTOLLobby,
-	} from "../../../VTOLLiveViewerCommon/dist/src/shared";
+	import { RecordedLobbyInfo, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import LobbyEntry from "./LobbyEntry.vue";
 	import LobbySearch from "./LobbySearch.vue";
 	import { Application, ApplicationRunningState } from "../viewer/app";
@@ -36,8 +33,8 @@
 			LobbySearch,
 			RecordedLobbyEntry,
 			ReplayUpload,
-			LoginSteam,
-		},
+			LoginSteam
+		}
 	})
 	export default class LobbyBrowser extends Vue {
 		lobbies: VTOLLobby[] = [];
@@ -61,14 +58,25 @@
 			});
 
 			if (location.pathname == "/replay") {
-				const req = await fetch(`${API_URL}/replay/recordings`);
-				this.replayLobbies = await req.json();
+				// const req = await fetch(`${API_URL}/replay/recordings`);
+				// this.replayLobbies = await req.json();
+
+				// if (window.location.search.startsWith(`?replay=`)) {
+				// 	this.replayLobbies = this.replayLobbies.filter(l => l.recordingId == id);
+				// }
 				const id = window.location.search.split("=")[1];
-				if (window.location.search.startsWith(`?replay=`)) {
-					this.replayLobbies = this.replayLobbies.filter(
-						(l) => l.recordingId == id
-					);
+				if (Application.instance.client?.id != undefined) {
+					Application.instance.client.requestReplayLobbies(id || null);
+				} else {
+					Application.instance.on("client_id", () => {
+						Application.instance.client.requestReplayLobbies(id || null);
+					});
 				}
+
+				EventBus.$on("replay_lobby_info", (info: RecordedLobbyInfo) => {
+					if (window.location.search.startsWith(`?replay=`) && info.recordingId != id) return;
+					this.replayLobbies.push(info);
+				});
 			}
 		}
 
@@ -77,18 +85,13 @@
 				return b.playerCount - a.playerCount;
 			});
 
-			return resLobbies.filter((g) => {
+			return resLobbies.filter(g => {
 				if (!g.name || g.name == "") return false;
 				if (this.searchStr == "") {
 					return !g.isPrivate;
 				}
 
-				return (
-					g.name.toLowerCase().includes(this.searchStr.toLowerCase()) ||
-					g.missionName
-						.toLowerCase()
-						.includes(this.searchStr.toLowerCase())
-				);
+				return g.name.toLowerCase().includes(this.searchStr.toLowerCase()) || g.missionName.toLowerCase().includes(this.searchStr.toLowerCase());
 			});
 		}
 
@@ -97,24 +100,21 @@
 				return b.startTime - a.startTime;
 			});
 
-			return resLobbies.filter((g) => {
+			return resLobbies.filter(g => {
+				let isMatch = true;
 				if (this.userSearchStr) {
 					if (!g.metadata) return false;
-					return g.metadata.players.some((p) =>
-						p.name
-							.toLowerCase()
-							.includes(this.userSearchStr.toLowerCase())
-					);
+					const playerIsInLobby = g.metadata.players.some(p => p.name.toLowerCase().includes(this.userSearchStr.toLowerCase()));
+					if (!playerIsInLobby) isMatch = false;
 				}
 
-				return (
-					g.lobbyName
-						.toLowerCase()
-						.includes(this.searchStr.toLowerCase()) ||
-					g.missionName
-						.toLowerCase()
-						.includes(this.searchStr.toLowerCase())
-				);
+				if (this.searchStr) {
+					const lobbyNameMatch = g.lobbyName.toLowerCase().includes(this.searchStr.toLowerCase());
+					const missionNameMatch = g.missionName.toLowerCase().includes(this.searchStr.toLowerCase());
+					if (!lobbyNameMatch && !missionNameMatch) isMatch = false;
+				}
+
+				return isMatch;
 			});
 		}
 

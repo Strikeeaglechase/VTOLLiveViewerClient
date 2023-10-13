@@ -130,7 +130,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public static get time() {
 		return this.instance.time;
 	}
-	static deltaTime(from: number) { 
+	static deltaTime(from: number) {
 		return Math.abs(this.time - from);
 	}
 
@@ -412,26 +412,26 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.testPtParent.position.copy(pos.to(THREE.Vector3));
 
-		const cosa = Math.cos(rot.x);
-		const sina = Math.sin(rot.x);
+		const cosA = Math.cos(rot.x);
+		const sinA = Math.sin(rot.x);
 
-		const cosb = Math.cos(rot.y);
-		const sinb = Math.sin(rot.y);
+		const cosB = Math.cos(rot.y);
+		const sinB = Math.sin(rot.y);
 
-		const cosc = Math.cos(rot.z);
-		const sinc = Math.sin(rot.z);
+		const cosC = Math.cos(rot.z);
+		const sinC = Math.sin(rot.z);
 
-		const Axx = cosa * cosb;
-		const Axy = cosa * sinb * sinc - sina * cosc;
-		const Axz = cosa * sinb * cosc + sina * sinc;
+		const Axx = cosA * cosB;
+		const Axy = cosA * sinB * sinC - sinA * cosC;
+		const Axz = cosA * sinB * cosC + sinA * sinC;
 
-		const Ayx = sina * cosb;
-		const Ayy = sina * sinb * sinc + cosa * cosc;
-		const Ayz = sina * sinb * cosc - cosa * sinc;
+		const Ayx = sinA * cosB;
+		const Ayy = sinA * sinB * sinC + cosA * cosC;
+		const Ayz = sinA * sinB * cosC - cosA * sinC;
 
-		const Azx = -sinb;
-		const Azy = cosb * sinc;
-		const Azz = cosb * cosc;
+		const Azx = -sinB;
+		const Azy = cosB * sinC;
+		const Azz = cosB * cosC;
 
 		const x = 50;
 		const y = 50;

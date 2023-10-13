@@ -1,21 +1,9 @@
 <template>
 	<div class="lobbySearchBar">
-		<input
-			class="lobby-input"
-			id="lobbyInp"
-			type="text"
-			placeholder="Search.."
-			@input="updateSearch()"
-		/>
+		<input class="lobby-input" id="lobbyInp" type="text" placeholder="Search.." @input="updateSearch()" />
 
 		<div v-if="isReplay" class="replay-search">
-			<input
-				class="lobby-input"
-				id="replayUserInp"
-				type="text"
-				placeholder="Search by player.."
-				@input="updateUserSearch()"
-			/>
+			<input class="lobby-input" id="replayUserInp" type="text" placeholder="Search by player.." @input="updateUserSearch()" />
 		</div>
 	</div>
 </template>
@@ -36,7 +24,10 @@
 			// });
 			if (location.pathname == "/replay") {
 				this.isReplay = true;
+				setTimeout(() => this.updateUserSearch(), 500);
 			}
+
+			setTimeout(() => this.updateSearch(), 500);
 		}
 
 		updateSearch() {

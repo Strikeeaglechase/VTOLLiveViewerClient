@@ -2,7 +2,7 @@
 
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { DbUserEntry, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { DbUserEntry, RecordedLobbyInfo, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { EventBus } from "../../eventBus";
 import { setNewUserToken } from "./cookies";
 
@@ -19,6 +19,14 @@ class Client extends EventEmitter<"replay_header"> {
 
 	@RPC("out")
 	setUser(key: string) {}
+
+	@RPC("out")
+	requestReplayLobbies(id: string | null) {}
+
+	@RPC("in")
+	replayLobbyInfo(info: RecordedLobbyInfo) {
+		EventBus.$emit("replay_lobby_info", info);
+	}
 
 	@RPC("out")
 	replayGame(id: string) {}
