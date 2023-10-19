@@ -497,10 +497,10 @@ class Entity {
 			}
 		}
 		// If an entity uses onFirstPos to set active it will drop this update packet - this could be an issue
-		if (!this.isActive) {
-			// console.warn(`Entity ${this} got motion update while inactive`);
-			return;
-		}
+		// if (!this.isActive) {
+		// 	// console.warn(`Entity ${this} got motion update while inactive`);
+		// 	return;
+		// }
 
 		// Handles the weird unity->threejs rotation
 		const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));

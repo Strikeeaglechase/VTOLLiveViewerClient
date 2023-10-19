@@ -2,7 +2,7 @@
 .DS_Store
 node_modules
 /dist
-
+leaks.dont.look
 
 # local env files
 .env.local
