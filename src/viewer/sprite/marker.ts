@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { markRaw } from "vue";
 
 import { IVector3 } from "../../../../VTOLLiveViewerCommon/src/vector.js";
-import { Application } from "../app.js";
+import { Application } from "../app";
+import { Settings } from "../settings";
 import { TextOverlay } from "../textOverlayHandler";
 
 enum MarkerType {
@@ -38,6 +39,16 @@ class Marker {
 		this.app.sceneManager.add(this.sprite);
 
 		this.app.on("unit_scale", (scale: number) => this.setScale(scale));
+
+		Settings.instance.on("Markers", (newState: string) => this.handleSettingsState(newState));
+		const setting = Settings.get("Markers");
+		this.handleSettingsState(setting);
+	}
+
+	private handleSettingsState(state: string) {
+		if (state == "Sprite Only" || state == "Off") this.textOverlay.hide();
+		else this.textOverlay.show();
+		this.sprite.visible = state != "Off";
 	}
 
 	private setScale(scale: number) {
