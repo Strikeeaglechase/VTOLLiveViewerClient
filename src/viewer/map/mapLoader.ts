@@ -2,14 +2,23 @@ import * as THREE from "three";
 
 import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
 import { SceneManager } from "../managers/sceneManager";
-import { chunksPerSide, HeightMap } from "./heightmap";
+import { HeightMap } from "./heightmap";
 
 // This value may be the cause of the heightmap not lining up with the in game map
 const METERS_PER_PIXEL = 153.6;
+const SHOW_CHUNK_BORDERS = false;
 
 // At some point would be nice to match the in game VTOL biomes
 enum Biome {
 	normal
+}
+
+interface ChunkInfo {
+	x: number;
+	y: number;
+	pixPerChunk: number;
+	xHeights: number;
+	yHeights: number;
 }
 
 class MapLoader {
@@ -54,11 +63,17 @@ class MapLoader {
 		let normals: ArrayBuffer;
 		let indices: ArrayBuffer;
 		let colors: ArrayBuffer;
-		let chunkIdx = { x: 0, y: 0, pixPerChunk: 0 };
+		let chunkIdx: ChunkInfo;
 		let idx = 0;
 		let loadedCount = 0;
 		let bytes = 0;
+		let expectedChunks = 0;
 		worker.onmessage = (e: MessageEvent) => {
+			if (expectedChunks == 0) {
+				expectedChunks = e.data.expectedChunks;
+				return;
+			}
+
 			if (e.data instanceof ArrayBuffer) bytes += e.data.byteLength;
 
 			// This is uh... an odd way of parsing the messages, but I need to send as shared memory to prevent a memory copy of all the data
@@ -84,7 +99,7 @@ class MapLoader {
 				this.createChunkMesh(chunkIdx, vertices, normals, indices, colors);
 				idx = 0;
 				loadedCount++;
-				if (loadedCount == chunksPerSide * chunksPerSide) {
+				if (loadedCount == expectedChunks) {
 					console.log(
 						`Chunk loading fully finished. Map load process took ${((Date.now() - start) / 1000).toFixed(2)}sec Map size: ${(bytes / 1000).toFixed(0)}kb`
 					);
@@ -94,13 +109,7 @@ class MapLoader {
 		};
 	}
 
-	private createChunkMesh(
-		chunkIdx: { x: number; y: number; pixPerChunk: number },
-		vertices: ArrayBuffer,
-		normals: ArrayBuffer,
-		indices: ArrayBuffer,
-		colors: ArrayBuffer
-	) {
+	private createChunkMesh(chunkIdx: ChunkInfo, vertices: ArrayBuffer, normals: ArrayBuffer, indices: ArrayBuffer, colors: ArrayBuffer) {
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
 		geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
@@ -118,9 +127,29 @@ class MapLoader {
 				vertexColors: true
 			})
 		);
-		mesh.position.set(chunkIdx.x * METERS_PER_PIXEL * chunkIdx.pixPerChunk, 0, chunkIdx.y * METERS_PER_PIXEL * chunkIdx.pixPerChunk);
+		const chunkX = chunkIdx.x * METERS_PER_PIXEL * chunkIdx.pixPerChunk;
+		const chunkY = chunkIdx.y * METERS_PER_PIXEL * chunkIdx.pixPerChunk;
+		mesh.position.set(chunkX, 0, chunkY);
 		mesh.name = `Chunk ${chunkIdx.x} ${chunkIdx.y}`;
 		this.heightMapMesh.add(mesh);
+
+		if (SHOW_CHUNK_BORDERS) {
+			// Chunk border mesh
+			const chunkWidth = chunkIdx.xHeights * METERS_PER_PIXEL;
+			const chunkHeight = chunkIdx.yHeights * METERS_PER_PIXEL;
+			const borderBox = new THREE.BoxBufferGeometry(chunkWidth, 100000, chunkHeight);
+			const borderMesh = new THREE.Mesh(
+				borderBox,
+				new THREE.MeshLambertMaterial({
+					color: 0xffffff,
+					side: THREE.DoubleSide,
+					wireframe: true
+				})
+			);
+			borderMesh.position.set(chunkX + chunkWidth / 2, 0, chunkY + chunkHeight / 2);
+			borderMesh.name = `Chunk border ${chunkIdx.x} ${chunkIdx.y}`;
+			this.heightMapMesh.add(borderMesh);
+		}
 	}
 
 	public static getColorAtHeight(height: number, biome: Biome): [number, number, number] {

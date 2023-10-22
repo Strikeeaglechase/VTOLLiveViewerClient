@@ -19,7 +19,8 @@ interface HeightMapData {
 	pixPerChunk: number;
 }
 
-const chunksPerSide = 10;
+// const chunksPerSide = 7;
+const pixelsPerChunkSide = 150;
 
 class HeightMap {
 	private maxHeight = 6000;
@@ -81,7 +82,7 @@ class HeightMap {
 		this.map.forEach((row, y) => {
 			row.forEach((height, x) => {
 				// map[y][x] = lerp(this.minHeight, this.maxHeight, height / (4 * 256));
-				map[y][x] = ((this.maxHeight + this.minHeight) / (this.images.length * 256)) * height - this.minHeight;
+				map[y][x] = ((this.maxHeight + this.minHeight) / (this.images.length * 255)) * height - this.minHeight;
 			});
 		});
 
@@ -151,12 +152,13 @@ class HeightMap {
 
 	// Resolve the height map data as chunks
 	public getData(): HeightMapData {
-		const pixPerChunk = Math.floor(this.width / chunksPerSide);
+		// const pixPerChunk = this.width / chunksPerSide;
+
 		const chunks: Chunk[][] = [];
 		for (let y = 0; y < this.height; y++) {
 			for (let x = 0; x < this.width; x++) {
-				const chunkX = Math.floor(x / pixPerChunk);
-				const chunkY = Math.floor(y / pixPerChunk);
+				const chunkX = Math.floor(x / pixelsPerChunkSide);
+				const chunkY = Math.floor(y / pixelsPerChunkSide);
 				if (!chunks[chunkY]) chunks[chunkY] = [];
 				if (!chunks[chunkY][chunkX])
 					chunks[chunkY][chunkX] = {
@@ -167,8 +169,8 @@ class HeightMap {
 						heights: []
 					};
 
-				const subX = x - chunkX * pixPerChunk; // x within the chunk
-				const subY = y - chunkY * pixPerChunk; // y within the chunk
+				const subX = x - chunkX * pixelsPerChunkSide; // x within the chunk
+				const subY = y - chunkY * pixelsPerChunkSide; // y within the chunk
 				if (!chunks[chunkY][chunkX].heights[subY]) chunks[chunkY][chunkX].heights[subY] = [];
 				chunks[chunkY][chunkX].heights[subY][subX] = this.map[y][x];
 			}
@@ -200,9 +202,9 @@ class HeightMap {
 			heights: this.map,
 			width: this.width,
 			height: this.height,
-			pixPerChunk: pixPerChunk
+			pixPerChunk: pixelsPerChunkSide
 		};
 	}
 }
 
-export { HeightMap, HeightMapData, Chunk, chunksPerSide };
+export { HeightMap, HeightMapData, Chunk };

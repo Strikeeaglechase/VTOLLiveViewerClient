@@ -32,6 +32,7 @@ class MapLoaderWorker {
 		console.log(data);
 		console.log(`Height map loaded in ${((Date.now() - d) / 1000).toFixed(3)} seconds`);
 
+		self.postMessage({ expectedChunks: data.chunks.length * data.chunks[0].length });
 		data.chunks.forEach(row => {
 			row.forEach(chunk => {
 				this.processChunk(data, chunk);
@@ -44,8 +45,8 @@ class MapLoaderWorker {
 		const normals = [];
 		const colors: number[] = [];
 
-		for (let x = 0; x < chunk.width; x++) {
-			for (let y = 0; y < chunk.height; y++) {
+		for (let y = 0; y < chunk.height; y++) {
+			for (let x = 0; x < chunk.width; x++) {
 				const yValue = chunk.heights[y][x];
 
 				const vertex = new THREE.Vector3(x * METERS_PER_PIXEL, yValue, y * METERS_PER_PIXEL);
@@ -58,21 +59,22 @@ class MapLoaderWorker {
 		}
 
 		const indices: number[] = [];
-		for (let z = 0; z < chunk.height - 1; z++) {
+		for (let y = 0; y < chunk.height - 1; y++) {
 			for (let x = 0; x < chunk.width - 1; x++) {
-				const a = x + z * chunk.width;
-				const b = x + 1 + z * chunk.width;
-				const c = x + (z + 1) * chunk.width;
-				const d = x + 1 + (z + 1) * chunk.width;
+				const a = x + y * chunk.width;
+				const b = x + 1 + y * chunk.width;
+				const c = x + (y + 1) * chunk.width;
+				const d = x + 1 + (y + 1) * chunk.width;
 
 				indices.push(a, b, d);
 				indices.push(d, c, a);
 			}
 		}
 
-		const vertices = verts.map(v => v.toArray()).flat();
+		const vertices: number[] = [];
+		verts.forEach(v => vertices.push(v.x, v.y, v.z));
 
-		self.postMessage({ x: chunk.indexX, y: chunk.indexY, pixPerChunk: data.pixPerChunk });
+		self.postMessage({ x: chunk.indexX, y: chunk.indexY, pixPerChunk: data.pixPerChunk, yHeights: chunk.heights.length, xHeights: chunk.heights[0].length });
 		self.postMessage(new Float32Array(vertices).buffer, { transfer: [new Float32Array(vertices).buffer] });
 		self.postMessage(new Float32Array(normals).buffer, { transfer: [new Float32Array(normals).buffer] });
 		self.postMessage(new Float32Array(indices).buffer, { transfer: [new Float32Array(indices).buffer] });

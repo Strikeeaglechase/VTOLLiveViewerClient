@@ -370,6 +370,15 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
 		this.entities.push(landingAircraft);
 
+		await this.mapLoader.loadHeightmapFromMission({
+			campaignId: "mp_pvpscenarios",
+			id: "airshowFreeflight",
+			isBuiltin: true,
+			mapId: "hMap2",
+			name: "BVR",
+			workshopId: "built-in"
+		});
+
 		const waypointMarker = new Marker(MarkerType.Waypoint, "Waypoint", new Vector(0, 50, 0), this);
 		const gpsMarker = new Marker(MarkerType.GPSPoint, "GPS", new Vector(-10, 50, 0), this);
 		const bullsMarker = new Marker(MarkerType.Bullseye, "Bullseye", new Vector(10, 50, 0), this);
@@ -379,7 +388,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			// cam.position.set(-2, 57, -90);
 			// carrier.focus();
 
-			aircraft2.focus();
+			// aircraft2.focus();
 			// aircraft2.UpdateData(new Vector(20, 0, 0), new Vector(0, 0, 1000), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
