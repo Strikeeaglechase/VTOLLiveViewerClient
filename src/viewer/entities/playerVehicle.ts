@@ -17,7 +17,7 @@ function mark(size: number, color: number) {
 	return markerMesh;
 }
 
-@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55"])
+@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24"])
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
@@ -41,7 +41,7 @@ class PlayerVehicle extends Entity {
 		this.onScaleUpdate();
 	}
 
-	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55"];
+	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55", "Vehicles/EF-24"];
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInSidebar: true, showInBra: true });
@@ -188,7 +188,7 @@ class PlayerVehicle extends Entity {
 	@RPC("in")
 	SetLock(actorId: number, isLocked: boolean) {
 		if (!this.lockLine) return;
-		console.log(`${this} SetLock ${actorId} ${isLocked}`);
+		// console.log(`${this} SetLock ${actorId} ${isLocked}`);
 		const actor = this.app.getEntityByUnitId(actorId);
 		if (!actor) return console.error(`Unable to find ActorId ${actorId} for SetLock ${isLocked}`);
 

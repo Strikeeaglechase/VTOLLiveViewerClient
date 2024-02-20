@@ -3,8 +3,9 @@
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { DbUserEntry, RecordedLobbyInfo, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { COOKIE_DOMAIN, LOGOUT_URL } from "../../config";
 import { EventBus } from "../../eventBus";
-import { setNewUserToken } from "./cookies";
+import { eraseCookie, setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
 class Client extends EventEmitter<"replay_header"> {
@@ -26,6 +27,11 @@ class Client extends EventEmitter<"replay_header"> {
 	@RPC("in")
 	replayLobbyInfo(info: RecordedLobbyInfo) {
 		EventBus.$emit("replay_lobby_info", info);
+	}
+	@RPC("in")
+	invalidateToken() {
+		eraseCookie("user_token", COOKIE_DOMAIN);
+		window.location.assign(LOGOUT_URL);
 	}
 
 	@RPC("out")

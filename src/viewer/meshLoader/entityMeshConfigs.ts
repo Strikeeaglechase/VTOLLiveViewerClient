@@ -34,10 +34,15 @@ export const entityMeshs: EntityMeshConfig[] = [
 		engineOffsets: [new Vector(-5, 0, 0), new Vector(5, 0, 0)]
 	},
 	{
-		key: "Vehicles/AH-94",
-		path: "./assets/objects/output/vtolvr_ah-94.gltf",
-		position: new Vector(0, -1, -2),
-		loadScale: 10
+		key: "Vehicles/T-55",
+		path: "./assets/objects/t55.obj",
+		position: new Vector(0, 0, 0),
+		rotation: new Vector(Math.PI / 2, Math.PI, 0),
+		loadScale: 0.019
+	},
+	{
+		key: "Vehicles/T-55",
+		path: "./assets/objects/vtolvr_T-55.gltf"
 	},
 	{
 		key: "Units/Allied/AlliedCarrier",

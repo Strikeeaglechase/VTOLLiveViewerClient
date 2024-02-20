@@ -9,6 +9,6 @@ export const WS_URL = IS_DEV ? "ws://localhost:8010" : "wss://vtolvr.live";
 export const LOGIN_URL = IS_DEV ? "http://localhost:8010/api/auth/steam/login" : "https://vtolvr.live/api/auth/steam/login";
 export const LOGOUT_URL = IS_DEV ? "http://localhost:8010/api/auth/logout" : "https://vtolvr.live/api/auth/logout";
 export const REFRESH_URL = IS_DEV ? "http://localhost:8010/api/auth/refresh" : "https://vtolvr.live/api/auth/refresh";
-export const STORAGE_URL = IS_DEV ? "http://localhost:8014" : "https://storage.vtolvr.live";
+export const STORAGE_URL = IS_DEV ? "http://127.0.1.1:8014" : "https://storage.vtolvr.live";
 export const COOKIE_DOMAIN = IS_DEV ? "localhost" : ".vtolvr.live";
 export const IS_ALPHA = true;

@@ -324,7 +324,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		let id = 1;
 		const aircraft = new PlayerVehicle(this);
-		await aircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
+		await aircraft.spawn(id++, "0", "Vehicles/T-55", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
 
 		const aircraft2 = new PlayerVehicle(this);
@@ -370,22 +370,22 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
 		this.entities.push(landingAircraft);
 
-		await this.mapLoader.loadHeightmapFromMission({
-			campaignId: "mp_pvpscenarios",
-			id: "airshowFreeflight",
-			isBuiltin: true,
-			mapId: "hMap2",
-			name: "BVR",
-			workshopId: "built-in"
-		});
+		// await this.mapLoader.loadHeightmapFromMission({
+		// 	campaignId: "mp_pvpscenarios",
+		// 	id: "airshowFreeflight",
+		// 	isBuiltin: true,
+		// 	mapId: "hMap2",
+		// 	name: "BVR",
+		// 	workshopId: "built-in"
+		// });
 
-		const waypointMarker = new Marker(MarkerType.Waypoint, "Waypoint", new Vector(0, 50, 0), this);
-		const gpsMarker = new Marker(MarkerType.GPSPoint, "GPS", new Vector(-10, 50, 0), this);
-		const bullsMarker = new Marker(MarkerType.Bullseye, "Bullseye", new Vector(10, 50, 0), this);
+		// const waypointMarker = new Marker(MarkerType.Waypoint, "Waypoint", new Vector(0, 50, 0), this);
+		// const gpsMarker = new Marker(MarkerType.GPSPoint, "GPS", new Vector(-10, 50, 0), this);
+		// const bullsMarker = new Marker(MarkerType.Bullseye, "Bullseye", new Vector(10, 50, 0), this);
 
 		const cam = this.sceneManager.cameraController.fakeCamera;
 		setTimeout(async () => {
-			// cam.position.set(-2, 57, -90);
+			cam.position.set(-2, 57, -90);
 			// carrier.focus();
 
 			// aircraft2.focus();

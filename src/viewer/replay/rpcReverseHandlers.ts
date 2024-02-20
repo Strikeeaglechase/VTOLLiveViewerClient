@@ -49,7 +49,7 @@ replaceRPCHandlers.push({
 	className: "PlayerVehicle",
 	method: "SetLock",
 	handler: (controller: ReplayController, rpc: RPCPacketT) => {
-		console.log(`Reversing SetLock for ${rpc.id} -> ${rpc.args[0]} (was ${rpc.args[1]})`);
+		// console.log(`Reversing SetLock for ${rpc.id} -> ${rpc.args[0]} (was ${rpc.args[1]})`);
 		const rpcCopy = JSON.parse(JSON.stringify(rpc));
 		rpcCopy.args[1] = !rpcCopy.args[1];
 		return rpcCopy;
