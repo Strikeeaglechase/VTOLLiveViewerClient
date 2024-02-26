@@ -38,9 +38,22 @@ class MeshLoader {
 
 	public async load(entityKey: string): Promise<THREE.Group | null> {
 		if (entityKey.includes("/Missiles/")) return null;
+		const isKeyFrag = !entityKey.includes("/"); // No `/` means its the final part of a key, not a full key
 		if (this.cache[entityKey]) return this.cache[entityKey];
+		if (isKeyFrag) {
+			// Try to find cached mesh from fragment
+			const cacheKey = Object.keys(this.cache).find(key => key.endsWith(entityKey));
+			if (cacheKey) {
+				console.log(`Path fragment ${entityKey} found in cache as ${cacheKey}`);
+				return this.cache[cacheKey];
+			}
+		}
 
-		const config = entityMeshs.find(e => e.key == entityKey);
+		const config = entityMeshs.find(e => {
+			if (e.key.includes(entityKey)) return true;
+			if (!isKeyFrag) return false;
+			return e.key.some(k => k.endsWith(entityKey)); // If the key is a fragment, check if it ends with the fragment
+		});
 
 		let path: string;
 		if (config) {
@@ -123,7 +136,7 @@ class MeshLoader {
 		// We need to keep track of what we are currently loading so we don't load it twice
 		this.currentLoadingQueue.add(entityKey);
 
-		const config = entityMeshs.find(e => e.key == entityKey);
+		const config = entityMeshs.find(e => e.key.includes(entityKey));
 
 		let path: string;
 		if (config) {
@@ -219,7 +232,7 @@ class MeshLoader {
 
 	// Normal mesh uses offsets assigned on load, IMesh can't so offsets are given to the entity for management
 	public getOffsets(entityKey: string): IMeshOffsets {
-		const config = entityMeshs.find(e => e.key == entityKey);
+		const config = entityMeshs.find(e => e.key.includes(entityKey));
 		if (!config) return { pos: null, rot: new Vector(0, Math.PI, 0) };
 		return {
 			pos: config.position ?? null,
@@ -232,21 +245,21 @@ class MeshLoader {
 	}
 
 	public getScaleDamper(entityKey: string) {
-		const config = entityMeshs.find(em => em.key == entityKey);
+		const config = entityMeshs.find(em => em.key.includes(entityKey));
 		if (!config || !config.scaleDamper) return 1;
 
 		return config.scaleDamper;
 	}
 
 	public getScale(entityKey: string) {
-		const config = entityMeshs.find(em => em.key == entityKey);
+		const config = entityMeshs.find(em => em.key.includes(entityKey));
 		if (!config || !config.loadScale) return 1;
 
 		return config.loadScale;
 	}
 
 	public getEngineOffsets(entityKey: string) {
-		const config = entityMeshs.find(em => em.key == entityKey);
+		const config = entityMeshs.find(em => em.key.includes(entityKey));
 		if (!config || !config.engineOffsets) return null;
 
 		return config.engineOffsets;

@@ -9,6 +9,7 @@ import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { TextOverlay } from "../textOverlayHandler";
 import { EquipManager } from "./equipManager";
+import { RadarJammerSync } from "./jammer";
 import { SimpleUnitTrail } from "./simpleUnitTrail";
 
 const len = 7;
@@ -67,6 +68,7 @@ class Entity {
 	public hasFoundValidOwner = false;
 	public owner = Player.empty;
 	public displayName: string;
+	public jammers: RadarJammerSync[] = [];
 
 	public gForce = 0;
 	public maxGForce = 0;
@@ -78,6 +80,7 @@ class Entity {
 	public object: THREE.Object3D;
 	public mesh: THREE.Mesh | THREE.Group;
 	public meshProxyObject: THREE.Object3D;
+	protected sasGeom: THREE.Group;
 
 	private damage: {
 		mesh: THREE.Mesh;
@@ -679,7 +682,7 @@ class Entity {
 	}
 
 	public async remove(reason: string): Promise<void> {
-		console.warn(`Removing entity ${this} because ${reason}`);
+		console.log(`Removing entity ${this} because ${reason}`);
 
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
@@ -691,6 +694,7 @@ class Entity {
 
 		if (!this.persistentData.setInactiveAt && this.app.timeDirection == 1) this.persistentData.setInactiveAt = Application.time;
 		RPCController.deregister(this);
+		this.jammers.forEach(j => j.remove());
 		this.app.finalDeleteEntity(this); // Queue a request to remove entity from list
 		if (!this.isActive) return;
 
@@ -715,6 +719,44 @@ class Entity {
 
 		this.scene.remove(this.object);
 		this.isActive = false;
+	}
+
+	public async setSasMesh(type: string) {
+		const model = await this.app.meshLoader.load(type);
+		if (!model) {
+			console.error(`Failed to load SAS mesh for ${this}`);
+			return;
+		}
+
+		if (this.sasGeom == model) {
+			this.sasGeom.visible = true;
+			return;
+		}
+
+		if (this.sasGeom) {
+			this.meshProxyObject.remove(this.sasGeom); // Memory leak?
+		}
+
+		console.log(`Setting SAS mesh for ${this} to ${type}`);
+
+		const mat = new THREE.MeshBasicMaterial({ color: "#0000FF", wireframe: true });
+		model.traverse(obj => {
+			if (obj instanceof THREE.Mesh) {
+				obj.material = mat;
+			}
+		});
+		model.scale.set(2, 2, 2);
+
+		this.meshProxyObject.add(model);
+		this.sasGeom = model;
+	}
+
+	public showSasMesh() {
+		if (this.sasGeom) this.sasGeom.visible = true;
+	}
+
+	public hideSasMesh() {
+		if (this.sasGeom) this.sasGeom.visible = false;
 	}
 
 	static identifierToDisplayName(identifier: string): string {

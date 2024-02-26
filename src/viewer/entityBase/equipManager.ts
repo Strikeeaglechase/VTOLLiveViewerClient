@@ -20,9 +20,12 @@ const displayEquips: Record<string, string> = {
 	"asf30_gun": "GUN",
 	"asf58_gun": "GUN",
 	"t55_gun": "Vulcan",
+	"ef24_gun": "Vulcan",
 
 	// TGPs:
 	"fa26_tgp": "TGP",
+	"t55_tgp": "TGP",
+	"ef24_tgp": "TGP",
 
 	// Tanks:
 	"f45_droptank": "Drop Tank",

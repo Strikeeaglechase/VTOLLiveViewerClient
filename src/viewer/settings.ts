@@ -5,7 +5,7 @@ enum SettingType {
 	Dropdown = 0
 }
 
-type SettingName = "Missile Labels" | "Player Labels" | "BRA Readouts" | "AI Labels" | "Markers";
+type SettingName = "Missile Labels" | "Player Labels" | "BRA Readouts" | "AI Labels" | "Markers" | "Show Jamming";
 
 interface ISetting {
 	name: SettingName;
@@ -95,6 +95,13 @@ Settings.register({
 	type: SettingType.Dropdown,
 	options: ["Off", "Sprite Only", "All"],
 	default: "All"
+});
+
+Settings.register({
+	name: "Show Jamming",
+	type: SettingType.Dropdown,
+	options: ["Yes", "No"],
+	default: "Yes"
 });
 
 Settings.init();

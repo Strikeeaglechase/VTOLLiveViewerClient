@@ -1,3 +1,5 @@
+import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
+import { RadarJammerSync } from "../entityBase/jammer.js";
 import { ReplayController, RPCPacketT } from "./replayController";
 
 interface ReplaceRPCHandler {
@@ -95,6 +97,69 @@ replaceRPCHandlers.push({
 
 		entity.reverseDeath();
 
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "RadarJammerSync",
+	method: "BeginJam",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		console.log(`Reversing BeginJam for ${rpc.args[0]}`);
+		const newRpc: RPCPacketT = {
+			className: rpc.className,
+			method: "EndJam",
+			id: rpc.id,
+			args: [rpc.args[0]],
+			timestamp: rpc.timestamp
+		};
+
+		return newRpc;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "RadarJammerSync",
+	method: "EndJam",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const newRpc: RPCPacketT = {
+			className: rpc.className,
+			method: "BeginJam",
+			id: rpc.id,
+			args: [rpc.args[0], { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }],
+			timestamp: rpc.timestamp
+		};
+
+		return newRpc;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "RadarJammerSync",
+	method: "TMode",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const jammer = RPCController.getRpcHandler("RadarJammerSync", rpc.id as string);
+		if (!jammer) {
+			console.warn(`No jammer found for reverse tMode RPC ${rpc.id}`);
+			return false;
+		}
+
+		jammer.popMode(rpc.args[0]);
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "RadarJammerSync",
+	method: "TDecoyModel",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const jammer: RadarJammerSync = RPCController.getRpcHandler("RadarJammerSync", rpc.id as string);
+		if (!jammer) {
+			console.warn(`No jammer found for reverse TDecoyModel RPC ${rpc.id}`);
+			return false;
+		}
+
+		jammer.popModel(rpc.args[0]);
 		return false;
 	}
 });

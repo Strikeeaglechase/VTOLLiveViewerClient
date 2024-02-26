@@ -2,11 +2,7 @@
 	<div class="lobby-browser-entry">
 		<div class="thumbnail-container-hor">
 			<div class="thumbnail-container-vert">
-				<img
-					class="thumbnail"
-					:src="getPreviewImageUrl()"
-					onerror="this.src='https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png'"
-				/>
+				<img class="thumbnail" :src="getPreviewImageUrl()" onerror="this.src='no_preview.png'" />
 			</div>
 		</div>
 
@@ -105,8 +101,6 @@
 		}
 
 		getPreviewImageUrl() {
-			// if (!this.lobby.mission)
-			// 	return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
 			let wsId = this.lobby.workshopId;
 			// Support for old name scheme
 			if ("type" in this.lobby) {

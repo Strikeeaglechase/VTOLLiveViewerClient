@@ -43,7 +43,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 
 	private hasReceivedAllBytes = false;
 	private hasLoadedEntireReplay = false;
-	private lastPacketTimestamp = 0;
+	private lastPacketTimestamp = -1;
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
@@ -74,10 +74,11 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 
 		if (this.replayCurrentTime > this.lastPacketTimestamp) {
 			if (!this.hasLoadedEntireReplay) {
-				console.warn(`Replay is still buffering`);
+				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
 				EventBus.$emit("error-message", `Buffering. Wait a moment then increase the replay speed`);
 				this.replayCurrentTime = this.lastPacketTimestamp;
+				return 0;
 			} else if (this.computedReplaySpeed > 0) {
 				console.log(`Replay has ended`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
@@ -91,6 +92,8 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		}
 
 		const inTimeframePackets = packets.filter(packet => this.packetIsInTimeframe(packet));
+		// if (this.computedReplaySpeed > 0)
+		// console.log(`Between ${this.prevReplayTime} and ${this.replayCurrentTime} there are ${inTimeframePackets.length} packets`);
 
 		this.runReplayOnPackets(inTimeframePackets);
 

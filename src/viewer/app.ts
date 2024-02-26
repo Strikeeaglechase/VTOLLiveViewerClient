@@ -21,6 +21,7 @@ import { GunEntity } from "./entities/gunEntity";
 import { HardpointEntity } from "./entities/hardpointEntity";
 import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
+import { RadarJammerSync } from "./entityBase/jammer";
 import { BulletManager } from "./managers/bulletManager";
 import { FlareManager } from "./managers/flareManager";
 import { LSOManager } from "./managers/lsoManager";
@@ -79,6 +80,19 @@ class MessageHandler {
 	SetEntityUnitID(entityId: number, unitId: number) {
 		const entity = this.app.entities.find(e => e.id == entityId);
 		if (entity) entity.setUnitId(unitId);
+	}
+
+	@RPC("in")
+	CreateJammer(entityId: number, jammerId: string) {
+		const entity = this.app.getEntityById(entityId);
+		if (!entity) {
+			console.error(`Got CreateJammer for unknown entity ${entityId}. JammerId: ${jammerId}`);
+			return;
+		}
+
+		console.log(`CreateJammer for ${entity} with id ${jammerId}`);
+		const jammer = new RadarJammerSync(entity, jammerId);
+		entity.jammers.push(jammer);
 	}
 }
 
@@ -211,11 +225,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		});
 
 		RPCController.init(packet => {
-			const pckt = {
+			const socketPacket = {
 				...packet,
 				type: PacketType.rpcPacket
 			};
-			this.socket.send(JSON.stringify(pckt));
+			this.socket.send(JSON.stringify(socketPacket));
 		});
 
 		// }
@@ -326,12 +340,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		const aircraft = new PlayerVehicle(this);
 		await aircraft.spawn(id++, "0", "Vehicles/T-55", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
+		const jammer = new RadarJammerSync(aircraft, "8008");
+		aircraft.jammers.push(jammer);
 
 		const aircraft2 = new PlayerVehicle(this);
 		await aircraft2.spawn(id++, "0", "Vehicles/SEVTF", new Vector(20, 0, 0), new Vector(0, 0, 0), true);
 
 		const aircraft3 = new PlayerVehicle(this);
-		await aircraft3.spawn(id++, "0", "Vehicles/VTOL4", new Vector(-20, 0, 10000), new Vector(0, 0, 0), true);
+		await aircraft3.spawn(id++, "0", "Vehicles/VTOL4", new Vector(2000, 0, 10000), new Vector(0, 0, 0), true);
 
 		// const aircraft4 = new AIAirVehicle(this);
 		// aircraft4.spawn(id++, "0", "Units/Allied/KC-49", new Vector(-40, 0, 0), new Vector(0, 0, 0), true);
@@ -392,6 +408,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			// aircraft2.UpdateData(new Vector(20, 0, 0), new Vector(0, 0, 1000), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
 			console.log(`Test post-load setup!`);
 			this.messageHandler.NetInstantiate(id++, "0", "HPEquips/AFighter/fa26_gun", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
+
+			aircraft.jammers[0].BeginJam(0, aircraft3.position, aircraft3.velocity);
+			// aircraft.jammers[0].UpdateJam(0, aircraft3.position, aircraft3.velocity, 100, 0, 0);
 
 			missile.setUnitId(100);
 			let r = 0;
@@ -647,6 +666,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		if (this.entities.some(e => e.id == entity.id)) {
 			console.error(`Duplicate entity id ${entity.id}!`);
 			console.log(entity);
+			return;
 		}
 
 		this.entities.push(entity);

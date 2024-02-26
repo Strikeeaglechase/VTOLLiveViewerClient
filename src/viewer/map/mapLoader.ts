@@ -28,6 +28,7 @@ class MapLoader {
 	constructor(private sceneManager: SceneManager) {}
 
 	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
+		return;
 		const start = Date.now();
 
 		const worker = new Worker(new URL("./mapLoad.worker.ts", import.meta.url));

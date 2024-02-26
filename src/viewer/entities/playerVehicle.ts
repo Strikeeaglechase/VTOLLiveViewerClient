@@ -190,7 +190,7 @@ class PlayerVehicle extends Entity {
 		if (!this.lockLine) return;
 		// console.log(`${this} SetLock ${actorId} ${isLocked}`);
 		const actor = this.app.getEntityByUnitId(actorId);
-		if (!actor) return console.error(`Unable to find ActorId ${actorId} for SetLock ${isLocked}`);
+		if (!actor) return; //console.error(`Unable to find ActorId ${actorId} for SetLock ${isLocked}`);
 
 		if (isLocked) {
 			this.lockLine.lockEntity(actor);

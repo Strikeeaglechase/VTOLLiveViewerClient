@@ -2,12 +2,7 @@
 	<div class="lobby-browser-entry" :class="{ privLob: lobby.isPrivate }">
 		<div class="thumbnail-container-hor">
 			<div class="thumbnail-container-vert">
-				<img
-					class="thumbnail"
-					:class="{ faded: lobby.playerCount >= lobby.maxPlayers }"
-					:src="getPreviewImageUrl()"
-					onerror="this.src='https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png'"
-				/>
+				<img class="thumbnail" :class="{ faded: lobby.playerCount >= lobby.maxPlayers }" :src="getPreviewImageUrl()" onerror="this.src='no_preview.png'" />
 			</div>
 		</div>
 
@@ -71,7 +66,7 @@
 		}
 
 		getPreviewImageUrl() {
-			if (!this.lobby.mission) return "https://cdn.discordapp.com/attachments/764631819642863626/997338764198297670/no_preview.png";
+			if (!this.lobby.mission) return "no_preview.png";
 
 			if (this.lobby.mission.isBuiltin) return `${API_URL}/workshop/preview/${this.lobby.mission.campaignId}/${this.lobby.mission.id}`;
 			return `${API_URL}/workshop/preview/${this.lobby.mission.workshopId}/${this.lobby.mission.id}`;

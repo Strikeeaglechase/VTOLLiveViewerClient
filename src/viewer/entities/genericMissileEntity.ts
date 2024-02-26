@@ -11,7 +11,7 @@ const len = 3;
 const wid = 0.8;
 const hei = 0.6;
 
-@EnableRPCs("instance")
+@EnableRPCs("instance", ["MissileEntity", "MALD"])
 class MissileEntity extends Entity {
 	public fired = false;
 	public dims = { len, wid, hei };

@@ -14,7 +14,8 @@ class GunEntity extends Entity {
 		"HPEquips/VTOL/m230",
 		"HPEquips/VTOL/gau-8",
 		"HPEquips/AH-94/ah94_gun",
-		"HPEquips/T-55/t55_gun"
+		"HPEquips/T-55/t55_gun",
+		"HPEquips/EF-24/ef24_gun"
 	];
 	get debugName() {
 		return `GunEntity (${this.id ?? ""})`;
