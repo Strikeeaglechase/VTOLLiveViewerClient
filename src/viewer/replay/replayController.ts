@@ -289,7 +289,9 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	}
 
 	private async beginDownloadFromStore(replayId: string) {
-		const downloadRequestUrl = `${STORAGE_URL}/read_unzip/recordings%2F${replayId}.vtgr/data.bin`;
+		const fPath = encodeURIComponent(`recordings/${replayId}.vtgr`);
+		const fName = `data.bin`;
+		const downloadRequestUrl = `${STORAGE_URL}/read_unzip/?key=${fPath}&file=${fName}`;
 		console.log(`Requesting replay from ${downloadRequestUrl}`);
 
 		const request = await fetch(downloadRequestUrl);
