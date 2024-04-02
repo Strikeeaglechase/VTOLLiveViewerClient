@@ -27,6 +27,10 @@ class PlayerVehicle extends Entity {
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
 
+	// private carrierApproachTestSphere: THREE.Mesh;
+	// private carrierApproachTestSphere2: THREE.Mesh;
+	// private carrierRelativePosSphere: THREE.Mesh;
+
 	// private velocityMarker: THREE.Mesh;
 	// private headingMarker: THREE.Mesh;
 
@@ -69,6 +73,11 @@ class PlayerVehicle extends Entity {
 		// this.velocityMarker = mark(1, 0x00ff00);
 		// this.headingMarker = mark(1, 0x0000ff);
 		// this.app.sceneManager.add(this.velocityMarker, this.headingMarker);
+
+		// this.carrierApproachTestSphere = mark(1, 0xff0000);
+		// this.carrierApproachTestSphere2 = mark(1, 0x0000ff);
+		// this.carrierRelativePosSphere = mark(1, 0x00ff00);
+		// this.app.sceneManager.add(this.carrierApproachTestSphere, this.carrierRelativePosSphere, this.carrierApproachTestSphere2);
 	}
 
 	protected override onScaleUpdate(): void {
@@ -88,6 +97,25 @@ class PlayerVehicle extends Entity {
 			console.warn(`Entity ${this.debugName} has team ${this.team} but owner ${this.owner.pilotName} has team ${this.owner.team}`);
 			this.setTeam(this.owner.team);
 		}
+
+		// const carrier = this.app.entities.find(e => e.type.toLowerCase() == "units/allied/alliedcarrier");
+		// if (!carrier) return;
+
+		// const carrierRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(carrier.rotation.x, carrier.rotation.y, carrier.rotation.z));
+		// const carrierRotation2 = new THREE.Quaternion().setFromEuler(new THREE.Euler(carrier.rotation.x, carrier.rotation.y + rad(10), carrier.rotation.z));
+		// const relativePos = this.position.clone().subtract(carrier.position);
+		// const carrierForward = new THREE.Vector3(1, 0, 0).applyQuaternion(carrierRotation);
+		// const carrierForward2 = new THREE.Vector3(1, 0, 0).applyQuaternion(carrierRotation2);
+		// const onPlane = new THREE.Vector3(relativePos.x, relativePos.y, relativePos.z).projectOnPlane(carrierForward);
+		// const onPlane2 = new THREE.Vector3(relativePos.x, relativePos.y, relativePos.z).projectOnPlane(carrierForward2);
+
+		// const cx = carrier.position.x;
+		// const cy = carrier.position.y;
+		// const cz = carrier.position.z;
+		// const cfO = carrierForward2.normalize().multiplyScalar(20);
+		// this.carrierRelativePosSphere.position.set(cx + relativePos.x, cy + relativePos.y, cz + relativePos.z);
+		// this.carrierApproachTestSphere2.position.set(cx + onPlane2.x + cfO.x, cy + onPlane2.y + cfO.y, cz + onPlane2.z + cfO.z);
+		// this.carrierApproachTestSphere.position.set(cx + onPlane.x, cy + onPlane.y, cz + onPlane.z);
 
 		if (this.textOverlay) {
 			if (!this.isLandingLso) {
@@ -164,9 +192,14 @@ class PlayerVehicle extends Entity {
 	}
 
 	@RPC("in")
-	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number) {
+	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean) {
 		this.throttle = throttle;
 		this.updateMotion(pos, vel, accel, rot);
+
+		// const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
+		// const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
+		// const aoa = this.velocity.angleTo(Vector.from(forward));
+		// console.log(`Aoa: ${deg(aoa)}`);
 	}
 
 	@RPC("in")

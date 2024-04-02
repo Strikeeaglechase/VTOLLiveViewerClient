@@ -4,6 +4,7 @@ import { markRaw } from "vue";
 import { Application } from "../app";
 import { CameraController } from "../cameraController";
 import { CSS2DObject, CSS2DRenderer } from "../CSS2DRenderer";
+import { Settings } from "../settings";
 import { TextOverlay } from "../textOverlayHandler";
 
 // const D_SCALE_MIN = 1000;
@@ -97,8 +98,14 @@ class SceneManager {
 
 		const camPos = this.camera.getWorldPosition(new THREE.Vector3());
 
+		const scaleMode = Settings.get("Scale Mode");
 		this.app.entities.forEach(entity => {
 			if (!entity.isActive) return;
+			if (scaleMode == "Real") {
+				entity.scale = 1;
+				return;
+			}
+
 			if (overrideZoom == 0) {
 				const d = entity.position.distanceTo(camPos);
 				entity.scale = this.calculateScale(d);
