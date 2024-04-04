@@ -104,7 +104,10 @@
 				let isMatch = true;
 				if (this.userSearchStr) {
 					if (!g.metadata) return false;
-					const playerIsInLobby = g.metadata.players.some(p => p.name.toLowerCase().includes(this.userSearchStr.toLowerCase()));
+					const playerIsInLobby = g.metadata.players.some(p => {
+						if (!p.name) return false;
+						return p.name.toLowerCase().includes(this.userSearchStr.toLowerCase());
+					});
 					if (!playerIsInLobby) isMatch = false;
 				}
 
