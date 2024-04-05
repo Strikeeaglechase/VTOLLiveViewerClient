@@ -24,6 +24,7 @@
 </template>
 
 <script lang="ts">
+	import { urlencoded } from "express";
 	import { Component, Prop, Vue } from "vue-property-decorator";
 	import { LobbyConnectionStatus, RecordedLobbyInfo, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared";
 	import { API_URL } from "../config";
@@ -79,21 +80,24 @@
 		}
 
 		async download() {
-			const req = await fetch(`${API_URL}/replay/recordings/${this.lobby.recordingId}`);
-			if (req.status >= 300) {
-				alert(`Failed to download replay: ${req.statusText} (${req.status})`);
-				return;
-			}
-			const data = await req.blob();
-			const url = window.URL.createObjectURL(data);
-			const a = document.createElement("a");
-			a.style.display = "none";
-			a.download = `${this.lobby.lobbyName}-${new Date(this.lobby.startTime || Date.now()).toISOString()}.vtgr`;
-			a.href = url;
-			document.body.appendChild(a);
-			a.click();
-			// console.log(a);
-			window.URL.revokeObjectURL(url);
+			const dlName = `${this.lobby.lobbyName}-${new Date(this.lobby.startTime || Date.now()).toISOString()}.vtgr`;
+			const url = `${API_URL}/replay/recordings/${this.lobby.recordingId}/${encodeURIComponent(dlName)}`;
+			window.open(url, "_blank").focus();
+			// const req = await fetch(`${API_URL}/replay/recordings/${this.lobby.recordingId}`);
+			// if (req.status >= 300) {
+			// 	alert(`Failed to download replay: ${req.statusText} (${req.status})`);
+			// 	return;
+			// }
+			// const data = await req.blob();
+			// const url = window.URL.createObjectURL(data);
+			// const a = document.createElement("a");
+			// a.style.display = "none";
+			// a.download = `${this.lobby.lobbyName}-${new Date(this.lobby.startTime || Date.now()).toISOString()}.vtgr`;
+			// a.href = url;
+			// document.body.appendChild(a);
+			// a.click();
+			// // console.log(a);
+			// window.URL.revokeObjectURL(url);
 		}
 
 		getDate() {
