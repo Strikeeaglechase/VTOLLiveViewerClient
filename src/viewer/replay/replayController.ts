@@ -33,7 +33,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private receiveBytesBuffer: number[] = [];
 	private currentChunkIndex = 0;
 	private lastLoadedTimestamp = 0;
-	private header: VTGRHeader;
+	public header: VTGRHeader;
 
 	private loadingResolver: () => void;
 	private hasStartedLoadSkip = false;

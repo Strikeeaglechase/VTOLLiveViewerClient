@@ -1,7 +1,6 @@
 import JSZip from "jszip";
 
 import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Application } from "./app";
 
 class LocalVTGRHandler {
 	public static async handleFile(file: File) {
@@ -19,11 +18,11 @@ class LocalVTGRHandler {
 		const header = JSON.parse(headerText) as VTGRHeader;
 		console.log(`Loading VTGR file ${header.info.lobbyName} (${header.id}) ${header.chunks.length} chunks`);
 
-		header.chunks.forEach(chunk => {
-			const chunkData = body.slice(chunk.start, chunk.start + chunk.length);
-			Application.instance.replayController.handleReplayChunk(chunkData);
-		});
-		Application.instance.beginReplay(header.info.lobbyId);
+		// header.chunks.forEach(chunk => {
+		// 	const chunkData = body.slice(chunk.start, chunk.start + chunk.length);
+		// 	Application.instance.replayController.handleReplayChunk(chunkData);
+		// });
+		// Application.instance.beginReplay(header.info.lobbyId);
 	}
 }
 

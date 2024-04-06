@@ -339,7 +339,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		let id = 1;
 		const aircraft = new PlayerVehicle(this);
 		await aircraft.spawn(id++, "0", "Vehicles/T-55", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
-		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0);
+		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false);
 		const jammer = new RadarJammerSync(aircraft, "8008");
 		aircraft.jammers.push(jammer);
 
@@ -383,7 +383,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		const landingAircraft = new PlayerVehicle(this);
 		await landingAircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
-		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
+		landingAircraft.UpdateData(new Vector(-338, 45, -124), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0, false);
 		this.entities.push(landingAircraft);
 
 		// await this.mapLoader.loadHeightmapFromMission({
@@ -415,7 +415,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			missile.setUnitId(100);
 			let r = 0;
 			setInterval(() => {
-				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0);
+				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0, false);
 				// landingAircraft.UpdateData(new Vector(-180 - r / 5, 70, -1000), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
 				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r-- / 10, 0));
 				// this.testRotate(carrier.position, carrier.rotation);
