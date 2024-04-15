@@ -128,6 +128,13 @@ class JTransmitter {
 	}
 
 	public tDecoyModel(decoyIdentityIdx: number) {
+		if (decoyIdentityIdx == -1) {
+			this.model = -1;
+			this.entity.hideSasMesh();
+			this.pastModels.push(this.model);
+			return;
+		}
+
 		this.model = decoyIdentityIdx;
 		const ident = IdentityManager.getIdentityByIndex(decoyIdentityIdx);
 		if (!ident) {

@@ -43,16 +43,16 @@ type EntityConfig = Partial<{
 }>;
 
 // Used for storing replay data, the entity class may be removed but this data should be kept
-interface PersistentEntityData {
-	setActiveAt: number;
-	setInactiveAt: number;
-	setDeadAt: number;
+class PersistentEntityData {
+	setActiveAt = 0;
+	setInactiveAt = 0;
+	setDeadAt = 0;
 }
 
 class Entity {
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
-		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = { setActiveAt: 0, setInactiveAt: 0, setDeadAt: 0 };
+		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = new PersistentEntityData();
 		return Entity.persistentData[this.id];
 	}
 
@@ -200,6 +200,7 @@ class Entity {
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
 		this.meshProxyObject.name = `${this} MeshProxyObject`;
+		console.log(`Creating mesh proxy object for ${app.currentlySpawningId} on spawn, prox obj id: ${this.meshProxyObject.id}`);
 
 		if (enable_debug_sphere) {
 			this.meshProxyObject.add(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({ color: "#FF0000" })));
@@ -237,6 +238,14 @@ class Entity {
 		markRaw(this.damage);
 	}
 
+	private destroyDamageMesh() {
+		this.scene.remove(this.damage.mesh);
+		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+		// @ts-ignore
+		this.damage = null;
+		console.log(`Removed damage mesh for entity ${this}`);
+	}
+
 	protected async setInactive(reason: string) {
 		console.log(`Setting ${this} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
 		if (!this.isActive) {
@@ -253,6 +262,7 @@ class Entity {
 		this.meshProxyObject = new THREE.Object3D();
 		this.meshProxyObject.name = "Mesh Proxy Object";
 		this.object.add(this.meshProxyObject);
+		console.log(`Creating mesh proxy object for ${this.id} on setInactive, mesh prox obj id: ${this.meshProxyObject.id}`);
 
 		// Often there will be a motion update this frame as well, so defer updating this value until next
 		this.hasGotFirstPos = false;
@@ -269,16 +279,8 @@ class Entity {
 		if (this.damage) this.destroyDamageMesh();
 	}
 
-	private destroyDamageMesh() {
-		this.scene.remove(this.damage.mesh);
-		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-		// @ts-ignore
-		this.damage = null;
-		console.log(`Removed damage mesh for entity ${this}`);
-	}
-
 	protected async setActive(reason: string) {
-		console.log(`Setting ${this} active because ${reason}`);
+		console.log(`Setting ${this} active because ${reason}.`); // RPC Pid: ${this.app?.replayController.currentlyExecutingRpc?.pid}
 		if (this.isActive) {
 			console.warn(`Entity ${this} is already active`);
 			return;

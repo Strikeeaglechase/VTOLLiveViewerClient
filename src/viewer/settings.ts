@@ -5,7 +5,7 @@ enum SettingType {
 	Dropdown = 0
 }
 
-type SettingName = "Missile Labels" | "Player Labels" | "BRA Readouts" | "AI Labels" | "Markers" | "Show Jamming" | "Scale Mode";
+type SettingName = "Missile Labels" | "Player Labels" | "BRA Readouts" | "AI Labels" | "Markers" | "Show Jamming" | "Scale Mode" | "Pilot Look Indicator";
 
 interface ISetting {
 	name: SettingName;
@@ -109,6 +109,13 @@ Settings.register({
 	type: SettingType.Dropdown,
 	options: ["Auto", "Real"],
 	default: "Auto"
+});
+
+Settings.register({
+	name: "Pilot Look Indicator",
+	type: SettingType.Dropdown,
+	options: ["Off", "On"],
+	default: "On"
 });
 
 Settings.init();

@@ -13,6 +13,7 @@ const HEADER_LENGTH = 0; // "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
 const ALLOW_RUN_WHILE_LOADING = true;
+const VALIDATE_NO_REPEAT = false;
 
 class ReplayController extends EventEmitter<"replay_bytes"> {
 	public replayPackets: RPCPacketT[] = [];
@@ -44,6 +45,9 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 	private hasReceivedAllBytes = false;
 	private hasLoadedEntireReplay = false;
 	private lastPacketTimestamp = -1;
+
+	private executedRpcs: Set<number> = new Set();
+	public currentlyExecutingRpc: RPCPacketT | null = null; // For debug
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
@@ -105,6 +109,8 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		const resultPackets: RPCPacketT[] = [];
 		packets.forEach(packet => {
 			if (this.computedReplaySpeed < 0) {
+				if (VALIDATE_NO_REPEAT) this.executedRpcs.delete(packet.pid as number);
+
 				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
 				// if (packet.method == "NetDestroy") console.log(`Net destroy packet handled`);
 				if (handler) {
@@ -116,6 +122,12 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 					resultPackets.push(packet);
 				}
 			} else {
+				if (VALIDATE_NO_REPEAT) {
+					if (this.executedRpcs.has(packet.pid as number)) {
+						console.error(`PACKET EXECUTED TWICE!! (${packet.pid}) ${packet.className}.${packet.method}`);
+					}
+					this.executedRpcs.add(packet.pid as number);
+				}
 				resultPackets.push(packet);
 			}
 		});
@@ -128,6 +140,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			const untouchedTime = this.replayCurrentTime;
 			this.replayCurrentTime = packet.timestamp;
 			// console.log(`Running packet ${packet.pid}`);
+			this.currentlyExecutingRpc = packet;
 			RPCController.handlePacket(packet);
 			this.replayCurrentTime = untouchedTime;
 		});

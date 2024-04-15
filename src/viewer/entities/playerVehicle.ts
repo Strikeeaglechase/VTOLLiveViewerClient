@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
 import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
-import { addCommas, Application, deg, ftToMi, msToKnots, mToFt, rad } from "../app";
+import { addCommas, Application, deg, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
 import { Settings } from "../settings";
@@ -22,7 +22,6 @@ class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
 	private throttle: number;
-	public isLandingLso = false;
 
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
@@ -35,14 +34,14 @@ class PlayerVehicle extends Entity {
 	// private headingMarker: THREE.Mesh;
 
 	public set scale(scale: number) {
-		if (this.isLandingLso) {
-			scale = this.app.sceneManager.calculateScale(this.app.lsoManager.landingDist);
-		}
-
 		const maxSetScale = MAX_OBJECT_SIZE / this.baseScaleSize;
 
 		this._scale = Math.min(maxSetScale, Math.max(scale * this.scaleDamper, 1) * this.iMeshLoadScale);
 		this.onScaleUpdate();
+	}
+
+	public get scale() {
+		return this._scale;
 	}
 
 	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55", "Vehicles/EF-24"];
@@ -68,7 +67,12 @@ class PlayerVehicle extends Entity {
 
 		this.playerHeadLine = new THREE.Line(this.playerHeadLineGeom, headMat);
 		this.playerHeadLine.frustumCulled = false;
+		this.playerHeadLine.visible = Settings.get("Pilot Look Indicator") == "On";
 		this.meshProxyObject.add(this.playerHeadLine);
+
+		Settings.instance.on("Pilot Look Indicator", (lookSetting: string) => {
+			if (this.playerHeadLine) this.playerHeadLine.visible = lookSetting == "On";
+		});
 
 		// this.velocityMarker = mark(1, 0x00ff00);
 		// this.headingMarker = mark(1, 0x0000ff);
@@ -118,32 +122,14 @@ class PlayerVehicle extends Entity {
 		// this.carrierApproachTestSphere.position.set(cx + onPlane.x, cy + onPlane.y, cz + onPlane.z);
 
 		if (this.textOverlay) {
-			if (!this.isLandingLso) {
-				const textOptions = Settings.get("Player Labels");
-				if (textOptions == "Off") this.textOverlay.hide();
-				else this.textOverlay.show();
+			const textOptions = Settings.get("Player Labels");
+			if (textOptions == "Off") this.textOverlay.hide();
+			else this.textOverlay.show();
 
-				const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-				let text = `${this.owner.pilotName} [${this.displayName}]`;
-				if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
-				this.textOverlay.edit(text);
-			} else {
-				// const aoaRaw = deg(this.position.angleTo(this.velocity));
-				const aoaRaw = this.getAoa();
-				const aoa = isNaN(aoaRaw) ? 0 : aoaRaw.toFixed(1);
-
-				const distRaw = mToFt(this.app.lsoManager.landingDist);
-				const distRawNm = ftToMi(distRaw);
-				let resultDist = "";
-				if (distRawNm < 1) {
-					// resultDist = `${Math.floor(distRaw)}ft`;
-					resultDist = `${distRawNm.toFixed(2)}nm`;
-				} else {
-					resultDist = `${distRawNm.toFixed(1)}nm`;
-				}
-
-				this.textOverlay.edit(`${this.owner.pilotName} [${this.displayName}]\n${Math.floor(mToFt(this.position.y))}ft\nR ${resultDist}\n∝ ${aoa}`);
-			}
+			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
+			let text = `${this.owner.pilotName} [${this.displayName}]`;
+			if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
+			this.textOverlay.edit(text);
 		}
 	}
 
@@ -192,7 +178,7 @@ class PlayerVehicle extends Entity {
 	}
 
 	@RPC("in")
-	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean) {
+	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean, pyr: Vector) {
 		this.throttle = throttle;
 		this.updateMotion(pos, vel, accel, rot);
 
