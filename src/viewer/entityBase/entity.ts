@@ -337,6 +337,7 @@ class Entity {
 
 	protected addObjectMeshToScene() {
 		this.object.name = "Entity Mesh";
+		markRaw(this.object);
 		this.scene.add(this.object);
 	}
 

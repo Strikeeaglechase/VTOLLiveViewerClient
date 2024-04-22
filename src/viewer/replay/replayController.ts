@@ -211,7 +211,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		// console.log(bytes.join(","));
 		let timeLastSleep = performance.now();
 		const timeBudget = 10; // 10ms before must yield
-		const rpcGen = decompressRpcPacketsGen(bytes);
+		const rpcGen = decompressRpcPacketsGen(Buffer.from(bytes));
 
 		let count = 0;
 		for (const _rpc of rpcGen) {

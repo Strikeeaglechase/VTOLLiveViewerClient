@@ -265,7 +265,12 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// EventBus.$emit("app", this);
 	}
 
+	private _hasStarted = false;
 	public async start() {
+		if (this._hasStarted) {
+			throw new Error(`Application already started!`);
+		}
+		this._hasStarted = true;
 		console.log(`Application is starting!`);
 		await this.sceneManager.init(this.container);
 		this.bulletManager = new BulletManager(this.sceneManager);
@@ -950,7 +955,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				this.replayController.handleReplayBytes(bytes);
 			} else {
 				RPCController.handlePacket(bytes);
-				const rpcs = decompressRpcPackets([...bytes]);
+				const rpcs = decompressRpcPackets(Buffer.from(bytes));
 				this.rpcs += rpcs.length;
 			}
 		}
