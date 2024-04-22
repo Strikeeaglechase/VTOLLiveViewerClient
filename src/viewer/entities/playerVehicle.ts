@@ -17,7 +17,7 @@ function mark(size: number, color: number) {
 	return markerMesh;
 }
 
-@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24"])
+@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24", "Aircraft"]) // "Aircraft" is NO
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
@@ -44,7 +44,18 @@ class PlayerVehicle extends Entity {
 		return this._scale;
 	}
 
-	public static spawnFor: string[] = ["Vehicles/SEVTF", "Vehicles/FA-26B", "Vehicles/AH-94", "Vehicles/VTOL4", "Vehicles/T-55", "Vehicles/EF-24"];
+	public static spawnFor: string[] = [
+		"Vehicles/SEVTF",
+		"Vehicles/FA-26B",
+		"Vehicles/AH-94",
+		"Vehicles/VTOL4",
+		"Vehicles/T-55",
+		"Vehicles/EF-24",
+		"1b8b6ff39affdb64da915cc38a0cef07",
+		"4c2f3d26c41434549ad78a3d4219e930",
+		"ee86e0fadb7ab5b4b962e0428bb9ba23",
+		"753f6183b6d18c245ad36b21ee8126c9"
+	];
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInSidebar: true, showInBra: true });
@@ -185,7 +196,14 @@ class PlayerVehicle extends Entity {
 		// const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
 		// const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
 		// const aoa = this.velocity.angleTo(Vector.from(forward));
-		// console.log(`Aoa: ${deg(aoa)}`);
+		// let aoaOffset = 0;
+		// if (this.type == "Vehicles/FA-26B" || this.type == "Vehicles/T-55") aoaOffset = 0.806;
+		// console.log(`Aoa: ${deg(aoa) + aoaOffset}`);
+	}
+
+	@RPC("in")
+	UpdateOwnerId(ownerId: string) {
+		this.ownerId = ownerId;
 	}
 
 	@RPC("in")

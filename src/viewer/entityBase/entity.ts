@@ -767,6 +767,8 @@ class Entity {
 			"Vehicles/FA-26B": "F/A-26B",
 			"Vehicles/AH-94": "AH-94",
 			"Vehicles/VTOL4": "AV-42C",
+			"Vehicles/T-55": "T-55",
+			"Vehicles/EF-24": "EF-24",
 			"Weapons/Missiles/Maverick": "AGM-65",
 			"Weapons/Missiles/AIM-92": "AIM-92", // From the AH-94
 			"Weapons/Missiles/APKWS": "PGM-27",
@@ -781,7 +783,13 @@ class Entity {
 			"Weapons/Missiles/SubMissile": "Cluster Munition",
 			"Weapons/Missiles/SAMs/APCIRSAM": "IR APC SAM",
 			"Weapons/Missiles/SAMs/SaawMissile": "SAAW Missile",
-			"Units/Allied/BSTOPRadar": "Backstop Radar"
+			"Units/Allied/BSTOPRadar": "Backstop Radar",
+
+			// Nuclear option GUIDs
+			"1b8b6ff39affdb64da915cc38a0cef07": "Fighter1",
+			"4c2f3d26c41434549ad78a3d4219e930": "AttackHelo1",
+			"ee86e0fadb7ab5b4b962e0428bb9ba23": "COIN",
+			"753f6183b6d18c245ad36b21ee8126c9": "Darkreach"
 		};
 
 		if (map[identifier]) return map[identifier];
