@@ -1,36 +1,33 @@
 <template>
-	<div id="data">
-		<h3 v-if="currentFocus != null">
-			{{ currentFocus.owner.pilotName }} [{{ currentFocus.displayName }}]
-			A: {{ comma(Math.floor(mToFt(currentFocus.position.y))) }}ft H:
-			{{ Math.abs(Math.floor(radToDeg(currentFocus.rotation.y))) }} S:
-			{{ Math.floor(msToKnots(currentFocus.velocity.length())) }}kt G:
-			{{ currentFocus.gForce.toFixed(1) }} /
-			{{ currentFocus.maxGForce.toFixed(1) }}
-		</h3>
-		<div
-			v-for="{ entity, isLockingUs, isLocking } in getDataEntities(
-				entities
-			)"
-			:key="entity.id"
-		>
-			<p
-				:class="{
-					lockedBy: isLockingUs,
-					isLocking: isLocking,
-				}"
-			>
-				{{ entity.owner.pilotName }} [{{ entity.displayName }}] B:
-				{{ bearing(currentFocus, entity) }} R:
-				{{ Math.round(range(currentFocus, entity)) }}nm A:
-				{{ comma(Math.floor(mToFt(entity.position.y))) }}ft vC:
-				{{ Math.floor(msToKnots(closure(currentFocus, entity))) }}
-				<!-- {{ isLockedBy(entity) }} -->
-			</p>
-		</div>
+	<div class="container">
 		<div>
-			<br />
-			<EquipsViewer />
+			<canvas class="control-inputs" width="75px" height="75px" id="control-inputs-box"></canvas>
+		</div>
+
+		<div id="data">
+			<h3 v-if="currentFocus != null">
+				{{ currentFocus.owner.pilotName }} [{{ currentFocus.displayName }}] A: {{ comma(Math.floor(mToFt(currentFocus.position.y))) }}ft H:
+				{{ Math.abs(Math.floor(radToDeg(currentFocus.rotation.y))) }} S: {{ Math.floor(msToKnots(currentFocus.velocity.length())) }}kt G:
+				{{ currentFocus.gForce.toFixed(1) }} /
+				{{ currentFocus.maxGForce.toFixed(1) }}
+			</h3>
+			<div v-for="{ entity, isLockingUs, isLocking } in getDataEntities(entities)" :key="entity.id">
+				<p
+					:class="{
+						lockedBy: isLockingUs,
+						isLocking: isLocking
+					}"
+				>
+					{{ entity.owner.pilotName }} [{{ entity.displayName }}] B: {{ bearing(currentFocus, entity) }} R: {{ Math.round(range(currentFocus, entity)) }}nm
+					A: {{ comma(Math.floor(mToFt(entity.position.y))) }}ft vC:
+					{{ Math.floor(msToKnots(closure(currentFocus, entity))) }}
+					<!-- {{ isLockedBy(entity) }} -->
+				</p>
+			</div>
+			<div>
+				<br />
+				<EquipsViewer />
+			</div>
 		</div>
 	</div>
 </template>
@@ -38,14 +35,7 @@
 <script lang="ts">
 	import { Component, Vue } from "vue-property-decorator";
 	import { EventBus } from "../eventBus";
-	import {
-		deg,
-		ftToMi,
-		msToKnots,
-		mToFt,
-		addCommas,
-		Application,
-	} from "../viewer/app";
+	import { deg, ftToMi, msToKnots, mToFt, addCommas, Application } from "../viewer/app";
 	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
 	import { Entity } from "../viewer/entityBase/entity";
 	import EntityComponent from "./Entity.vue";
@@ -69,64 +59,44 @@
 			});
 		}
 
-		getDataEntities(
-			e: Entity[]
-		): { entity: Entity; isLockingUs: boolean; isLocking: boolean }[] {
+		getDataEntities(e: Entity[]): { entity: Entity; isLockingUs: boolean; isLocking: boolean }[] {
 			if (e.length == 0) return [];
 			if (this.currentFocus == null) return [];
 			if (Application.instance.currentFocus != this.currentFocus) {
-				console.error(
-					`currentFocus is not the same as Application.instance.currentFocus`
-				);
+				console.error(`currentFocus is not the same as Application.instance.currentFocus`);
 				return [];
 			}
 
 			const focus = this.currentFocus as Entity;
 
-			const valid = e.filter((entity) => {
+			const valid = e.filter(entity => {
 				// If showInBra and on other team
 				if (entity.showInBra && entity.team != focus.team) return true;
 
 				// If focus is locked onto them
-				if (
-					focus instanceof PlayerVehicle &&
-					focus.lockLine?.isLockedTo(entity)
-				)
-					return true;
+				if (focus instanceof PlayerVehicle && focus.lockLine?.isLockedTo(entity)) return true;
 
 				// If they are locked onto focus
-				if (
-					entity instanceof PlayerVehicle &&
-					entity.lockLine?.isLockedTo(focus)
-				)
-					return true;
+				if (entity instanceof PlayerVehicle && entity.lockLine?.isLockedTo(focus)) return true;
 				return false;
 			});
 
 			const distCache: Record<string, number> = {};
 			return valid
 				.sort((a, b) => {
-					let d1 = distCache[a.id]
-						? distCache[a.id]
-						: a.position.distanceTo(focus.position);
-					let d2 = distCache[b.id]
-						? distCache[b.id]
-						: b.position.distanceTo(focus.position);
+					let d1 = distCache[a.id] ? distCache[a.id] : a.position.distanceTo(focus.position);
+					let d2 = distCache[b.id] ? distCache[b.id] : b.position.distanceTo(focus.position);
 					distCache[a.id] = d1;
 					distCache[b.id] = d2;
 
 					// return this.entityDists[a.id]?.dist - this.entityDists[b.id]?.dist;
 					return d1 - d2;
 				})
-				.map((entity) => {
+				.map(entity => {
 					return {
 						entity: entity,
-						isLockingUs:
-							entity instanceof PlayerVehicle &&
-							entity.lockLine?.isLockedTo(focus), //this.isLockedBy(entity),
-						isLocking:
-							this.currentFocus instanceof PlayerVehicle &&
-							this.currentFocus.lockLine?.isLockedTo(entity),
+						isLockingUs: entity instanceof PlayerVehicle && entity.lockLine?.isLockedTo(focus), //this.isLockedBy(entity),
+						isLocking: this.currentFocus instanceof PlayerVehicle && this.currentFocus.lockLine?.isLockedTo(entity)
 					};
 				});
 		}
@@ -178,16 +148,28 @@
 </script>
 
 <style scoped>
-#data {
-	background: rgba(0, 0, 0, 0.6);
-	padding-right: 10px;
-	padding-bottom: 5px;
-	margin-bottom: 15px;
-	margin-right: 10px;
+.container {
 	position: fixed;
 	right: 0;
 	bottom: 0;
 }
+
+.control-inputs {
+	right: 10px;
+	top: -55px;
+	position: absolute;
+	opacity: 0.5;
+}
+
+#data {
+	background: rgba(0, 0, 0, 0.6);
+	padding-right: 10px;
+	padding-bottom: 5px;
+	padding-top: 2px;
+	margin-bottom: 15px;
+	margin-right: 10px;
+}
+
 p {
 	color: white;
 	font-family: monospace;

@@ -15,7 +15,7 @@ type RPCPacketT = RPCPacket & { timestamp: number };
 const ALLOW_RUN_WHILE_LOADING = true;
 const VALIDATE_NO_REPEAT = false;
 
-class ReplayController extends EventEmitter<"replay_bytes"> {
+class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 	public replayPackets: RPCPacketT[] = [];
 	private groupedReplayPackets: RPCPacketT[][] = [];
 	public isReplay = false;
@@ -99,7 +99,14 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 		// if (this.computedReplaySpeed > 0)
 		// console.log(`Between ${this.prevReplayTime} and ${this.replayCurrentTime} there are ${inTimeframePackets.length} packets`);
 
+		const start = Date.now();
 		this.runReplayOnPackets(inTimeframePackets);
+		const end = Date.now();
+		if (end - start > 100) {
+			EventBus.$emit("error-message", `Replay took ${end - start}ms to run`);
+			console.log(`Long replay exec time, took ${end - start}ms for ${inTimeframePackets.length} packets`);
+			this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+		}
 
 		this.prevReplayTime = this.replayCurrentTime;
 		return expectedDt * this.computedReplaySpeed;
@@ -264,6 +271,7 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 			).toFixed(1)}% Bytes: ${((this.replayDataReceived / this.app.client.expectedReplaySize) * 100).toFixed(1)}%`
 		);
 		this.totalChunksFullyProcessed++;
+		this.emit("replay_chunk");
 
 		if (this.hasReceivedAllBytes && this.replayChunkQueue.length == 0) {
 			this.hasLoadedEntireReplay = true;
@@ -292,9 +300,14 @@ class ReplayController extends EventEmitter<"replay_bytes"> {
 				this.replayDataReceived += chunk.length - HEADER_LENGTH;
 				if (this.replayDataReceived == this.app.client.expectedReplaySize) {
 					this.finishReceivingData();
-					res();
 				}
 				if (onProgress) onProgress(this.replayDataReceived / this.app.client.expectedReplaySize);
+			});
+
+			this.on("replay_chunk", () => {
+				if (this.replayDataReceived == this.app.client.expectedReplaySize && this.totalChunksFullyProcessed >= this.header.chunks.length * 0.05) {
+					res();
+				}
 			});
 
 			this.beginDownloadFromStore(replayId);

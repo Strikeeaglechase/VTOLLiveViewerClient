@@ -2,7 +2,7 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 
 interface EntityMeshConfig {
 	key: string[];
-	path: string;
+	path?: string;
 	rotation?: Vector;
 	position?: Vector;
 	scaleDamper?: number;
@@ -83,5 +83,10 @@ export const entityMeshs: EntityMeshConfig[] = [
 		rotation: new Vector(0, 0, 0),
 		position: new Vector(0, 0, -3),
 		loadScale: 0.4
+	},
+	{
+		key: ["NuclearOption/COIN"],
+		loadScale: 0.01,
+		rotation: new Vector(0, 0, 0)
 	}
 ];

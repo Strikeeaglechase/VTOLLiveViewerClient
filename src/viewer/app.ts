@@ -3,6 +3,7 @@
 // Connection failed recieved on client but no err message
 
 import Stats from "stats.js";
+import { Renderer } from "strik-2d-renderer";
 import * as THREE from "three";
 
 import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
@@ -24,10 +25,10 @@ import { Entity } from "./entityBase/entity";
 import { RadarJammerSync } from "./entityBase/jammer";
 import { BulletManager } from "./managers/bulletManager";
 import { FlareManager } from "./managers/flareManager";
-import { LSOManager } from "./managers/lsoManager";
 import { SceneManager } from "./managers/sceneManager";
 import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
+import { nuclearOptionEntities } from "./nuclearOptionGuids";
 import { ReplayController } from "./replay/replayController";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
@@ -130,7 +131,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public meshLoader: MeshLoader = new MeshLoader();
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;
-	public lsoManager: LSOManager;
+	public controlInputsRenderer: Renderer;
 
 	public isReplay = false;
 	public get timeDirection(): number {
@@ -153,6 +154,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	public entities: Entity[] = [];
 	private entitiesByOwner: Record<string, Entity[]> = {};
+	private entitiesById: Record<number, Entity> = {};
 	private entitiesToDelete: Entity[] = [];
 	public logMessages: LogMessage[] = [];
 
@@ -165,14 +167,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	private isUiHidden = false;
 	public isTextOverlayHidden = false;
-	private _isLsoMode = false;
-	public get isLsoMode() {
-		return this._isLsoMode;
-	}
-	public set isLsoMode(val: boolean) {
-		this._isLsoMode = val;
-		EventBus.$emit("lso-mode", val);
-	}
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
@@ -275,8 +269,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		await this.sceneManager.init(this.container);
 		this.bulletManager = new BulletManager(this.sceneManager);
 		this.flareManager = new FlareManager(this.sceneManager);
-		this.lsoManager = new LSOManager(this);
-		this.lsoManager.init();
+		this.controlInputsRenderer = new Renderer("control-inputs-box");
 
 		this.stats.showPanel(0);
 		document.body.appendChild(this.stats.dom);
@@ -346,7 +339,16 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		await aircraft.spawn(id++, "0", "Vehicles/T-55", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false, new Vector());
 		const jammer = new RadarJammerSync(aircraft, "8008");
+		aircraft.focus();
 		aircraft.jammers.push(jammer);
+
+		// const noAc = nuclearOptionEntities.filter(e => e.mesh).map(e => e.key);
+		// noAc.forEach(async (path, i) => {
+		// 	const newAc = new PlayerVehicle(this);
+		// 	await newAc.spawn(id++, "0", path, new Vector(0, 0, 0), new Vector(0, 0, 0), true);
+		// 	newAc.UpdateData(new Vector(20 * i, 50, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false, new Vector());
+		// 	this.entities.push(newAc);
+		// });
 
 		const aircraft2 = new PlayerVehicle(this);
 		await aircraft2.spawn(id++, "0", "Vehicles/SEVTF", new Vector(20, 0, 0), new Vector(0, 0, 0), true);
@@ -420,16 +422,15 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			missile.setUnitId(100);
 			let r = 0;
 			setInterval(() => {
-				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(r--, 0, 0), 0, false, new Vector());
+				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 100), new Vector(0, 150, 0), new Vector((r -= 0.075), 0, 0), 0, false, new Vector());
+				// aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 100), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false, new Vector());
 				// landingAircraft.UpdateData(new Vector(-180 - r / 5, 70, -1000), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
-				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r-- / 10, 0));
+				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r / 10, 0));
 				// this.testRotate(carrier.position, carrier.rotation);
 			}, 0);
 
 			aircraft.SetLock(100, true);
 			// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));
-			this.lsoManager.enableLSO(carrier);
-			this.lsoManager.trackAircraft(landingAircraft);
 		}, 250);
 	}
 
@@ -574,6 +575,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				return;
 			}
 			this.entities.splice(idx, 1);
+			delete this.entitiesById[entity.id];
 
 			const ownerIdx = this.entitiesByOwner[entity.ownerId]?.indexOf(entity);
 			if (ownerIdx == -1 || ownerIdx == undefined) {
@@ -586,7 +588,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
-		this.lsoManager.update(dt);
 		this.runTimeouts();
 
 		this.sceneManager.run();
@@ -668,13 +669,19 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			console.log(entity);
 		}
 
-		if (this.entities.some(e => e.id == entity.id)) {
+		// if (this.entities.some(e => e.id == entity.id)) {
+		// 	console.error(`Duplicate entity id ${entity.id}!`);
+		// 	console.log(entity);
+		// 	return;
+		// }
+		if (this.entitiesById[entity.id]) {
 			console.error(`Duplicate entity id ${entity.id}!`);
 			console.log(entity);
 			return;
 		}
 
 		this.entities.push(entity);
+		this.entitiesById[entity.id] = entity;
 
 		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
 		this.entitiesByOwner[entity.ownerId].push(entity);
@@ -682,11 +689,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	public setFocusImmediately(entity: Entity): void {
-		if (this.isLsoMode) {
-			this.isLsoMode = false;
-			this.lsoManager.disableLSO();
-		}
-
 		console.log(`Setting focus to ${entity}`);
 		EventBus.$emit("focused-entity", entity);
 		if (this.currentFocus && this.currentFocus != entity) {
@@ -706,11 +708,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	public setFocusTo(entity: Entity): void {
-		if (this.isLsoMode) {
-			this.isLsoMode = false;
-			this.lsoManager.disableLSO();
-		}
-
 		console.log(`Setting focus to ${entity}`);
 		EventBus.$emit("focused-entity", entity);
 		if (this.currentFocus && this.currentFocus != entity) {
@@ -733,17 +730,33 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	public currentlySpawningId = 0; // For debug
+	private spawnLut: Record<string, any> = {};
 	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean) {
 		this.currentlySpawningId = id;
+		// Rewrite NukOpt GUID to path
+		const isNukOptGuid = path.match(/^\w{32}$/);
+		if (isNukOptGuid) {
+			const entDef = nuclearOptionEntities.find(e => e.guid == path);
+			if (!entDef) {
+				console.error(`Nuclear option GUID ${path} does not contain a entry in nuclearOptionEntities list`);
+				return;
+			}
+
+			path = entDef.key;
+		}
+
 		// Resolve the class that handles this type of entity
-		let EntityClass = null;
-		for (let i = 0; i < this.spawnables.length; i++) {
-			const eClass = this.spawnables[i];
-			if (Array.isArray(eClass.spawnFor)) {
-				const match = eClass.spawnFor.map(c => c.toLowerCase()).includes(path.trim().toLowerCase());
-				if (match) {
-					EntityClass = eClass;
-					break;
+		let EntityClass = this.spawnLut[path] ?? null;
+
+		if (EntityClass == null) {
+			for (let i = 0; i < this.spawnables.length; i++) {
+				const eClass = this.spawnables[i];
+				if (Array.isArray(eClass.spawnFor)) {
+					const match = eClass.spawnFor.map(c => c.toLowerCase()).includes(path.trim().toLowerCase());
+					if (match) {
+						EntityClass = eClass;
+						break;
+					}
 				}
 			}
 		}
@@ -751,8 +764,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		if (EntityClass == null) {
 			for (let i = 0; i < this.spawnables.length; i++) {
 				const eClass = this.spawnables[i];
-				if (!Array.isArray(eClass.spawnFor)) {
-					const v = eClass.spawnFor.test(path.trim());
+				if ("spawnForRegex" in eClass) {
+					const v = eClass.spawnForRegex.test(path.trim());
 					if (v) {
 						EntityClass = eClass;
 						break;
@@ -762,10 +775,12 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		}
 
 		if (!EntityClass) {
-			// We don't care about HPEquips and Rearm points so don't log errors for that
+			// We don't care about Rearm points so don't log errors for that
 			if (!path.includes("Rearm")) console.error(`Unable to locate entity handler for ${path}`);
 			return;
 		}
+
+		this.spawnLut[path] = EntityClass;
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 		// @ts-ignore
@@ -966,7 +981,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	public getEntityById(id: number) {
-		return this.entities.find(e => e.id == id);
+		// return this.entities.find(e => e.id == id);
+		return this.entitiesById[id];
 	}
 
 	public getEntityByPlayerName(name: string) {

@@ -45,6 +45,8 @@ class JTransmitter {
 	private pastModes: JammerMode[] = [];
 	private pastModels: number[] = [];
 
+	private needsJammerUpdate = false;
+
 	constructor(private entity: Entity, public index: string) {
 		Settings.instance.on("Show Jamming", (newState: string) => {
 			if (!this.mesh) return;
@@ -56,11 +58,42 @@ class JTransmitter {
 		});
 	}
 
-	public beginJam(gPoint: Vector3, velocity: Vector3) {
+	public update() {
+		if (!this.needsJammerUpdate) return;
+
+		if (this.mesh == null) {
+			console.warn(`Update jam with transmitter ${this.index} but no mesh`);
+			this.beginJam();
+		}
+
+		if (this.mesh == null) {
+			console.error(`Even after trying to create a mesh, it's still null`);
+			return;
+		}
+
+		const coneLength = this.targetPoint.distanceTo(this.entity.position);
+		this.mesh.position.set(0, 0, 0);
+		this.mesh.rotation.set(0, 0, 0);
+		this.mesh.lookAt(this.targetPoint.x, this.targetPoint.y, this.targetPoint.z);
+		this.mesh.rotateX(rad(-90));
+		this.mesh.translateY(-coneLength / 2);
+		this.mesh.scale.set(coneLength / 10, coneLength / 10, coneLength / 10);
+
+		if (this.mode == JammerMode.SAS) {
+			this.entity.showSasMesh();
+		} else {
+			this.entity.hideSasMesh();
+		}
+	}
+
+	public beginJam(gPoint?: Vector3, velocity?: Vector3) {
 		console.log(`Begin jam with transmitter ${this.index}`);
 		this.active = true;
-		this.targetPoint = new Vector(-gPoint.x, gPoint.y, gPoint.z);
-		this.targetVelocity = new Vector(-velocity.x, velocity.y, velocity.z);
+
+		if (gPoint && velocity) {
+			this.targetPoint.set(-gPoint.x, gPoint.y, gPoint.z);
+			this.targetVelocity.set(-velocity.x, velocity.y, velocity.z);
+		}
 
 		if (this.mesh == null) {
 			const coneAngle = 1; // degrees
@@ -90,32 +123,9 @@ class JTransmitter {
 	}
 
 	public updateJam(gPoint: Vector3, velocity: Vector3, power: number, timestamp: number, drfmFreq: number) {
-		this.targetPoint = new Vector(-gPoint.x, gPoint.y, gPoint.z);
-		this.targetVelocity = new Vector(-velocity.x, velocity.y, velocity.z);
-
-		if (this.mesh == null) {
-			console.warn(`Update jam with transmitter ${this.index} but no mesh`);
-			this.beginJam(gPoint, velocity);
-		}
-
-		if (this.mesh == null) {
-			console.error(`Even after trying to create a mesh, it's still null`);
-			return;
-		}
-
-		const coneLength = this.targetPoint.distanceTo(this.entity.position);
-		this.mesh.position.set(0, 0, 0);
-		this.mesh.rotation.set(0, 0, 0);
-		this.mesh.lookAt(this.targetPoint.x, this.targetPoint.y, this.targetPoint.z);
-		this.mesh.rotateX(rad(-90));
-		this.mesh.translateY(-coneLength / 2);
-		this.mesh.scale.set(coneLength / 10, coneLength / 10, coneLength / 10);
-
-		if (this.mode == JammerMode.SAS) {
-			this.entity.showSasMesh();
-		} else {
-			this.entity.hideSasMesh();
-		}
+		this.targetPoint.set(-gPoint.x, gPoint.y, gPoint.z);
+		this.targetVelocity.set(-velocity.x, velocity.y, velocity.z);
+		this.needsJammerUpdate = true;
 	}
 
 	public endJam() {
@@ -187,6 +197,10 @@ class JTransmitter {
 class RadarJammerSync {
 	private transmitters: JTransmitter[] = [];
 	constructor(private entity: Entity, public id: string) {}
+
+	public update() {
+		this.transmitters.forEach(t => t.update());
+	}
 
 	private getTransmitter(idx: number) {
 		if (this.transmitters[idx] == null) {

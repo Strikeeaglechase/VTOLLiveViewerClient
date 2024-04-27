@@ -51,7 +51,24 @@ class AIGroundUnit extends Entity {
 		"Units/Allied/SRADTruck",
 		"Units/Enemy/staticAAA-20x2",
 		"Units/Allied/staticCIWS",
-		"Units/Allied/WatchmanTruck"
+		"Units/Allied/WatchmanTruck",
+
+		"NuclearOption/AFV8_APC",
+		"NuclearOption/AFV8_IFV",
+		"NuclearOption/AFV8_SAM",
+		"NuclearOption/HLT-FT",
+		"NuclearOption/HLT-L",
+		"NuclearOption/HLT-M",
+		"NuclearOption/HLT-R",
+		"NuclearOption/HLT-T",
+		"NuclearOption/LCV45",
+		"NuclearOption/Linebreaker_APC",
+		"NuclearOption/Linebreaker_IFV",
+		"NuclearOption/Linebreaker_SAM",
+		"NuclearOption/MBT",
+		"NuclearOption/SPAAG1",
+		"NuclearOption/SPAAG2",
+		"NuclearOption/RadarSAM1"
 	];
 
 	public isLsoTarget = false;

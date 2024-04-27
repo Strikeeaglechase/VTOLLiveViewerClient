@@ -11,12 +11,32 @@ const len = 3;
 const wid = 0.8;
 const hei = 0.6;
 
-@EnableRPCs("instance", ["MissileEntity", "MALD"])
+@EnableRPCs("instance", ["MissileEntity", "MALD", "Missile"])
 class MissileEntity extends Entity {
 	public fired = false;
 	public dims = { len, wid, hei };
 
-	public static spawnFor = new RegExp(/weapons\/missiles\/.*/i);
+	public static spawnForRegex = new RegExp(/weapons\/missiles\/.*/i);
+	public static spawnFor = [
+		"NuclearOption/AAM1",
+		"NuclearOption/AAM2",
+		"NuclearOption/AGM1",
+		"NuclearOption/AGM_heavy",
+		"NuclearOption/ARM1",
+		"NuclearOption/bomb500",
+		"NuclearOption/bomb_250_1",
+		"NuclearOption/bomb_demolition",
+		"NuclearOption/bomb_glide1",
+		"NuclearOption/bomb_penetrator1",
+		"NuclearOption/CruiseMissile1",
+		"NuclearOption/CruiseMissile20kt",
+		"NuclearOption/Missile_G2G",
+		"NuclearOption/nuclearBomb1",
+		"NuclearOption/Rocket1",
+		"NuclearOption/SAM_IR1",
+		"NuclearOption/SAM_Radar1",
+		"NuclearOption/SAM_Radar2"
+	];
 
 	constructor(app: Application) {
 		super(app, { useHostTeam: false });
@@ -97,7 +117,7 @@ class MissileEntity extends Entity {
 
 	// TODO: Rename this RPC
 	@RPC("in")
-	public async SyncShit(syncedPos: Vector3, syncedRot: Vector3, syncedVel: Vector3, syncedAccel: Vector3): Promise<void> {
+	public SyncShit(syncedPos: Vector3, syncedRot: Vector3, syncedVel: Vector3, syncedAccel: Vector3) {
 		// Call some bitches - Dinner Plate
 		this.updateMotion(syncedPos, syncedVel, syncedAccel, syncedRot);
 	}

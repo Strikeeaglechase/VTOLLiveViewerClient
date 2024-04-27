@@ -1,3 +1,4 @@
+import { Color } from "strik-2d-renderer";
 import * as THREE from "three";
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
@@ -6,6 +7,7 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
 import { addCommas, Application, deg, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
+import { JesterCallouts } from "../jester/jesterCallouts";
 import { Settings } from "../settings";
 
 function mark(size: number, color: number) {
@@ -17,14 +19,27 @@ function mark(size: number, color: number) {
 	return markerMesh;
 }
 
-@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24", "Aircraft"]) // "Aircraft" is NO
+const predictedPoints = 500;
+const predictedStep = 0.05;
+
+@EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24", "Aircraft"]) // "Aircraft" is NukOpt
 class PlayerVehicle extends Entity {
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
 	private throttle: number;
+	private pyr: Vector = new Vector(0, 0, 0);
 
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
+
+	private predictedPathLine: THREE.Line;
+	private predictedPathLineGeom: THREE.BufferGeometry;
+	private accelLines: THREE.Line[] = [];
+
+	private jester: JesterCallouts;
+	private previousRotation: Vector;
+	private previousUpdateTime = 0;
+	private updateTimeDelta = 0;
 
 	// private carrierApproachTestSphere: THREE.Mesh;
 	// private carrierApproachTestSphere2: THREE.Mesh;
@@ -51,16 +66,24 @@ class PlayerVehicle extends Entity {
 		"Vehicles/VTOL4",
 		"Vehicles/T-55",
 		"Vehicles/EF-24",
-		"1b8b6ff39affdb64da915cc38a0cef07",
-		"4c2f3d26c41434549ad78a3d4219e930",
-		"ee86e0fadb7ab5b4b962e0428bb9ba23",
-		"753f6183b6d18c245ad36b21ee8126c9"
+		"NuclearOption/Fighter1",
+		"NuclearOption/AttackHelo1",
+		"NuclearOption/COIN",
+		"NuclearOption/Darkreach"
 	];
 
 	constructor(app: Application) {
 		super(app, { hasTrail: true, showInSidebar: true, showInBra: true });
 		this.tgp = new DesignatorLine(this, app, "#00ff00");
 		this.throttle = 1;
+
+		// const pMat = new THREE.LineBasicMaterial({ color: "#ffff00" });
+		// this.predictedPathLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1000)]);
+		// this.predictedPathLine = new THREE.Line(this.predictedPathLineGeom, pMat);
+		// this.predictedPathLine.frustumCulled = false;
+		// this.predictedPathLine.name = "predictedPathLine";
+		// // this.meshProxyObject.add(this.predictedPathLine);
+		// this.scene.add(this.predictedPathLine);
 	}
 
 	public async spawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean): Promise<void> {
@@ -73,17 +96,11 @@ class PlayerVehicle extends Entity {
 		this.lockLine = new DesignatorLine(this, this.app, "#d66f15");
 		this.lockLine.init();
 
-		const headMat = new THREE.LineBasicMaterial({ color: "#1a15b0" });
-		this.playerHeadLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1000)]);
-
-		this.playerHeadLine = new THREE.Line(this.playerHeadLineGeom, headMat);
-		this.playerHeadLine.frustumCulled = false;
-		this.playerHeadLine.visible = Settings.get("Pilot Look Indicator") == "On";
-		this.meshProxyObject.add(this.playerHeadLine);
-
 		Settings.instance.on("Pilot Look Indicator", (lookSetting: string) => {
 			if (this.playerHeadLine) this.playerHeadLine.visible = lookSetting == "On";
 		});
+
+		if (ownerId == "76561198162340088") this.jester = new JesterCallouts(this);
 
 		// this.velocityMarker = mark(1, 0x00ff00);
 		// this.headingMarker = mark(1, 0x0000ff);
@@ -95,10 +112,64 @@ class PlayerVehicle extends Entity {
 		// this.app.sceneManager.add(this.carrierApproachTestSphere, this.carrierRelativePosSphere, this.carrierApproachTestSphere2);
 	}
 
+	private addPlayerHeadLine() {
+		if (this.playerHeadLine) return;
+		const headMat = new THREE.LineBasicMaterial({ color: "#1a15b0" });
+		this.playerHeadLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1000)]);
+
+		this.playerHeadLine = new THREE.Line(this.playerHeadLineGeom, headMat);
+		this.playerHeadLine.frustumCulled = false;
+		this.playerHeadLine.visible = Settings.get("Pilot Look Indicator") == "On";
+		this.meshProxyObject.add(this.playerHeadLine);
+	}
+
 	protected override onScaleUpdate(): void {
 		super.onScaleUpdate();
 		// Keep head the same size by scaling with the inverse of the scale
 		if (this.playerHeadLine) this.playerHeadLine.scale.set(1 / this.scale, 1 / this.scale, 1 / this.scale);
+	}
+
+	private renderControlInputs() {
+		// this.pyr.set(0.5, -0.25, 0.75);
+		// this.throttle = 0.6;
+
+		const r = this.app.controlInputsRenderer;
+		r.clear(0);
+		const size = r.ctx.canvas.width;
+		r.ctx.canvas.style.top = `-${size + 5}px`;
+
+		const throttleWidth = 15;
+		const rollPitchSize = 4;
+		const c = new Color([0, 255, 0]);
+
+		// Outer box
+		r.line(1, 1, size - 1, 1, c);
+		r.line(1, 1, 1, size - 1, c);
+		r.line(size - 1, 1, size - 1, size - 1, c);
+		r.line(1, size - 1, size - 1, size - 1, c);
+
+		// Throttle
+		r.line(throttleWidth, 1, throttleWidth, size - 1, c);
+		r.line(throttleWidth, throttleWidth, size - 1, throttleWidth, c);
+		const throttleHeight = size * this.throttle;
+		r.rect(1, size - throttleHeight, throttleWidth, throttleHeight, c);
+
+		// Yaw line
+		const horizontalSize = size - throttleWidth;
+		const yawLineX = horizontalSize / 2 + (horizontalSize / 2) * this.pyr.y + throttleWidth;
+		r.ctx.lineWidth = 2;
+		r.line(yawLineX, throttleWidth, yawLineX, size - 1, c);
+		r.ctx.lineWidth = 1;
+
+		// Pitch/Roll circle
+		const x = horizontalSize / 2 + (horizontalSize / 2) * -this.pyr.z + throttleWidth;
+		const y = horizontalSize / 2 + (horizontalSize / 2) * -this.pyr.x + throttleWidth;
+
+		r.ellipse(x, y, rollPitchSize, c);
+
+		// Quadrant bars
+		r.line(horizontalSize / 2 + throttleWidth, throttleWidth, horizontalSize / 2 + throttleWidth, size - 1, c);
+		r.line(throttleWidth, horizontalSize / 2 + throttleWidth, size - 1, horizontalSize / 2 + throttleWidth, c);
 	}
 
 	public update(dt: number): void {
@@ -112,6 +183,46 @@ class PlayerVehicle extends Entity {
 			console.warn(`Entity ${this.debugName} has team ${this.team} but owner ${this.owner.pilotName} has team ${this.owner.team}`);
 			this.setTeam(this.owner.team);
 		}
+
+		if (this.isFocus) this.renderControlInputs();
+
+		// this.jester?.update();
+
+		// // if (this.velocity.length() == 0) return;
+		// const points: THREE.Vector3[] = [];
+		// const pos = this.position.to<THREE.Vector3>(THREE.Vector3);
+		// const vel = this.velocity.to<THREE.Vector3>(THREE.Vector3);
+		// const accel = this.acceleration.to<THREE.Vector3>(THREE.Vector3);
+		// const rotationDelta = this.rotation.clone().subtract(this.previousRotation);
+		// // .multiply(1000 / this.updateTimeDelta);
+		// const rotDeltaQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotationDelta.x, rotationDelta.y, rotationDelta.z));
+
+		// for (let i = 0; i < predictedPoints; i++) {
+		// 	accel.applyQuaternion(rotDeltaQuat);
+
+		// 	const stepAccel = accel.clone().multiplyScalar(predictedStep);
+		// 	vel.add(stepAccel);
+		// 	const stepVel = vel.clone().multiplyScalar(predictedStep);
+		// 	pos.add(stepVel);
+
+		// 	points.push(new THREE.Vector3(pos.x, pos.y, pos.z));
+
+		// 	if (this.accelLines[i]) {
+		// 		const vec = pos.clone().add(accel.clone().multiplyScalar(100));
+		// 		this.accelLines[i].geometry.setFromPoints([pos, vec]);
+		// 	} else {
+		// 		const aMat = new THREE.LineBasicMaterial({ color: "#ff0000" });
+		// 		const aGeom = new THREE.BufferGeometry().setFromPoints([pos, pos.clone().add(accel.clone().multiplyScalar(100))]);
+		// 		this.accelLines[i] = new THREE.Line(aGeom, aMat);
+		// 		this.accelLines[i].frustumCulled = false;
+		// 		this.accelLines[i].name = "accelLine";
+		// 		this.scene.add(this.accelLines[i]);
+		// 	}
+		// }
+
+		// this.predictedPathLineGeom.setFromPoints(points);
+		// this.predictedPathLine.geometry = new THREE.BufferGeometry().setFromPoints(points);
+		// this.predictedPathLine.matrixWorldNeedsUpdate = true;
 
 		// const carrier = this.app.entities.find(e => e.type.toLowerCase() == "units/allied/alliedcarrier");
 		// if (!carrier) return;
@@ -191,6 +302,12 @@ class PlayerVehicle extends Entity {
 	@RPC("in")
 	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean, pyr: Vector) {
 		this.throttle = throttle;
+		this.pyr.set(pyr);
+		// if (Application.time != this.previousUpdateTime) {
+		// 	this.previousRotation = this.rotation.clone();
+		// 	this.updateTimeDelta = Application.time - this.previousUpdateTime;
+		// 	this.previousUpdateTime = Application.time;
+		// }
 		this.updateMotion(pos, vel, accel, rot);
 
 		// const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
@@ -214,6 +331,7 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	UpdatePilotHead(direction: Vector3) {
+		if (!this.playerHeadLine) this.addPlayerHeadLine();
 		this.playerHeadLine?.rotation.set(rad(direction.x), -rad(direction.y), rad(direction.z));
 	}
 

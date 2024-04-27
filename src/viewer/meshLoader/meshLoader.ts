@@ -2,7 +2,9 @@ import * as THREE from "three";
 
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
+import { nuclearOptionEntities } from "../nuclearOptionGuids";
 import { entityMeshs } from "./entityMeshConfigs";
+import { FBXLoader } from "./FBXLoader";
 import { GLTFLoader } from "./GLTFLoader";
 import InstancedGroupMesh from "./instancedGroupMesh";
 import { OBJLoader } from "./OBJLoader";
@@ -22,9 +24,20 @@ function unitIdToEntityKeys(unitName: string): string[] {
 }
 
 // Handles loading all entity meshes
+interface Loaders {
+	fbx: FBXLoader;
+	gltf: GLTFLoader;
+	obj: OBJLoader;
+}
+
 class MeshLoader {
-	private objLoader: OBJLoader = new OBJLoader();
-	private gltfLoader: GLTFLoader = new GLTFLoader();
+	// private objLoader: OBJLoader = new OBJLoader();
+	// private gltfLoader: GLTFLoader = new GLTFLoader();
+	private loaders: Loaders = {
+		fbx: new FBXLoader(),
+		gltf: new GLTFLoader(),
+		obj: new OBJLoader()
+	};
 	private cache: Record<string, THREE.Group> = {};
 	private materialCache: Record<string, THREE.MeshStandardMaterial> = {};
 
@@ -35,6 +48,25 @@ class MeshLoader {
 	private boundingBoxCache: Record<string, THREE.Box3> = {};
 
 	private imeshCounts: Record<string, number> = {};
+
+	private getLoaderFor(path: string) {
+		const keys = Object.keys(this.loaders) as Array<keyof Loaders>;
+		for (const key of keys) {
+			if (path.endsWith(key)) return this.loaders[key];
+		}
+
+		return null;
+	}
+
+	private updateMaterialRecursive(obj: THREE.Object3D, mat: THREE.MeshStandardMaterial) {
+		if (obj instanceof THREE.Mesh) {
+			obj.material = mat;
+		}
+		const n = obj.name.toLowerCase();
+		if (n.startsWith("gearhinge")) obj.visible = false;
+		if (n.includes("light") || n.includes("glow")) obj.visible = false;
+		obj.children.forEach(child => this.updateMaterialRecursive(child, mat));
+	}
 
 	public async load(entityKey: string): Promise<THREE.Group | null> {
 		if (entityKey.includes("/Missiles/")) return null;
@@ -55,16 +87,35 @@ class MeshLoader {
 			return e.key.some(k => k.endsWith(entityKey)); // If the key is a fragment, check if it ends with the fragment
 		});
 
-		let path: string;
+		let path = "";
 		if (config) {
-			path = config.path;
-		} else {
+			path = config.path ?? "";
+		}
+
+		if (path == "") {
 			const parts = entityKey.split("/");
 			const name = parts[parts.length - 1];
 			path = `./assets/objects/output/vtolvr_${name}.gltf`;
+
+			if (parts[0] == "NuclearOption") {
+				const noConfig = nuclearOptionEntities.find(e => e.key.includes(entityKey));
+				if (!noConfig) {
+					console.error(`No NuclearOption config found for ${entityKey}!`);
+					return null;
+				}
+
+				if (!noConfig?.mesh) return null;
+				path = `./assets/objects/nuclearOption/${noConfig.mesh}.fbx`;
+			}
 		}
 
-		const loader = path.endsWith("gltf") ? this.gltfLoader : this.objLoader;
+		// const loader = path.endsWith("gltf") ? this.gltfLoader : this.objLoader;
+		const loader = this.getLoaderFor(path);
+		if (!loader) {
+			console.error(`No loader found for ${path}!`);
+			return null;
+		}
+
 		let obj: unknown;
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -82,12 +133,14 @@ class MeshLoader {
 		if (this.materialCache[color]) mat = this.materialCache[color];
 		else mat = new THREE.MeshStandardMaterial({ color: color, side: THREE.DoubleSide });
 
-		objGroup.children.forEach(child => {
-			if (child instanceof THREE.Mesh) {
-				child.material = mat;
-			}
-		});
+		this.updateMaterialRecursive(objGroup, mat);
+
 		objGroup.rotation.set(0, Math.PI, 0);
+		if (entityKey.includes("NuclearOption")) {
+			objGroup.scale.set(0.008, 0.008, 0.008);
+			objGroup.rotation.set(0, 0, 0);
+		}
+
 		if (config && config.position) objGroup.position.set(config.position.x, config.position.y, config.position.z);
 		if (config && config.rotation) objGroup.rotation.set(config.rotation.x, config.rotation.y, config.rotation.z);
 		if (config && config.loadScale) objGroup.scale.set(config.loadScale, config.loadScale, config.loadScale);
@@ -138,17 +191,35 @@ class MeshLoader {
 
 		const config = entityMeshs.find(e => e.key.includes(entityKey));
 
-		let path: string;
+		let path = "";
 		if (config) {
-			path = config.path;
-		} else {
+			path = config.path ?? "";
+		}
+
+		if (path == "") {
 			const parts = entityKey.split("/");
 			const name = parts[parts.length - 1];
 			path = `./assets/objects/output/vtolvr_${name}.gltf`;
+
+			if (parts[0] == "NuclearOption") {
+				const noConfig = nuclearOptionEntities.find(e => e.key.includes(entityKey));
+				if (!noConfig) {
+					console.error(`No NuclearOption config found for ${entityKey}!`);
+					return null;
+				}
+
+				if (!noConfig?.mesh) return null;
+				path = `./assets/objects/nuclearOption/${noConfig.mesh}.fbx`;
+			}
 		}
 
 		// Determine what loader should be used and load the mesh
-		const loader = path.endsWith("gltf") ? this.gltfLoader : this.objLoader;
+		const loader = this.getLoaderFor(path);
+		if (!loader) {
+			console.error(`No loader found for ${path}!`);
+			return null;
+		}
+
 		let obj: unknown;
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -170,11 +241,7 @@ class MeshLoader {
 		else mat = new THREE.MeshStandardMaterial({ color: color, side: THREE.DoubleSide });
 
 		// Update material
-		objGroup.children.forEach(child => {
-			if (child instanceof THREE.Mesh) {
-				child.material = mat;
-			}
-		});
+		this.updateMaterialRecursive(objGroup, mat);
 
 		const meshGroup = new THREE.Group();
 		meshGroup.add(objGroup);

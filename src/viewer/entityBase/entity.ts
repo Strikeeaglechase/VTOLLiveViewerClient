@@ -49,6 +49,11 @@ class PersistentEntityData {
 	setDeadAt = 0;
 }
 
+// Threejs objects, to prevent constant creation
+const quat = new THREE.Quaternion();
+const vec = new THREE.Vector3();
+const euler = new THREE.Euler();
+
 class Entity {
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
@@ -509,12 +514,12 @@ class Entity {
 		// }
 
 		// Handles the weird unity->threejs rotation
-		const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
-		const r = new THREE.Euler().setFromQuaternion(quat);
+		quat.setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
+		euler.setFromQuaternion(quat);
 
 		// x axis is flipped in threejs
 		this.position.set(-pos.x, pos.y, pos.z);
-		this.rotation.set(r.x, r.y, r.z);
+		this.rotation.set(euler.x, euler.y, euler.z);
 		this.velocity.set(-vel.x, vel.y, vel.z);
 		this.acceleration.set(-accel.x, accel.y, accel.z);
 	}
@@ -595,6 +600,8 @@ class Entity {
 				this.textOverlayHasHadFirstUpdate = true;
 			}
 		}
+
+		this.jammers.forEach(j => j.update());
 
 		this.previousPosition.set(this.position);
 		this.previousVelocity.set(this.velocity);
@@ -686,7 +693,6 @@ class Entity {
 
 	public async remove(reason: string): Promise<void> {
 		console.log(`Removing entity ${this} because ${reason}`);
-
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
 		if (this.activatingPromise) {
@@ -784,13 +790,13 @@ class Entity {
 			"Weapons/Missiles/SubMissile": "Cluster Munition",
 			"Weapons/Missiles/SAMs/APCIRSAM": "IR APC SAM",
 			"Weapons/Missiles/SAMs/SaawMissile": "SAAW Missile",
-			"Units/Allied/BSTOPRadar": "Backstop Radar",
+			"Units/Allied/BSTOPRadar": "Backstop Radar"
 
 			// Nuclear option GUIDs
-			"1b8b6ff39affdb64da915cc38a0cef07": "Fighter1",
-			"4c2f3d26c41434549ad78a3d4219e930": "AttackHelo1",
-			"ee86e0fadb7ab5b4b962e0428bb9ba23": "COIN",
-			"753f6183b6d18c245ad36b21ee8126c9": "Darkreach"
+			// "1b8b6ff39affdb64da915cc38a0cef07": "Fighter1",
+			// "4c2f3d26c41434549ad78a3d4219e930": "AttackHelo1",
+			// "ee86e0fadb7ab5b4b962e0428bb9ba23": "COIN",
+			// "753f6183b6d18c245ad36b21ee8126c9": "Darkreach"
 		};
 
 		if (map[identifier]) return map[identifier];

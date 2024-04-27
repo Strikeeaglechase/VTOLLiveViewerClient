@@ -17,7 +17,7 @@
     "node": "^16.16.0",
     "rstatsjs": "^1.0.1",
     "stats.js": "^0.17.0",
-    "strik-2d-renderer": "^1.0.0",
+    "strik-2d-renderer": "^1.0.2",
     "three": "^0.136.0",
     "three-css2drender": "^1.0.0",
     "three.meshline": "^1.4.0",
