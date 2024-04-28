@@ -65,6 +65,9 @@ class MeshLoader {
 		const n = obj.name.toLowerCase();
 		if (n.startsWith("gearhinge")) obj.visible = false;
 		if (n.includes("light") || n.includes("glow")) obj.visible = false;
+		if (n.includes("pilot")) obj.visible = false;
+		// if (n.includes("cockpit")) obj.visible = false;
+		if (n.includes("WSO")) obj.visible = false;
 		obj.children.forEach(child => this.updateMaterialRecursive(child, mat));
 	}
 

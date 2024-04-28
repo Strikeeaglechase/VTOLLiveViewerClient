@@ -26,7 +26,9 @@ window.onload = () => {
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.app = app;
+
 	markRaw(app);
+	markRaw(Application);
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
@@ -34,5 +36,5 @@ window.onload = () => {
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
-	window.THREE = THREE;
+	window.THREE = markRaw(THREE);
 };

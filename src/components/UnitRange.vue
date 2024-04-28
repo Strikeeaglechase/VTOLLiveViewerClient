@@ -38,46 +38,47 @@
 	import { deg, ftToMi, msToKnots, mToFt, addCommas, Application } from "../viewer/app";
 	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
 	import { Entity } from "../viewer/entityBase/entity";
+	import { EntityViewData } from "../viewer/entityBase/entityViewData.js";
 	import EntityComponent from "./Entity.vue";
 	import EquipsViewer from "./EquipsViewer.vue";
 
 	@Component({ components: { EntityComponent, EquipsViewer } })
 	export default class UnitRange extends Vue {
-		entities: Entity[] = [];
-		currentFocus: Entity | null = null;
+		entities: EntityViewData[] = [];
+		currentFocus: EntityViewData | null = null;
 		// private incomingLocks: Set<number> = new Set();
 		// private outgoingLock: number | null = null;
 
 		// entityDists: Record<string, { dist: number; time: number }> = {};
 
 		mounted() {
-			EventBus.$on("entities", (e: Entity[]) => {
+			EventBus.$on("entities", (e: EntityViewData[]) => {
 				this.entities = e;
 			});
-			EventBus.$on("focused-entity", (entity: Entity) => {
+			EventBus.$on("focused-entity", (entity: EntityViewData) => {
 				this.currentFocus = entity;
 			});
 		}
 
-		getDataEntities(e: Entity[]): { entity: Entity; isLockingUs: boolean; isLocking: boolean }[] {
+		getDataEntities(e: EntityViewData[]): { entity: EntityViewData; isLockingUs: boolean; isLocking: boolean }[] {
 			if (e.length == 0) return [];
 			if (this.currentFocus == null) return [];
-			if (Application.instance.currentFocus != this.currentFocus) {
-				console.error(`currentFocus is not the same as Application.instance.currentFocus`);
-				return [];
-			}
+			// if (Application.instance.currentFocus != this.currentFocus) {
+			// 	console.error(`currentFocus is not the same as Application.instance.currentFocus`);
+			// 	return [];
+			// }
 
-			const focus = this.currentFocus as Entity;
+			const focus = this.currentFocus as EntityViewData;
 
 			const valid = e.filter(entity => {
 				// If showInBra and on other team
 				if (entity.showInBra && entity.team != focus.team) return true;
 
 				// If focus is locked onto them
-				if (focus instanceof PlayerVehicle && focus.lockLine?.isLockedTo(entity)) return true;
+				if (focus.isPlayer && focus.lockedOnto == entity.id) return true;
 
 				// If they are locked onto focus
-				if (entity instanceof PlayerVehicle && entity.lockLine?.isLockedTo(focus)) return true;
+				if (entity.isPlayer && entity.lockedOnto == focus.id) return true;
 				return false;
 			});
 
@@ -95,8 +96,8 @@
 				.map(entity => {
 					return {
 						entity: entity,
-						isLockingUs: entity instanceof PlayerVehicle && entity.lockLine?.isLockedTo(focus), //this.isLockedBy(entity),
-						isLocking: this.currentFocus instanceof PlayerVehicle && this.currentFocus.lockLine?.isLockedTo(entity)
+						isLockingUs: entity.isPlayer && entity.lockedOnto == focus.id, //this.isLockedBy(entity),
+						isLocking: this.currentFocus.isPlayer && this.currentFocus.lockedOnto == entity.id
 					};
 				});
 		}

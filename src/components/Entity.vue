@@ -26,11 +26,12 @@
 	import { Application } from "../viewer/app";
 	import { hasPerm } from "../viewer/client/cookies";
 	import { PlayerVehicle } from "../viewer/entities/playerVehicle";
+	import { EntityViewData } from "../viewer/entityBase/entityViewData.js";
 
 	@Component
 	export default class EntityComponent extends Vue {
 		@Prop()
-		entity!: Entity;
+		entity!: EntityViewData;
 		teams = Team;
 
 		// focusButtonText = "Focus";

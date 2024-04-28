@@ -5,11 +5,17 @@ import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
 import { Application } from "../app";
 import { Entity, MAX_OBJECT_SIZE, teamColors } from "../entityBase/entity";
+import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { Settings } from "../settings";
 import { radarLaunchRanges } from "./radarLaunchRanges";
 
+const placeholderImeshCount = 1024;
+
 @EnableRPCs("instance")
 class AIGroundUnit extends Entity {
+	private static placeholderImesh: InstancedGroupMesh;
+	private static imeshId = 0;
+
 	public static spawnFor: string[] = [
 		"Units/Allied/AlliedAAShip",
 		"Units/Allied/AlliedBackstopSAM",
@@ -116,6 +122,28 @@ class AIGroundUnit extends Entity {
 		super.spawn(id, ownerId, path, position, rotation, isActive);
 		this.hasOverlay = !(path == "Units/Allied/AlliedSoldier" || path == "Units/Enemy/EnemySoldier");
 		if (isActive) await this.setActive(`AI spawned as active`);
+	}
+
+	protected override async createInstancedMesh(): Promise<void> {
+		if (!this.type.includes("NuclearOption")) return super.createInstancedMesh();
+
+		// if (!AIGroundUnit.placeholderImesh) this.createPlaceholderImesh();
+
+		// this.iMesh = AIGroundUnit.placeholderImesh;
+		// this.iMeshId = AIGroundUnit.imeshId++;
+
+		this.iMeshOffsetObject = new THREE.Object3D();
+		this.meshProxyObject.add(this.iMeshOffsetObject);
+	}
+
+	private createPlaceholderImesh() {
+		const mat = new THREE.MeshStandardMaterial({ color: "#747474", side: THREE.DoubleSide });
+		const mesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 5), mat);
+		const group = new THREE.Group();
+		group.add(mesh);
+		const iMesh = new InstancedGroupMesh(group, placeholderImeshCount);
+
+		AIGroundUnit.placeholderImesh = iMesh;
 	}
 
 	private addSamThreatRing() {

@@ -8,6 +8,7 @@ import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { TextOverlay } from "../textOverlayHandler";
+import { EntityViewData } from "./entityViewData";
 import { EquipManager } from "./equipManager";
 import { RadarJammerSync } from "./jammer";
 import { SimpleUnitTrail } from "./simpleUnitTrail";
@@ -54,7 +55,25 @@ const quat = new THREE.Quaternion();
 const vec = new THREE.Vector3();
 const euler = new THREE.Euler();
 
-class Entity {
+interface EntityReference {
+	id: number;
+
+	is(other: EntityReference): boolean;
+}
+
+class EntityReferenceOf implements EntityReference {
+	public id: number;
+
+	constructor(entity: Entity | number) {
+		this.id = typeof entity == "number" ? entity : entity.id;
+	}
+
+	is(other: EntityReference) {
+		return this.id == other.id;
+	}
+}
+
+class Entity implements EntityReference {
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
 		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = new PersistentEntityData();
@@ -74,6 +93,14 @@ class Entity {
 	public owner = Player.empty;
 	public displayName: string;
 	public jammers: RadarJammerSync[] = [];
+	public view: EntityViewData = new EntityViewData();
+
+	public is(other: EntityReference): boolean {
+		return this.id == other.id;
+	}
+	public get ref(): EntityReference {
+		return new EntityReferenceOf(this);
+	}
 
 	public gForce = 0;
 	public maxGForce = 0;
@@ -101,7 +128,7 @@ class Entity {
 
 	public iMesh: InstancedGroupMesh;
 	public iMeshId: number;
-	private iMeshOffsetObject: THREE.Object3D;
+	protected iMeshOffsetObject: THREE.Object3D;
 
 	private engineOffsets: Vector[] | null;
 
@@ -560,8 +587,8 @@ class Entity {
 				this.iMeshOffsetObject.updateMatrixWorld();
 
 				if (!this.iMesh) {
-					console.log(`Entity ${this} has no instanced mesh. Active: ${this.isActive}`);
-					this.createMesh();
+					// console.log(`Entity ${this} has no instanced mesh. Active: ${this.isActive}`);
+					// this.createMesh();
 				} else {
 					this.iMesh.setMatrixAt(this.iMeshId, this.iMeshOffsetObject.matrixWorld);
 					this.iMesh.setNeedsUpdate(true);
@@ -606,6 +633,8 @@ class Entity {
 		this.previousPosition.set(this.position);
 		this.previousVelocity.set(this.velocity);
 		this.previousScale = this._scale;
+
+		this.view.updateInfo(this);
 
 		// Time has been set to before when we were active, deactivate
 		if (Application.time < this.persistentData.setActiveAt) {
@@ -820,4 +849,4 @@ class Entity {
 		return this.debugName;
 	}
 }
-export { Entity };
+export { Entity, EntityReference };

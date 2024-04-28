@@ -120,6 +120,14 @@ class MissileEntity extends Entity {
 	public SyncShit(syncedPos: Vector3, syncedRot: Vector3, syncedVel: Vector3, syncedAccel: Vector3) {
 		// Call some bitches - Dinner Plate
 		this.updateMotion(syncedPos, syncedVel, syncedAccel, syncedRot);
+
+		if (this.type.includes("NuclearOption")) {
+			// Face forward based off velocity
+			const vel = this.velocity.clone().unit();
+			const r = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), vel.to(THREE.Vector3)));
+
+			this.rotation.set(r);
+		}
 	}
 
 	@RPC("in")

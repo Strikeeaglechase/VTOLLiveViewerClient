@@ -15,7 +15,7 @@ class DesignatorLine {
 	private hasBeenSpawned = false;
 	private hasInit = false;
 
-	private lockedEntity: Entity | null = null;
+	public lockedEntity: Entity | null = null;
 	private lockedPoint: IVector3 | null = null;
 
 	constructor(private parent: Entity, private app: Application, private color: string) {
@@ -49,7 +49,8 @@ class DesignatorLine {
 	}
 
 	public lockUnit(unitId: number) {
-		const entity = this.app.entities.find(entity => entity.unitId == unitId);
+		// const entity = this.app.entities.find(entity => entity.unitId == unitId);
+		const entity = this.app.getEntityByUnitId(unitId);
 		if (!entity) {
 			console.error(`Unable to locate entity for designator lock! Entity UnitID: ${unitId}`);
 			return;

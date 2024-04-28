@@ -22,6 +22,7 @@ import { GunEntity } from "./entities/gunEntity";
 import { HardpointEntity } from "./entities/hardpointEntity";
 import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
+import { EntityViewData } from "./entityBase/entityViewData";
 import { RadarJammerSync } from "./entityBase/jammer";
 import { BulletManager } from "./managers/bulletManager";
 import { FlareManager } from "./managers/flareManager";
@@ -79,7 +80,9 @@ class MessageHandler {
 
 	@RPC("in")
 	SetEntityUnitID(entityId: number, unitId: number) {
-		const entity = this.app.entities.find(e => e.id == entityId);
+		// const entity = this.app.entities.find(e => e.id == entityId);
+		// if (entity) entity.setUnitId(unitId);
+		const entity = this.app.getEntityById(entityId);
 		if (entity) entity.setUnitId(unitId);
 	}
 
@@ -152,7 +155,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public mouseX = 0;
 	public mouseY = 0;
 
-	public entities: Entity[] = [];
+	private entities: Entity[] = [];
+	public entityViews: EntityViewData[] = [];
 	private entitiesByOwner: Record<string, Entity[]> = {};
 	private entitiesById: Record<number, Entity> = {};
 	private entitiesToDelete: Entity[] = [];
@@ -575,6 +579,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				return;
 			}
 			this.entities.splice(idx, 1);
+
+			const viewIdx = this.entityViews.indexOf(entity.view);
+			if (viewIdx == -1) {
+				console.error(`Entity to delete not found in entityViews list!`);
+				return;
+			}
+			this.entityViews.splice(viewIdx, 1);
+
 			delete this.entitiesById[entity.id];
 
 			const ownerIdx = this.entitiesByOwner[entity.ownerId]?.indexOf(entity);
@@ -682,15 +694,16 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.entities.push(entity);
 		this.entitiesById[entity.id] = entity;
+		this.entityViews.push(entity.view);
 
 		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
 		this.entitiesByOwner[entity.ownerId].push(entity);
-		EventBus.$emit("entities", this.entities);
+		EventBus.$emit("entities", this.entityViews);
 	}
 
 	public setFocusImmediately(entity: Entity): void {
 		console.log(`Setting focus to ${entity}`);
-		EventBus.$emit("focused-entity", entity);
+		EventBus.$emit("focused-entity", entity.view);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
@@ -709,7 +722,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	public setFocusTo(entity: Entity): void {
 		console.log(`Setting focus to ${entity}`);
-		EventBus.$emit("focused-entity", entity);
+		EventBus.$emit("focused-entity", entity.view);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
