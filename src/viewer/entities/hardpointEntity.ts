@@ -1,4 +1,4 @@
-import { EnableRPCs } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
+import { EnableRPCs } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
 

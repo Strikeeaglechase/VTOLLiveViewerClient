@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
 import { Application } from "../app";
 import { Entity } from "./entity";
@@ -32,9 +31,7 @@ class SimpleUnitTrail {
 	};
 	private lastTrailTime = 0;
 
-	constructor(private entity: Entity) {
-		markRaw(this);
-	}
+	constructor(private entity: Entity) {}
 
 	public updateColor(color: { r: number; g: number; b: number }): void {
 		this.color = color;

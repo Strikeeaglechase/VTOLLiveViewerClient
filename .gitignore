@@ -3,6 +3,7 @@
 node_modules
 /dist
 leaks.dont.look
+public/main.js
 
 # local env files
 .env.local

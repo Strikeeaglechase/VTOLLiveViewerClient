@@ -6,13 +6,13 @@ import Stats from "stats.js";
 import { Renderer } from "strik-2d-renderer";
 import * as THREE from "three";
 
-import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression";
-import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
-import { EnableRPCs, RPC, RPCController, RPCPacket } from "../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/src/vector";
+import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/dist/compression/vtcompression";
+import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
+import { EnableRPCs, RPC, RPCController, RPCPacket } from "../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/shared.js";
+import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/vector";
+import { ComponentManager } from "../components/componentManager.js";
 import { API_URL, IS_DEV, WS_URL } from "../config";
-import { EventBus } from "../eventBus";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
@@ -106,14 +106,22 @@ enum ApplicationRunningState {
 	replaySelect = "replay_select",
 	admin = "admin",
 	running = "running",
-	lobbyEnd = "lobby_end"
+	lobbyEnd = "lobby_end",
+	invalid = "invalid"
 }
+const runningTypeState = [ApplicationRunningState.running, ApplicationRunningState.lobbyEnd];
 
-const stateChangeMap = {
-	"/lobbies": ApplicationRunningState.lobbySelect,
-	"/replay": ApplicationRunningState.replaySelect,
-	"/admin": ApplicationRunningState.admin
-};
+// const stateChangeMap = {
+// 	"/lobbies": ApplicationRunningState.lobbySelect,
+// 	"/replay": ApplicationRunningState.replaySelect,
+// 	"/admin": ApplicationRunningState.admin
+// };
+
+const stateInfos: { state: ApplicationRunningState; path: string }[] = [
+	{ state: ApplicationRunningState.lobbySelect, path: "/lobbies" },
+	{ state: ApplicationRunningState.replaySelect, path: "/replay" },
+	{ state: ApplicationRunningState.admin, path: "/admin" }
+];
 
 interface LogMessage {
 	message: string;
@@ -124,7 +132,7 @@ let logMessageId = 0;
 
 // Master application class, singleton
 @EnableRPCs("singleInstance")
-class Application extends EventEmitter<"running_state" | "replay_mode" | "client_id" | "unit_scale"> {
+class Application extends EventEmitter<"running_state" | "replay_mode" | "client_id" | "unit_scale" | "log_message" | "error_message" | "success_message"> {
 	private container: HTMLDivElement;
 	public messageHandler: MessageHandler;
 	public client: Client;
@@ -135,6 +143,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;
 	public controlInputsRenderer: Renderer;
+	private componentManager: ComponentManager;
 
 	public isReplay = false;
 	public get timeDirection(): number {
@@ -155,7 +164,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public mouseX = 0;
 	public mouseY = 0;
 
-	private entities: Entity[] = [];
+	public entities: Entity[] = [];
 	public entityViews: EntityViewData[] = [];
 	private entitiesByOwner: Record<string, Entity[]> = {};
 	private entitiesById: Record<number, Entity> = {};
@@ -184,8 +193,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 	private static _instance: Application;
 
-	public static state: ApplicationRunningState = ApplicationRunningState.welcome;
-	public state: ApplicationRunningState = ApplicationRunningState.welcome;
+	public static get state() {
+		return this.instance.state;
+	}
+	public state: ApplicationRunningState = ApplicationRunningState.invalid;
+	// private stateHistory: ApplicationRunningState[] = [];
 
 	constructor() {
 		console.log(`Application constructor called`);
@@ -194,20 +206,43 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.handleResize();
 		this.addWindowEventHandlers();
 
+		this.componentManager = new ComponentManager(this);
+
 		setInterval(() => this.alwaysRun(), 1000 / 60);
 	}
 
 	public static setState(state: ApplicationRunningState) {
-		if (state == ApplicationRunningState.lobbySelect && location.pathname == "/replay") {
-			state = ApplicationRunningState.replaySelect;
-			console.log(`Switching to replay select state rather than regular lobby select`);
+		Application.instance.setState(state);
+	}
+
+	private setState(state: ApplicationRunningState) {
+		// if (this.stateHistory[this.stateHistory.length - 1] != state) this.stateHistory.push(state);
+		const stateInfo = stateInfos.find(info => info.state == state);
+		if (stateInfo) {
+			// Check if path is already set
+			if (!window.location.pathname.startsWith(stateInfo.path)) {
+				window.history.pushState({}, "", stateInfo.path);
+			}
 		}
 
-		Application.state = state;
-		Application.instance.state = state;
-		EventBus.$emit("state", state);
+		// Have to do full reload if something was started as too much is not prepared for restarts
+		if (runningTypeState.includes(this.state) && !runningTypeState.includes(state)) {
+			window.location.reload();
+		}
+
+		this.state = state;
+		this.emit("running_state", state);
 		console.log(`New application state: ${state}`);
 	}
+
+	// private popState() {
+	// 	this.stateHistory.pop();
+	// 	const state = this.stateHistory[this.stateHistory.length - 1];
+
+	// 	this.state = state;
+	// 	this.emit("running_state", state);
+	// 	console.log(`Popped application state: ${state}`);
+	// }
 
 	public async init(): Promise<void> {
 		console.log(`Application init called`);
@@ -231,12 +266,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		});
 
 		// }
-		const pathnames = Object.keys(stateChangeMap) as (keyof typeof stateChangeMap)[];
-		pathnames.forEach(pathname => {
-			if (window.location.pathname.startsWith(pathname)) {
-				Application.setState(stateChangeMap[pathname]);
-			}
-		});
+		this.updateStateViaPath();
 
 		// const user = getLoggedInUser();
 		// if (user) {
@@ -261,6 +291,42 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// this.quickTestSetup();
 
 		// EventBus.$emit("app", this);
+
+		this.on("error_message", (message: string) => {
+			const container = document.getElementById("topBanner");
+			container.style.display = "";
+			(container.children[0] as HTMLParagraphElement).innerText = message;
+
+			setTimeout(() => {
+				container.style.display = "none";
+				console.log(`Hiding error message`);
+			}, 4000);
+		});
+
+		this.on("success_message", (message: string) => {
+			const container = document.getElementById("topBanner");
+			container.style.display = "";
+			(container.children[0] as HTMLParagraphElement).innerText = message;
+
+			setTimeout(() => {
+				container.style.display = "none";
+			}, 4000);
+		});
+	}
+
+	private updateStateViaPath() {
+		let foundDefaultState = false;
+		stateInfos.forEach(info => {
+			if (window.location.pathname.startsWith(info.path)) {
+				console.log(`Pathname starts with ${info.path}, so setting state to ${info.state}`);
+				this.setState(info.state);
+				foundDefaultState = true;
+			}
+		});
+
+		if (!foundDefaultState) {
+			this.setState(ApplicationRunningState.welcome);
+		}
 	}
 
 	private _hasStarted = false;
@@ -629,9 +695,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			return g.isOpen;
 		});
 
-		if (didRemove) {
-			EventBus.$emit("lobbies", this.gameList);
-		}
+		this.componentManager.update();
 	}
 
 	@RPC("in")
@@ -641,7 +705,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			return;
 		}
 		this.gameList.push(new VTOLLobby(id));
-		EventBus.$emit("lobbies", this.gameList);
 
 		if (IS_DEV && !this.game) {
 			setTimeout(() => {
@@ -698,12 +761,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		if (!this.entitiesByOwner[entity.ownerId]) this.entitiesByOwner[entity.ownerId] = [];
 		this.entitiesByOwner[entity.ownerId].push(entity);
-		EventBus.$emit("entities", this.entityViews);
 	}
 
 	public setFocusImmediately(entity: Entity): void {
 		console.log(`Setting focus to ${entity}`);
-		EventBus.$emit("focused-entity", entity.view);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
@@ -722,7 +783,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	public setFocusTo(entity: Entity): void {
 		console.log(`Setting focus to ${entity}`);
-		EventBus.$emit("focused-entity", entity.view);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
 			const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
@@ -1056,7 +1116,12 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	private addLogMessage(message: string) {
 		console.log(`[GAME] ${message}`);
 		this.logMessages.push({ message, timestamp: this.time, id: logMessageId++ });
-		EventBus.$emit("log-messages", this.logMessages);
+		// EventBus.$emit("log-messages", this.logMessages);
+		this.emit("log_message", message);
+	}
+
+	private handlePopstate(e: PopStateEvent) {
+		this.updateStateViaPath();
 	}
 
 	private addWindowEventHandlers(): void {
@@ -1064,6 +1129,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		window.addEventListener("dblclick", e => this.handleMouseClick(e));
 		window.addEventListener("keydown", e => this.handleKeyDown(e));
 		window.addEventListener("mousemove", e => this.handleMouseOver(e));
+		window.addEventListener("popstate", e => this.handlePopstate(e));
 		// window.addEventListener("keyup", (e) => this.handleKeyUp(e));
 	}
 

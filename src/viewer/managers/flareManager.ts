@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
 import { SceneManager } from "./sceneManager";
@@ -31,7 +30,6 @@ class FlareManager {
 		this.material = new THREE.MeshStandardMaterial({ color: "#000000", side: THREE.DoubleSide });
 		this.material.emissiveIntensity = 1;
 		this.material.emissive = new THREE.Color("#ffe357");
-		markRaw(this);
 	}
 
 	public update(dt: number) {

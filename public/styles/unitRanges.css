@@ -1,0 +1,79 @@
+.unit-data-container {
+	position: fixed;
+	right: 0;
+	bottom: 0;
+}
+
+.control-inputs {
+	right: 10px;
+	top: -55px;
+	position: absolute;
+	opacity: 0.5;
+}
+
+#unit-data {
+	background: rgba(0, 0, 0, 0.6);
+	padding-right: 10px;
+	padding-bottom: 5px;
+	padding-top: 2px;
+	margin-bottom: 15px;
+	margin-right: 10px;
+}
+
+#unit-data p {
+	color: white;
+	font-family: monospace;
+	margin-left: 10px;
+	margin-top: 5px;
+	margin-bottom: 0px;
+	text-align: left;
+}
+#unit-data h3 {
+	color: white;
+	font-family: monospace;
+	margin-left: 10px;
+	margin-top: 5px;
+	margin-bottom: 0px;
+}
+
+.lockedBy {
+	color: red;
+}
+
+.isLocking {
+	color: green;
+}
+
+.equips p {
+	color: white;
+	font-family: monospace;
+	margin-left: 10px;
+	margin-top: 5px;
+	margin-bottom: 0px;
+	text-align: left;
+}
+
+.equip-btn {
+	width: 100%;
+	margin-left: 5px;
+	margin-right: 5px;
+	border-style: none;
+	background-color: rgba(151, 151, 151, 0.6);
+	color: white;
+	font-family: monospace;
+	font-size: 16px;
+	border-radius: 5px;
+}
+
+.equip-btn:hover {
+	background-color: rgba(151, 151, 151, 0.8);
+}
+
+.content {
+	display: block;
+}
+
+.hidden {
+	max-height: 0px;
+	display: none;
+}

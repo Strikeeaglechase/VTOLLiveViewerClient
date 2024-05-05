@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
 import { Application } from "../app";
 import { CameraController } from "../cameraController";
@@ -41,9 +40,7 @@ class SceneManager {
 	private sceneAddQueue: THREE.Object3D[] = [];
 
 	private hasInit = false;
-	constructor(private app: Application) {
-		markRaw(this);
-	}
+	constructor(private app: Application) {}
 
 	public async init(container: HTMLDivElement): Promise<void> {
 		this.scene = new THREE.Scene();

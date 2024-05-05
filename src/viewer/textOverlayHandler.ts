@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
-import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/src/vector";
+import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/vector";
 import { Application } from "./app";
 import { CSS2DObject } from "./CSS2DRenderer";
 import { SceneEvent } from "./managers/sceneManager";
@@ -97,8 +96,6 @@ class TextOverlay {
 		this.elm.addEventListener("mouseleave", () => (this.isHovered = false));
 
 		this.combineId = combineId ?? -1;
-
-		markRaw(this);
 
 		// this.debugBoxHelper = new THREE.BoxHelper(this.object, 0x00ffff);
 		// this.debugBoxHelper.name = `Debug Box Helper`;

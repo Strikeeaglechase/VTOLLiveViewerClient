@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector";
 import { Application } from "../app";
 import { SceneManager } from "./sceneManager.js";
 
@@ -51,8 +50,6 @@ class Bullet {
 			this.cylinder.visible = false;
 			masterBulletObject.add(this.cylinder);
 		}
-
-		markRaw(this);
 	}
 
 	public fire(position: Vector, velocity: Vector) {

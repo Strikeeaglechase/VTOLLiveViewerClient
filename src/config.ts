@@ -1,4 +1,4 @@
-import { ENV_IS_DEV } from "./.env";
+import { ENV_IS_DEV } from "./isDev";
 
 export const IS_DEV = ENV_IS_DEV;
 if (IS_DEV) console.warn(`-- Headless Client Development mode enable --`);

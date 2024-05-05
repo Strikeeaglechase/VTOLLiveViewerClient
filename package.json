@@ -2,17 +2,13 @@
   "name": "vtol-live-viewer-client",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "build": "rollup -c rollup.config.js",
+    "watch": "rollup -c rollup.config.js -w"
   },
   "dependencies": {
-    "@types/node": "^17.0.17",
-    "@vue/cli-plugin-eslint": "^5.0.4",
     "buffer": "^6.0.3",
-    "core-js": "^3.6.5",
-    "eslintrc": "^1.0.6",
     "jszip": "^3.10.1",
     "node": "^16.16.0",
     "rstatsjs": "^1.0.1",
@@ -21,27 +17,15 @@
     "three": "^0.136.0",
     "three-css2drender": "^1.0.0",
     "three.meshline": "^1.4.0",
-    "tslib": "^2.3.1",
-    "typescript": "^5.1.6",
+    "typescript": "^5.4.5",
     "typescript-transform-paths": "^3.4.6",
-    "vue": "^2.7.10",
-    "vue-class-component": "^7.2.3",
-    "vue-property-decorator": "^9.1.2",
-    "vue-router": "^3.2.0"
+    "vite": "^5.2.11"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/node": "^18.11.18",
     "@types/stats.js": "^0.17.0",
-    "@types/three": "^0.136.1",
-    "@typescript-eslint/eslint-plugin": "^5.4.0",
-    "@typescript-eslint/parser": "^5.4.0",
-    "@vue/cli-plugin-babel": "^5.0.4",
-    "@vue/cli-plugin-router": "^5.0.4",
-    "@vue/cli-plugin-typescript": "^5.0.4",
-    "@vue/cli-service": "^5.0.4",
-    "@vue/eslint-config-typescript": "^9.1.0",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3",
-    "obj2gltf": "^3.1.4",
-    "vue-template-compiler": "^2.7.10"
+    "@types/three": "^0.136.1"
   }
 }

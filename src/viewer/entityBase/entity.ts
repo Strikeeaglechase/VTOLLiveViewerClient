@@ -1,9 +1,8 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
-import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Player, Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Player, Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
@@ -223,12 +222,6 @@ class Entity implements EntityReference {
 		this.onlyShowTypeOnOverlay = config.onlyShowTypeOnOverlay ?? this.onlyShowTypeOnOverlay;
 		this.removeAfterDeath = config.removeAfterDeath ?? this.removeAfterDeath;
 
-		if (!this.showInBra && !this.showInSidebar) {
-			markRaw(this);
-		}
-
-		markRaw(this.trail);
-
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
 		this.meshProxyObject.name = `${this} MeshProxyObject`;
@@ -267,7 +260,6 @@ class Entity implements EntityReference {
 		this.damage.mesh.name = `${this} Damage`;
 		this.damage.mesh.visible = false;
 		this.scene.add(this.damage.mesh);
-		markRaw(this.damage);
 	}
 
 	private destroyDamageMesh() {
@@ -369,7 +361,6 @@ class Entity implements EntityReference {
 
 	protected addObjectMeshToScene() {
 		this.object.name = "Entity Mesh";
-		markRaw(this.object);
 		this.scene.add(this.object);
 	}
 
@@ -428,8 +419,6 @@ class Entity implements EntityReference {
 		this.addObjectMeshToScene();
 
 		this.isCreatingMesh = false;
-		markRaw(this.mesh);
-		markRaw(this.meshProxyObject);
 	}
 
 	private maybeCreateTextOverlay() {
@@ -440,7 +429,6 @@ class Entity implements EntityReference {
 		this.textOverlay.onDblClick = () => {
 			this.focus();
 		};
-		markRaw(this.textOverlay);
 	}
 
 	// Returns the object that should be used for raycasting

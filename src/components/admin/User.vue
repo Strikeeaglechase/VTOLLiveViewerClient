@@ -32,7 +32,7 @@
 		DbUserEntry,
 		HCUser,
 		UserScopes,
-	} from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+	} from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 
 	@Component({ components: {} })
 	export default class User extends Vue {

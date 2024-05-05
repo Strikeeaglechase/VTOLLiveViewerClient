@@ -28,7 +28,7 @@
 	import { EventBus } from "../../eventBus";
 	import { Application, ApplicationRunningState } from "../../viewer/app";
 	import { API_URL } from "../../config";
-	import { DbUserEntry } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+	import { DbUserEntry } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 	import User from "./User.vue";
 
 	@Component({ components: { User } })

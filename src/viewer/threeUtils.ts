@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { IVector3 } from "../../../VTOLLiveViewerCommon/src/vector.js";
+import { IVector3 } from "../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Application } from "./app";
 
 function mark(size: number, color: number) {

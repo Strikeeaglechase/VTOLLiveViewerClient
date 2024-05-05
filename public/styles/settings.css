@@ -1,0 +1,42 @@
+.settings {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	position: absolute;
+	width: 100%;
+	pointer-events: none;
+	margin-top: 10px;
+	z-index: 1;
+}
+
+.settings-content {
+	pointer-events: all;
+	width: 50vw;
+	background-color: rgba(0, 0, 0, 0.5);
+
+	border-width: 3px;
+	border-color: #04508a;
+	border-style: solid;
+
+	padding: 5px;
+}
+
+.settings-header {
+	font-size: 16px;
+	margin-top: 0px;
+}
+
+.settings-content-flex-container {
+	display: flex;
+	justify-content: space-between;
+}
+
+.settings-entry-text {
+	font-size: 12px;
+	text-align: left;
+	display: inline;
+}
+
+.settings-select {
+	margin-left: 15px;
+}

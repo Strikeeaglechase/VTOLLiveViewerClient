@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
-import { EnableRPCs, RPC, RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { EnableRPCs, RPC, RPCController } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { rad } from "../app";
 import { IdentityManager } from "../identities";
 import { Settings } from "../settings";

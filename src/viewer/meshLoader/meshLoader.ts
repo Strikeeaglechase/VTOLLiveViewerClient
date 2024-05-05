@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Application } from "../app";
 import { nuclearOptionEntities } from "../nuclearOptionGuids";
 import { entityMeshs } from "./entityMeshConfigs";

@@ -1,4 +1,4 @@
-import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
+import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { Application } from "./app";
 
 enum SettingType {
@@ -120,4 +120,4 @@ Settings.register({
 
 Settings.init();
 
-export { Settings, SettingType, SettingName };
+export { Settings, SettingType, ISetting, SettingName };

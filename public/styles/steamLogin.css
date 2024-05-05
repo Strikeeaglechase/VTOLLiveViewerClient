@@ -1,0 +1,30 @@
+.logout-pfp {
+	display: grid;
+	place-items: center;
+}
+
+.logout-pfp img {
+	padding-bottom: 5px;
+}
+
+.steambutton {
+	right: 8px;
+	top: 5px;
+	font-size: 45px;
+	position: absolute;
+}
+
+.steambutton .icon {
+	color: white;
+}
+
+.steambutton p {
+	/* margin-top: -0.25em; */
+	font-size: 14px;
+	margin-top: 0px;
+	margin-bottom: 0;
+}
+
+.steambutton {
+	cursor: pointer;
+}

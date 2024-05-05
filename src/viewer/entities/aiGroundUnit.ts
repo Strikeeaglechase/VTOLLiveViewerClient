@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
-import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Application } from "../app";
 import { Entity, MAX_OBJECT_SIZE, teamColors } from "../entityBase/entity";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";

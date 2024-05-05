@@ -1,0 +1,20 @@
+.replay-overlay {
+	position: absolute;
+	top: 50px;
+	left: 15px;
+	opacity: 1;
+}
+
+.speed-txt {
+	font-size: 32px;
+}
+
+.replay-overlay p {
+	margin-bottom: 0px;
+	margin-top: 0px;
+}
+
+.speed-hidden {
+	opacity: 0;
+	transition: opacity 0.5s;
+}

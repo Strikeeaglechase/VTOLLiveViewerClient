@@ -6,7 +6,7 @@
 	<script src="https://kit.fontawesome.com/4f37dbe7ec.js" crossorigin="anonymous"></script>
 	<link rel="preconnect" href="https://fonts.gstatic.com">
 	<link href="https://fonts.googleapis.com/css2?family=Anonymous+Pro&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="base-styles.css">
+	<link rel="stylesheet" href="./base-styles.css">
 	<script src="https://bundle.run/buffer@6.0.3"></script>
 	<script id="vertexShader" type="x-shader/x-vertex">
 		precision mediump float;
@@ -36,10 +36,212 @@
 		}
 	</script>
 
+	<script src="./main.js" type="module"></script>
 </head>
 
 <body>
-	<div id="app"></div>
+	<div id="app">
+		<div id="topBanner" class="topPopupBanner" style="display: none;">
+			<p id="bannerMsg"></p>
+		</div>
+		<!-- Main running page -->
+		<div id="main-container" class="page" style="display: none;">
+			<!-- Right hand sidebar -->
+			<div id="sidebar" class="ui">
+				<div class="settings-popout-btn" id="settings-popout-btn">
+					<button>Settings</button>
+				</div>
+				<div id="sidebar-entity-list"></div>
+			</div>
+
+			<!-- Bottom right unit range/lock info -->
+			<div class="unit-data-container" class="ui">
+				<div>
+					<canvas class="control-inputs" width="75px" height="75px" id="control-inputs-box"></canvas>
+				</div>
+
+				<div id="unit-data">
+					<h3 id="current-focus-data"></h3>
+					<div id="unit-data-entities"></div>
+
+					<div>
+						<br />
+						<div class="equips">
+							<button class="equip-btn" id="equips-popout-btn">loadout</button>
+							<div class="equips-container hidden" id="equips-container">
+								<p id="equip-missiles"></p>
+								<p id="equip-equipment"></p>
+								<p id="equip-fuel"></p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			<!-- Top left replay speed and time -->
+			<div class="replay-overlay ui" id="replay-speed-container" v-if="isReplay" :class="{ hidden: hide }">
+				<div>
+					<p class="speed-txt" id="replay-speed-text"></p>
+				</div>
+				<div>
+					<p id="replay-time-text"></p>
+				</div>
+			</div>
+
+			<!-- Bottom right log page -->
+			<div class="log-container ui">
+				<div class="log-header" style="margin-left: 300px;" id="toggle-log-btn">
+					<p>Toggle</p>
+				</div>
+				<div id="log-panel"></div>
+			</div>
+
+			<!-- Settings panel -->
+			<div class="settings ui" style="display: none;" id="settings-parent">
+				<div class="settings-content">
+					<p class="settings-header">Settings</p>
+					<div class="settings-content-flex-container">
+						<div class="left-settings-container" id="settings-container">
+							<!-- <div v-for="setting in Settings.settings" :key="setting.name">
+								<SettingsEntry :name="setting.name" :type="setting.type" />
+							</div> -->
+						</div>
+						<div class="right-settings-container" style="display: none;" id="carrier-landing-download-button">
+							<button>Download Carrier Landings</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Lobby select page -->
+		<div id="lobby-select-container" class="page" style="display: none;">
+			<div>
+				<div class="lobbySearchBar">
+					<input class="lobby-input" id="lobby-search-input" type="text" placeholder="Search.." />
+
+					<div id="replay-search" class="replay-search">
+						<input class="lobby-input" id="user-search-input" type="text" placeholder="Search by player.." />
+					</div>
+				</div>
+
+				<div class="lobbyBrowser" id="browser-container"></div>
+			</div>
+		</div>
+
+		<!-- Welcome page -->
+		<div id="welcome-page" class="page" style="display: none;">
+			<div class="welcome">
+				<div class="blur-background"></div>
+				<!-- <div class="main-background"></div> -->
+
+				<div class="steambutton">
+					<div id="steam-login-container">
+						<div id="steam-pfp-container" class="logout-pfp">
+							<img id="steam-pfp" />
+							<p id="steam-username"></p>
+							<p>Logout</p>
+						</div>
+
+						<div id="steam-login-button">
+							<i class="fa fa-steam-square icon"></i>
+							<p>Login</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="welcome-content">
+					<h1 class="text" style="padding-top: 10px">Headless Client</h1>
+					<!-- <p class="wip-text">Name still WIP</p> -->
+					<!-- <h2 class="text">Alpha Test</h2> -->
+					<div class="text" id="text-body">
+						<p>
+							Headless Client is a live 3D viewer for
+							<a href="https://store.steampowered.com/app/667970/VTOL_VR/" target="_blank">VTOL VR</a>
+							that allows you to spectate a running match
+							<br /><br /><span class="bold">Developers:</span><br />
+						</p>
+
+						<table class="devs-table">
+							<tr>
+								<td><a href="https://github.com/Strikeeaglechase" target="_blank">Strikeeaglechase</a></td>
+								<td>Lead Developer</td>
+							</tr>
+							<br />
+							<tr>
+								<td><a href="https://github.com/AlexAndHisScripts" target="_blank">IHave</a></td>
+								<td>
+									UI/UX Design
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="https://github.com/Temperz87" target="_blank">Temperz</a>
+								</td>
+								<td>
+									Backend/Reverse Engineering
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="https://github.com/LSantos2003" target="_blank">C-137</a>
+								</td>
+								<td>
+									Backend/Reverse Engineering
+								</td>
+							</tr>
+						</table>
+
+						<br />
+
+						<span class="bold">Special Thanks To:</span> <br />
+						BahamutoD - For making an amazing game and putting up with our
+						shenanigans <br />
+					</div>
+					<div id="view-lobbies-button">
+						<a href="javascript:void(0);" class="fancy-btn">
+							<p class="btn-txt">View Lobbies</p>
+						</a>
+					</div>
+					<div id="view-replays-button">
+						<a href="javascript:void(0);" class="fancy-btn">
+							<p class="btn-txt">View Recordings</p>
+						</a>
+					</div>
+				</div>
+
+				<div class="navbar">
+					<div class="valign">
+						<a href="https://discord.gg/yQ8ZW8cQRt" target="_blank">
+							<img src="discord.svg" class="discordlink" />
+						</a>
+					</div>
+					<div class="valign">
+						<a href="https://github.com/Strikeeaglechase/VTOLLiveViewerClient" target="_blank" style="margin-top: 3px">
+							<svg height="32" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="32" data-view-component="true" class="gitlink">
+								<path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+							</svg>
+						</a>
+					</div>
+					<div class="contact">
+						<p>Contact me on Discord: Strikeeaglechase</p>
+					</div>
+					<span style="width: 100%"></span>
+					<div class="disclaimer">
+						<p class="disclaimer-text">
+							Headless Client is a community project and is not affiliated or
+							endorsed by Boundless Dynamics
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="admin-page" class="page" style="display: none;">
+			<AdminPage />
+		</div>
+	</div>
 </body>
 
 </html>

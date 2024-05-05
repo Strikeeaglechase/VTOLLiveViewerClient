@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { SceneManager } from "../managers/sceneManager";
 import { HeightMap } from "./heightmap";
 
@@ -30,7 +30,7 @@ class MapLoader {
 	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
 		const start = Date.now();
 
-		const worker = new Worker(new URL("./mapLoad.worker.ts", import.meta.url));
+		const worker = new Worker(new URL("./mapLoad.worker.js", import.meta.url));
 
 		this.heightMap = new HeightMap(mission);
 		await this.heightMap.init();

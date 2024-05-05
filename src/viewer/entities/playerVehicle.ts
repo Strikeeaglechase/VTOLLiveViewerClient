@@ -1,9 +1,9 @@
 import { Color } from "strik-2d-renderer";
 import * as THREE from "three";
 
-import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector";
+import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector";
 import { addCommas, Application, deg, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";

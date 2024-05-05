@@ -1,0 +1,176 @@
+@import url("fancebutton.css");
+@import url("steamLogin.css");
+
+.welcome-content {
+	font-size: 14px;
+}
+
+.welcome h1 {
+	font-size: 36px;
+}
+
+.welcome a {
+	color: white;
+}
+
+.welcome h1 {
+	font-weight: bold;
+}
+
+/* Im using an ID here because I don't know to CSS */
+#text-body {
+	max-width: 500px;
+	padding-top: 20px;
+}
+
+.bold {
+	font-weight: bold;
+	font-size: 15px;
+}
+
+.welcome button {
+	/* font-weight: bold; */
+	font-family: monospace;
+	background-color: transparent;
+	color: #ffffff;
+	border: 1px white solid;
+	font-size: 1.2em;
+
+	padding: 15px;
+
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 50px;
+	display: flex;
+}
+
+.welcome button:hover {
+	background-color: white;
+	color: rgb(41, 41, 41);
+}
+
+.wip-text {
+	font-size: 10px;
+	margin-top: 0px;
+}
+
+/* .text, p { */
+.text {
+	color: white;
+	font-family: monospace;
+	text-align: center;
+
+	padding: 0px;
+	margin: 0px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.blur-background {
+	background-image: url("../assets/preview-edit.png");
+	background-size: cover;
+	background-repeat: no-repeat;
+	z-index: 0;
+	filter: blur(2px) brightness(0.8);
+	width: 100%;
+	height: 100%;
+	position: absolute;
+}
+
+.welcome-content {
+	z-index: 1;
+	position: absolute;
+}
+
+.welcome {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.devs-table {
+	margin: auto;
+}
+
+.devs-table td {
+	padding-left: 12px;
+	padding-right: 12px;
+}
+
+.devs-table td:nth-child(odd) {
+	text-align: left;
+}
+
+.devs-table td:nth-child(even) {
+	text-align: right;
+}
+
+
+.navbar {
+	position: absolute;
+	bottom: 0px;
+	width: 100%;
+
+	display: flex;
+	justify-items: stretch;
+
+	background-color: #2d333b;
+}
+
+.disclaimer {
+	text-align: right;
+	align-self: flex-end;
+
+	padding-right: 10px;
+}
+
+.disclaimer-text {
+	text-align: right;
+}
+
+.contact {
+	align-self: flex-start;
+	text-align: left;
+
+	display: flex;
+
+	padding-left: 10px;
+	width: 300px;
+}
+
+.navbar p {
+	color: white;
+	font-family: monospace;
+	/* text-align: center; */
+}
+
+.navbar .valign {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.discordlink {
+	max-width: 32px;
+	margin-left: 5px;
+	margin-right: 5px;
+	margin-top: 8px;
+	/* fill: #cdd9e5; */
+}
+
+.gitlink {
+	max-width: 32px;
+	margin-left: 5px;
+	margin-top: 3px;
+	margin-right: 5px;
+	fill: #cdd9e5;
+}
+
+.navbar a {
+	padding: 0;
+	margin: 0;
+	min-height: 0;
+	max-height: 40px;
+}

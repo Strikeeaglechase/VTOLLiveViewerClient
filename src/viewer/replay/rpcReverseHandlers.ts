@@ -1,4 +1,4 @@
-import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
+import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { RadarJammerSync } from "../entityBase/jammer.js";
 import { ReplayController, RPCPacketT } from "./replayController";
 

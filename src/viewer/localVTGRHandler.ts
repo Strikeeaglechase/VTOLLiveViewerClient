@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 
 class LocalVTGRHandler {
 	public static async handleFile(file: File) {

@@ -1,4 +1,4 @@
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 
 interface EntityMeshConfig {
 	key: string[];

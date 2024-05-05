@@ -1,8 +1,4 @@
-import {
-	Curve,
-	Vector3,
-	Vector4
-} from 'three';
+import * as THREE from "three";
 import * as NURBSUtils from './NURBSUtils.js';
 
 /**
@@ -14,7 +10,7 @@ import * as NURBSUtils from './NURBSUtils.js';
  *
  **/
 
-class NURBSCurve extends Curve {
+class NURBSCurve extends THREE.Curve {
 
 	constructor(
 		degree,
@@ -35,15 +31,15 @@ class NURBSCurve extends Curve {
 
 		for (let i = 0; i < controlPoints.length; ++i) {
 
-			// ensure Vector4 for control points
+			// ensure THREE.Vector4 for control points
 			const point = controlPoints[i];
-			this.controlPoints[i] = new Vector4(point.x, point.y, point.z, point.w);
+			this.controlPoints[i] = new THREE.Vector4(point.x, point.y, point.z, point.w);
 
 		}
 
 	}
 
-	getPoint(t, optionalTarget = new Vector3()) {
+	getPoint(t, optionalTarget = new THREE.Vector3()) {
 
 		const point = optionalTarget;
 
@@ -63,7 +59,7 @@ class NURBSCurve extends Curve {
 
 	}
 
-	getTangent(t, optionalTarget = new Vector3()) {
+	getTangent(t, optionalTarget = new THREE.Vector3()) {
 
 		const tangent = optionalTarget;
 

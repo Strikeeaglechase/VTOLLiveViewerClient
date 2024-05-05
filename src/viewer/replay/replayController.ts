@@ -1,9 +1,8 @@
-import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/src/compression/vtcompression.js";
-import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
-import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/compression/vtcompression.js";
+import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
+import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { STORAGE_URL } from "../../config";
-import { EventBus } from "../../eventBus";
 import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
@@ -80,13 +79,13 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			if (!this.hasLoadedEntireReplay) {
 				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
-				EventBus.$emit("error-message", `Buffering. Wait a moment then increase the replay speed`);
+				this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
 				this.replayCurrentTime = this.lastPacketTimestamp;
 				return 0;
 			} else if (this.computedReplaySpeed > 0) {
 				console.log(`Replay has ended`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
-				EventBus.$emit("error-message", `End of replay file`);
+				this.app.emit("error_message", `End of replay file`);
 			}
 		}
 
@@ -103,7 +102,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		this.runReplayOnPackets(inTimeframePackets);
 		const end = Date.now();
 		if (end - start > 100) {
-			EventBus.$emit("error-message", `Replay took ${end - start}ms to run`);
+			this.app.emit("error_message", `Replay took ${end - start}ms to run`);
 			console.log(`Long replay exec time, took ${end - start}ms for ${inTimeframePackets.length} packets`);
 			this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
 		}
@@ -276,7 +275,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		if (this.hasReceivedAllBytes && this.replayChunkQueue.length == 0) {
 			this.hasLoadedEntireReplay = true;
 			console.log(`Loaded entire replay`);
-			EventBus.$emit("success-message", `Loaded entire replay`);
+			this.app.emit("success_message", `Loaded entire replay`);
 		}
 
 		setTimeout(() => this.handleReplayChunk(), 1000 / 60);

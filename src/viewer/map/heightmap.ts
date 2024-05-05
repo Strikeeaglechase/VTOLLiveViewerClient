@@ -1,4 +1,4 @@
-import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { API_URL } from "../../config";
 
 interface Chunk {

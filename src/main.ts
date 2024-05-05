@@ -1,17 +1,8 @@
 import * as THREE from "three";
-import Vue, { markRaw } from "vue";
 
-import { RPCController } from "../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import App from "./App.vue";
+import { RPCController } from "../../VTOLLiveViewerCommon/dist/rpc.js";
 import { USE_TIMED_LOG } from "./config";
-// import { THREE } from "./safeThree";
 import { Application } from "./viewer/app";
-
-Vue.config.productionTip = false;
-
-new Vue({
-	render: h => h(App)
-}).$mount("#app");
 
 // Master entry point, load application once the window is loaded
 window.onload = () => {
@@ -27,14 +18,11 @@ window.onload = () => {
 	//@ts-ignore
 	window.app = app;
 
-	markRaw(app);
-	markRaw(Application);
-
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
 	window.RPC = RPCController;
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	//@ts-ignore
-	window.THREE = markRaw(THREE);
+	window.THREE = THREE;
 };

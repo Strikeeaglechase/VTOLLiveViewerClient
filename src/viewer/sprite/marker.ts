@@ -1,7 +1,6 @@
 import * as THREE from "three";
-import { markRaw } from "vue";
 
-import { IVector3 } from "../../../../VTOLLiveViewerCommon/src/vector.js";
+import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Application } from "../app";
 import { Settings } from "../settings";
 import { TextOverlay } from "../textOverlayHandler";
@@ -59,7 +58,6 @@ class Marker {
 	private loadText() {
 		// this.text = new SpriteText2D(this.name, { align: textAlign.center, font: "30px monospace", fillStyle: "#FFFFFF", antialias: true });
 		this.textOverlay = new TextOverlay(this.sprite).edit(this.name).offset(0, textPosOffset, 0).show();
-		markRaw(this.textOverlay);
 	}
 
 	private async loadSprite() {

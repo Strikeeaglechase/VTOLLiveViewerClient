@@ -1,5 +1,5 @@
-import { Player, Team } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { Player, Team } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Entity, EntityReference } from "./entity.js";
 
 class EntityViewData implements EntityReference {

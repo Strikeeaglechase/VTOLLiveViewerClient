@@ -1,42 +1,3 @@
-<template>
-	<div :class="{ 'greyout-wrapper': greyout == true }">
-		<a
-			href="javascript:void(0);"
-			id="start"
-			class="fancy-btn"
-			:class="{ greyout: greyout == true }"
-			v-on:click="handleClick()"
-		>
-			<p class="btn-txt">View {{ text }}</p>
-		</a>
-	</div>
-</template>
-
-
-<script lang="ts">
-	import { Component, Prop, Vue } from "vue-property-decorator";
-
-	@Component({})
-	export default class WelcomeStartButton extends Vue {
-		@Prop() text: string;
-		@Prop() redirect: string;
-		@Prop() greyout: string;
-
-		// set_greyout = false;
-
-		// mounted() {
-		// console.log(this.greyout, typeof this.greyout);
-		// if (this.greyout == "true") this.set_greyout = true;
-		// else this.set_greyout = false;
-		// }
-
-		handleClick() {
-			location.pathname = this.redirect;
-		}
-	}
-</script>
-
-<style>
 :root {
 	--color-red: #1aa850;
 	--color-white: #fff;
@@ -70,7 +31,7 @@
 
 .fancy-btn:hover {
 	border: 1px solid transparent;
-	background: var(--color-red) url("pixelgreen.png");
+	background: var(--color-red) url("../assets/pixelgreen.png");
 	transition-delay: 0.8s;
 	background-size: 180px;
 	animation: animate var(--speed-fast) steps(8) forwards;
@@ -102,4 +63,3 @@
 		background-position-y: -480px;
 	}
 }
-</style>

@@ -1,5 +1,5 @@
-import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Team, Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Application } from "../app";
 import { Entity } from "../entityBase/entity";
 import { Settings } from "../settings";

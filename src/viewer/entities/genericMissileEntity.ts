@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
-import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
-import { Vector } from "../../../../VTOLLiveViewerCommon/dist/src/vector.js";
+import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { addCommas, Application, msToKnots, mToFt } from "../app";
 import { Entity } from "../entityBase/entity";
 import { Settings } from "../settings";

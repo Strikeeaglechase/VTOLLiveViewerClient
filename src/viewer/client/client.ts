@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/src/eventEmitter.js";
-import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/src/rpc.js";
-import { DbUserEntry, RecordedLobbyInfo, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
+import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { DbUserEntry, RecordedLobbyInfo, UserScopes, VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { COOKIE_DOMAIN, LOGOUT_URL } from "../../config";
-import { EventBus } from "../../eventBus";
+import { Application } from "../app.js";
 import { eraseCookie, setNewUserToken } from "./cookies";
 
 @EnableRPCs("instance")
-class Client extends EventEmitter<"replay_header"> {
+class Client extends EventEmitter<"replay_header" | "replay_lobby_info"> {
 	public expectedReplaySize = -1;
 	public onUserQueryResult: (users: DbUserEntry[]) => void = () => {};
 	constructor(public id: string) {
@@ -24,9 +24,12 @@ class Client extends EventEmitter<"replay_header"> {
 	@RPC("out")
 	requestReplayLobbies(id: string | null) {}
 
+	@RPC("out")
+	cancelRequestReplayLobbies() {}
+
 	@RPC("in")
 	replayLobbyInfo(info: RecordedLobbyInfo) {
-		EventBus.$emit("replay_lobby_info", info);
+		this.emit("replay_lobby_info", info);
 	}
 	@RPC("in")
 	invalidateToken() {
@@ -61,7 +64,7 @@ class Client extends EventEmitter<"replay_header"> {
 
 	@RPC("in")
 	error(message: string) {
-		EventBus.$emit("error-message", message);
+		Application.instance.emit("error_message", message);
 	}
 
 	@RPC("in")

@@ -1,7 +1,4 @@
-import {
-	Vector3,
-	Vector4
-} from 'three';
+import * as THREE from "three";
 
 /**
  * NURBS utils
@@ -121,7 +118,7 @@ function calcBSplinePoint(p, U, P, u) {
 
 	const span = findSpan(p, u, U);
 	const N = calcBasisFunctions(span, u, p, U);
-	const C = new Vector4(0, 0, 0, 0);
+	const C = new THREE.Vector4(0, 0, 0, 0);
 
 	for (let j = 0; j <= p; ++j) {
 
@@ -322,7 +319,7 @@ function calcBSplineDerivatives(p, U, P, u, nd) {
 
 	for (let k = du + 1; k <= nd + 1; ++k) {
 
-		CK[k] = new Vector4(0, 0, 0);
+		CK[k] = new THREE.Vector4(0, 0, 0);
 
 	}
 
@@ -381,7 +378,7 @@ function calcRationalCurveDerivatives(Pders) {
 	for (let i = 0; i < nd; ++i) {
 
 		const point = Pders[i];
-		Aders[i] = new Vector3(point.x, point.y, point.z);
+		Aders[i] = new THREE.Vector3(point.x, point.y, point.z);
 		wders[i] = point.w;
 
 	}
@@ -446,7 +443,7 @@ function calcSurfacePoint(p, q, U, V, P, u, v, target) {
 
 	for (let l = 0; l <= q; ++l) {
 
-		temp[l] = new Vector4(0, 0, 0, 0);
+		temp[l] = new THREE.Vector4(0, 0, 0, 0);
 		for (let k = 0; k <= p; ++k) {
 
 			const point = P[uspan - p + k][vspan - q + l].clone();
@@ -460,7 +457,7 @@ function calcSurfacePoint(p, q, U, V, P, u, v, target) {
 
 	}
 
-	const Sw = new Vector4(0, 0, 0, 0);
+	const Sw = new THREE.Vector4(0, 0, 0, 0);
 	for (let l = 0; l <= q; ++l) {
 
 		Sw.add(temp[l].multiplyScalar(Nv[l]));
@@ -498,7 +495,7 @@ function calcVolumePoint(p, q, r, U, V, W, P, u, v, w, target) {
 
 		for (let l = 0; l <= q; ++l) {
 
-			temp[m][l] = new Vector4(0, 0, 0, 0);
+			temp[m][l] = new THREE.Vector4(0, 0, 0, 0);
 			for (let k = 0; k <= p; ++k) {
 
 				const point = P[uspan - p + k][vspan - q + l][wspan - r + m].clone();
@@ -513,7 +510,7 @@ function calcVolumePoint(p, q, r, U, V, W, P, u, v, w, target) {
 		}
 
 	}
-	const Sw = new Vector4(0, 0, 0, 0);
+	const Sw = new THREE.Vector4(0, 0, 0, 0);
 	for (let m = 0; m <= r; ++m) {
 		for (let l = 0; l <= q; ++l) {
 

@@ -1,4 +1,4 @@
-import { HCUser, UserScopes } from "../../../../VTOLLiveViewerCommon/dist/src/shared.js";
+import { HCUser, UserScopes } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 
 const authCookieKey = "user_token";
 

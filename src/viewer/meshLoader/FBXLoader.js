@@ -43,7 +43,6 @@ import {
 	Vector3,
 	Vector4,
 	VectorKeyframeTrack,
-	SRGBColorSpace,
 	ShapeUtils
 } from 'three';
 import * as fflate from './fbxLibs/fflate.module.js';
@@ -650,7 +649,7 @@ class FBXTreeParser {
 					parameters.map = scope.getTexture(textureMap, child.ID);
 					if (parameters.map !== undefined) {
 
-						parameters.map.colorSpace = SRGBColorSpace;
+						parameters.map.colorSpace = THREE.SRGBColorSpace;
 
 					}
 
@@ -664,7 +663,7 @@ class FBXTreeParser {
 					parameters.emissiveMap = scope.getTexture(textureMap, child.ID);
 					if (parameters.emissiveMap !== undefined) {
 
-						parameters.emissiveMap.colorSpace = SRGBColorSpace;
+						parameters.emissiveMap.colorSpace = THREE.SRGBColorSpace;
 
 					}
 
@@ -680,7 +679,7 @@ class FBXTreeParser {
 					if (parameters.envMap !== undefined) {
 
 						parameters.envMap.mapping = EquirectangularReflectionMapping;
-						parameters.envMap.colorSpace = SRGBColorSpace;
+						parameters.envMap.colorSpace = THREE.SRGBColorSpace;
 
 					}
 
@@ -690,7 +689,7 @@ class FBXTreeParser {
 					parameters.specularMap = scope.getTexture(textureMap, child.ID);
 					if (parameters.specularMap !== undefined) {
 
-						parameters.specularMap.colorSpace = SRGBColorSpace;
+						parameters.specularMap.colorSpace = THREE.SRGBColorSpace;
 
 					}
 
