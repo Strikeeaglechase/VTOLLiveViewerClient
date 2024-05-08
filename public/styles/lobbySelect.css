@@ -136,6 +136,30 @@
 	color: rgb(41, 41, 41);
 }
 
+.search-more-button {
+	font-family: monospace;
+	background-color: transparent;
+	color: #ffffff;
+	border: 1px white solid;
+	font-size: 1.2em;
+
+	padding-top: 3px;
+	padding-bottom: 3px;
+	padding-left: 5px;
+	padding-right: 5px;
+	font-size: 12px;
+
+	margin-left: auto;
+
+	cursor: pointer;
+}
+
+.search-more-button:hover {
+	background-color: white;
+	color: rgb(41, 41, 41);
+}
+
+
 .replay-entry button:nth-of-type(1) {
 	border-top: 0;
 }

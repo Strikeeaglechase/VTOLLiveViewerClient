@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rollup -c rollup.config.js && rollup -c webworker.rollup.config.js",
+    "build": "tsc && rollup -c rollup.config.js && rollup -c webworker.rollup.config.js",
     "watch": "rollup -c rollup.config.js -w"
   },
   "dependencies": {

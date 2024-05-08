@@ -22,7 +22,7 @@ class Client extends EventEmitter<"replay_header" | "replay_lobby_info"> {
 	setUser(key: string) {}
 
 	@RPC("out")
-	requestReplayLobbies(id: string | null) {}
+	requestReplayLobbies(id: string | null, lobbyNameQuery: string, playerNameQuery: string) {}
 
 	@RPC("out")
 	cancelRequestReplayLobbies() {}

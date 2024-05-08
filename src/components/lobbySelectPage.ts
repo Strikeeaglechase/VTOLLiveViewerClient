@@ -71,15 +71,18 @@ class LobbySelectPage extends Page {
 	private autoplayHasStarted = false;
 
 	private knownBadPreviews = new Set<string>();
+	private loadedReplays = new Set<string>();
 
 	constructor(app: Application) {
 		super(app);
+
+		document.getElementById("search-more-button").addEventListener("click", () => {
+			this.requestReplays();
+		});
 	}
 
 	public override onShow(): void {
 		super.onShow();
-		const container = document.getElementById("browser-container");
-		container.innerHTML = "";
 		this.lastLobbiesKey = "";
 		this.replayLoadingId = null;
 		this.autoplayHasStarted = false;
@@ -118,14 +121,19 @@ class LobbySelectPage extends Page {
 			console.log(`Requesting replay for specific ID: ${replayId}`);
 			this.autoplayReplayId = replayId;
 			this.autoplayHasStarted = true;
-			Application.instance.client.requestReplayLobbies(replayId);
+			Application.instance.client.requestReplayLobbies(replayId, null, null);
 		} else {
-			Application.instance.client.requestReplayLobbies(null);
+			const searchStr = (document.getElementById("lobby-search-input") as HTMLInputElement)?.value || null;
+			const userSearchStr = (document.getElementById("user-search-input") as HTMLInputElement)?.value || null;
+
+			Application.instance.client.requestReplayLobbies(null, searchStr, userSearchStr);
 		}
 	}
 
 	public override onHide(): void {
 		super.onHide();
+		const container = document.getElementById("browser-container");
+		container.innerHTML = "";
 
 		if (this.wasReplayMode) Application.instance.client.cancelRequestReplayLobbies();
 	}
@@ -217,6 +225,8 @@ class LobbySelectPage extends Page {
 	}
 
 	private appendNewReplayInfo(info: RecordedLobbyInfo) {
+		if (this.loadedReplays.has(info.recordingId)) return;
+		this.loadedReplays.add(info.recordingId);
 		const date = new Date(info.startTime || Date.now()).toISOString().substring(0, 10);
 		const totalSeconds = info.duration / 1000;
 		const totalMinutes = totalSeconds / 60;
@@ -263,6 +273,7 @@ class LobbySelectPage extends Page {
 	}
 
 	private async loadReplay(info: RecordedLobbyInfo, btn: HTMLButtonElement) {
+		Application.instance.client.cancelRequestReplayLobbies();
 		this.replayLoadingId = info.recordingId;
 		window.history.pushState({}, "", `/replay?replay=${info.recordingId}`);
 		await Application.instance.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
