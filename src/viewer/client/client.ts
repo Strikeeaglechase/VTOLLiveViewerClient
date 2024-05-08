@@ -78,6 +78,9 @@ class Client extends EventEmitter<"replay_header" | "replay_lobby_info"> {
 	@RPC("out")
 	kickUser(id: string) {}
 
+	@RPC("out")
+	enableRecordLobby(lobbyId: string, password: string = "") {}
+
 	@RPC("in")
 	newToken(token: string) {
 		console.log(`Server sent new token`);

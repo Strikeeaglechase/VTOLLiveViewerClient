@@ -1,11 +1,14 @@
+import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { Application, ApplicationRunningState } from "../viewer/app.js";
 
-abstract class Page {
+abstract class Page extends EventEmitter {
 	public abstract containerId: string;
 	public abstract appState: ApplicationRunningState[];
 	public isActive = false;
 
-	constructor(public app: Application) {}
+	constructor(public app: Application) {
+		super();
+	}
 
 	public onShow() {
 		const container = document.getElementById(this.containerId);

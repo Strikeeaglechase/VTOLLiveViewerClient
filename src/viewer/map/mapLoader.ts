@@ -3,15 +3,12 @@ import * as THREE from "three";
 import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { SceneManager } from "../managers/sceneManager";
 import { HeightMap } from "./heightmap";
+import { METERS_PER_PIXEL } from "./mapInfo.js";
 
 // This value may be the cause of the heightmap not lining up with the in game map
-const METERS_PER_PIXEL = 153.6;
 const SHOW_CHUNK_BORDERS = false;
 
 // At some point would be nice to match the in game VTOL biomes
-enum Biome {
-	normal
-}
 
 interface ChunkInfo {
 	x: number;
@@ -151,28 +148,6 @@ class MapLoader {
 			this.heightMapMesh.add(borderMesh);
 		}
 	}
-
-	public static getColorAtHeight(height: number, biome: Biome): [number, number, number] {
-		if (biome == Biome.normal) {
-			return this.getColorAtHeightNormal(height);
-		}
-		return [0, 0, 0];
-	}
-
-	// Thanks to Ierdna100 for these values
-	private static getColorAtHeightNormal(height: number): [number, number, number] {
-		if (height < 0) {
-			return [0.0 * 255, 0.1 * 255, 0.8 * 255];
-		} else if (height < 20) {
-			return [196, 193, 16];
-		} else if (height < 40) {
-			return [153, 171, 14];
-		} else if (height < 1200) {
-			return [0.4 * 255, 0.8 * 255, 0.4 * 255];
-		} else {
-			return [209, 220, 230];
-		}
-	}
 }
 
-export { MapLoader, Biome, METERS_PER_PIXEL };
+export { MapLoader };

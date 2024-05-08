@@ -4,6 +4,7 @@ node_modules
 /dist
 leaks.dont.look
 public/main.js
+public/mapLoad.worker.js
 
 # local env files
 .env.local

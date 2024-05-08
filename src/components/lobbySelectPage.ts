@@ -7,18 +7,23 @@ const lobbyEntry = `
 <div class="lobby-browser-entry lobby-entry %EntryClass%">
 	<div class="thumbnail-container-hor" style="min-width: 160px;max-width: 160px;">
 		<div class="thumbnail-container-vert">
-			<img class="thumbnail" class="%ThumbnailClass%" src="%PreviewUrl%" onerror="this.src='no_preview.png'" />
+			<img class="thumbnail %ThumbnailClass%" src="%PreviewUrl%" onerror="this.src='no_preview.png'" />
 		</div>
 	</div>
 
-	<div class="long-text" class="%TextClass%">
+	<div class="long-text %TextClass%">
 		<span class="name"> %LobbyName% &nbsp; </span>
 		<span class="mission"> %MissionName% &nbsp; </span>
 		<span class="players"> %PlayerCount% / %MaxPlayers% </span>
 	</div>
-	<button class="%ButtonClasses%" style="margin-right: 25px;">
-		%JoinButtonText%
-	</button>
+	<div class="lobby-entry-button-container">
+		<button class="%ButtonClasses%" style="margin-right: 15px;" id="join-button">
+			%JoinButtonText%
+		</button>
+		<button class="%RecordBtnClass%" style="margin-right: 15px;" id="record-button">
+			%RecordBtnText%
+		</button>
+	</div>
 </div>
 `;
 
@@ -26,7 +31,7 @@ const replayEntry = `
 <div class="lobby-browser-entry replay-entry" id="%Id%">
 	<div class="thumbnail-container-hor" style="min-width: 100px;max-width: 100px;">
 		<div class="thumbnail-container-vert">
-			<img class="thumbnail" src="%PreviewUrl%" onerror="this.src='no_preview.png'" />
+			<img class="thumbnail" src="%PreviewUrl%" />
 		</div>
 	</div>
 
@@ -64,6 +69,8 @@ class LobbySelectPage extends Page {
 	private replayLoadingId: string = null;
 	private autoplayReplayId = null;
 	private autoplayHasStarted = false;
+
+	private knownBadPreviews = new Set<string>();
 
 	constructor(app: Application) {
 		super(app);
@@ -171,6 +178,7 @@ class LobbySelectPage extends Page {
 	}
 
 	private createLobbyEntry(lobby: VTOLLobby) {
+		const canStartRecord = !lobby.activelyRecording && lobby.playerCount < lobby.maxPlayers && lobby.readyStatus == 0;
 		const text = lobbyEntry
 			.replaceAll("%LobbyName%", filterStr(lobby.name))
 			.replaceAll("%MissionName%", filterStr(lobby.missionName))
@@ -181,15 +189,28 @@ class LobbySelectPage extends Page {
 			.replaceAll("%TextClass%", lobby.playerCount >= lobby.maxPlayers ? "grey" : "")
 			.replaceAll("%ThumbnailClass%", lobby.playerCount >= lobby.maxPlayers ? "faded" : "")
 			.replaceAll("%ButtonClasses%", lobby.playerCount >= lobby.maxPlayers || lobby.readyStatus == 1 ? "disableBtn" : "")
-			.replaceAll("%JoinButtonText%", lobby.readyStatus == 0 ? "Join" : "Invl Mission");
+			.replaceAll("%RecordBtnClass%", canStartRecord ? "" : "disableBtn")
+			.replaceAll("%JoinButtonText%", lobby.readyStatus == 0 ? "Join" : "Invl Mission")
+			.replaceAll("%RecordBtnText%", lobby.activelyRecording ? "Recording" : "Record");
 
 		const div = document.createElement("div");
 		div.innerHTML = text;
 
-		const button = div.querySelector("button");
+		const joinButton = div.querySelector("#join-button") as HTMLButtonElement;
 
-		button.addEventListener("click", () => {
+		joinButton.addEventListener("click", () => {
 			this.joinLobby(lobby, div);
+		});
+
+		const recordButton = div.querySelector("#record-button") as HTMLButtonElement;
+		recordButton.addEventListener("click", () => {
+			if (lobby.isPrivate) {
+				const password = prompt("Enter password");
+				if (!password) return;
+				Application.instance.client.enableRecordLobby(lobby.id, password);
+			} else {
+				Application.instance.client.enableRecordLobby(lobby.id);
+			}
 		});
 
 		return div;
@@ -207,8 +228,9 @@ class LobbySelectPage extends Page {
 		const hours = z(totalHours % 60);
 		const time = `${hours}:${minutes}:${seconds}`;
 
+		const previewUrl = this.getReplayPreviewImageUrl(info);
 		const text = replayEntry
-			.replaceAll("%PreviewUrl%", this.getReplayPreviewImageUrl(info))
+			.replaceAll("%PreviewUrl%", previewUrl)
 			.replaceAll("%LobbyName%", filterStr(info.lobbyName))
 			.replaceAll("%MissionName%", filterStr(info.missionName))
 			.replaceAll("%Time%", time)
@@ -217,6 +239,12 @@ class LobbySelectPage extends Page {
 
 		const div = document.createElement("div");
 		div.innerHTML = text;
+
+		const previewImage = div.querySelector(".thumbnail") as HTMLImageElement;
+		previewImage.onerror = () => {
+			this.knownBadPreviews.add(previewUrl);
+			previewImage.src = "no_preview.png";
+		};
 
 		const viewBtn = div.querySelector(".view-btn") as HTMLButtonElement;
 		const downloadBtn = div.querySelector(".download-btn") as HTMLButtonElement;
@@ -235,10 +263,10 @@ class LobbySelectPage extends Page {
 	}
 
 	private async loadReplay(info: RecordedLobbyInfo, btn: HTMLButtonElement) {
-		await Application.instance.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
-		Application.instance.beginReplay(info.lobbyId);
 		this.replayLoadingId = info.recordingId;
 		window.history.pushState({}, "", `/replay?replay=${info.recordingId}`);
+		await Application.instance.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
+		Application.instance.beginReplay(info.lobbyId);
 	}
 
 	private joinLobby(lobby: VTOLLobby, div: HTMLDivElement) {
@@ -285,8 +313,16 @@ class LobbySelectPage extends Page {
 			wsId = info.type as string;
 		}
 
-		if (wsId == "built-in" || !wsId || info.missionInfo?.isBuiltin) return `${API_URL}/workshop/preview/${info.campaignId}/${info.missionId}`;
-		return `${API_URL}/workshop/preview/${wsId}/${info.missionId}`;
+		let url: string = "";
+
+		if (wsId == "built-in" || !wsId || info.missionInfo?.isBuiltin) url = `${API_URL}/workshop/preview/${info.campaignId}/${info.missionId}`;
+		else url = `${API_URL}/workshop/preview/${wsId}/${info.missionId}`;
+
+		if (this.knownBadPreviews.has(url)) {
+			console.log(`Skipping load of bad preview ${url}`);
+			return "no_preview.png";
+		}
+		return url;
 	}
 
 	private updateReplays() {
@@ -320,7 +356,7 @@ class LobbySelectPage extends Page {
 			if (!shouldBeShown && div.style.display != "none") div.style.display = "none";
 		});
 
-		if (!this.autoplayHasStarted && window.location.search.startsWith("?replay=")) {
+		if (!this.autoplayHasStarted && window.location.search.startsWith("?replay=") && !this.replayLoadingId) {
 			this.autoplayHasStarted = true;
 			const replayId = window.location.search.substring(8);
 			const replay = this.replays.find(r => r.recordingId == replayId);

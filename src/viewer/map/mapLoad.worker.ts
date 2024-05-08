@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import { MissionInfo } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Chunk, HeightMap, HeightMapData } from "./heightmap";
-import { Biome, MapLoader, METERS_PER_PIXEL } from "./mapLoader";
+import { Biome, getMapColorAtHeight, METERS_PER_PIXEL } from "./mapInfo.js";
 
 onmessage = function (e) {
 	console.log(e.data);
@@ -53,7 +53,7 @@ class MapLoaderWorker {
 				verts.push(vertex);
 				normals.push(0, 0, 1);
 
-				const color = MapLoader.getColorAtHeight(yValue, Biome.normal);
+				const color = getMapColorAtHeight(yValue, Biome.normal);
 				colors.push(...color.map(c => c / 255));
 			}
 		}
