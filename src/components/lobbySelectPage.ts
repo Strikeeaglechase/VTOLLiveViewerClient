@@ -361,7 +361,7 @@ class LobbySelectPage extends Page {
 				if (!lobbyNameMatch && !missionNameMatch) shouldBeShown = false;
 			}
 
-			const div = document.getElementById(`recording-${info.recordingId}`);
+			const div = document.getElementById(`recording-${info.recordingId}`).parentElement;
 			if (!div) return;
 			if (shouldBeShown && div.style.display == "none") div.style.display = "";
 			if (!shouldBeShown && div.style.display != "none") div.style.display = "none";
