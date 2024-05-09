@@ -1,3 +1,4 @@
+import { RPCController } from "../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { LobbyConnectionStatus, RecordedLobbyInfo, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { API_URL } from "../config.js";
 import { Application, ApplicationRunningState } from "../viewer/app.js";
@@ -273,11 +274,20 @@ class LobbySelectPage extends Page {
 	}
 
 	private async loadReplay(info: RecordedLobbyInfo, btn: HTMLButtonElement) {
-		Application.instance.client.cancelRequestReplayLobbies();
+		const app = Application.instance;
+		// Cancel running requests and stop live game data
+		app.client.cancelRequestReplayLobbies();
+		app.client.unsubscribeFromLiveLobbyList();
+		app.gameList.forEach(g => RPCController.deregister(g));
+		app.gameList = [];
+
 		this.replayLoadingId = info.recordingId;
+		// Update URL
 		window.history.pushState({}, "", `/replay?replay=${info.recordingId}`);
-		await Application.instance.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
-		Application.instance.beginReplay(info.lobbyId);
+
+		// Begin fetch, and start replay after sufficiently buffered
+		await app.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
+		app.beginReplay(info.lobbyId);
 	}
 
 	private joinLobby(lobby: VTOLLobby, div: HTMLDivElement) {

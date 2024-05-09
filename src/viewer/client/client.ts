@@ -81,6 +81,9 @@ class Client extends EventEmitter<"replay_header" | "replay_lobby_info"> {
 	@RPC("out")
 	enableRecordLobby(lobbyId: string, password: string = "") {}
 
+	@RPC("out")
+	unsubscribeFromLiveLobbyList() {}
+
 	@RPC("in")
 	newToken(token: string) {
 		console.log(`Server sent new token`);
