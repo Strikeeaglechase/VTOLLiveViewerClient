@@ -25,6 +25,11 @@ class MapLoader {
 	constructor(private sceneManager: SceneManager) {}
 
 	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
+		if (mission.mapId == "map_akutan") {
+			console.warn(`Mission has Akutan map, so skipping heightmap load`);
+			return;
+		}
+
 		const start = Date.now();
 
 		const worker = new Worker(new URL("./mapLoad.worker.js", import.meta.url));

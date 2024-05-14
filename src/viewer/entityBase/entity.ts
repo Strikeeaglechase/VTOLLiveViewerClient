@@ -26,7 +26,7 @@ teamColors[Team.B] = { r: 255, g: 0, b: 0 };
 teamColors[Team.Unknown] = { r: 255, g: 0, b: 0 };
 
 const enable_debug_box = false;
-const enable_debug_sphere = false;
+const enable_debug_sphere = true;
 
 export const MAX_OBJECT_SIZE = 1000; // Max scale-size an object can get in meters
 
@@ -72,6 +72,8 @@ class EntityReferenceOf implements EntityReference {
 	}
 }
 
+let nextEuid = 0;
+
 class Entity implements EntityReference {
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
@@ -93,6 +95,8 @@ class Entity implements EntityReference {
 	public displayName: string;
 	public jammers: RadarJammerSync[] = [];
 	public view: EntityViewData = new EntityViewData();
+
+	private euid = nextEuid++;
 
 	public is(other: EntityReference): boolean {
 		return this.id == other.id;
@@ -156,7 +160,7 @@ class Entity implements EntityReference {
 	}
 
 	get debugName() {
-		return `${this.id} A:${this.isActive} ${this.type} ${this.unitId ? "[" + this.unitId + "]" : ""}`;
+		return `${this.id} (${this.euid}) ${this.type} ${this.unitId ? "[" + this.unitId + "]" : ""}`;
 	}
 
 	// private setActiveAt: number;
@@ -177,6 +181,7 @@ class Entity implements EntityReference {
 	private activatingPromise: Promise<void> | null = null;
 
 	public hasDied = false;
+	private deathTimerCancel: () => void;
 
 	private baseLineGeom: THREE.BufferGeometry;
 	private baseLine: THREE.Line;
@@ -676,7 +681,7 @@ class Entity implements EntityReference {
 		}
 
 		if (this.removeAfterDeath) {
-			this.app.setTimeout(() => {
+			this.deathTimerCancel = this.app.setTimeout(() => {
 				// this.setInactive(`Entity died`);
 				this.remove(`Death triggered`);
 			}, damageFadeTime * 3);
@@ -690,6 +695,7 @@ class Entity implements EntityReference {
 		if (this.textOverlay) {
 			this.textOverlay.color = "#FFFFFF";
 		}
+		if (this.deathTimerCancel) this.deathTimerCancel();
 	}
 
 	protected updateDamage() {

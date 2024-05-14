@@ -4,7 +4,7 @@ import { Entity } from "../entityBase/entity";
 
 @EnableRPCs("instance")
 class HardpointEntity extends Entity {
-	public static spawnFor = new RegExp(/HPEquips\/.+\/.+/i);
+	public static spawnForRegex = new RegExp(/HPEquips\/.+\/.+/i);
 	get debugName() {
 		return `HardpointEntity (${this.id ?? ""})`;
 	}

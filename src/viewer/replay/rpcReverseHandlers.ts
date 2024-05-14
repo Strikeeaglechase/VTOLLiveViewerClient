@@ -28,7 +28,9 @@ replaceRPCHandlers.push({
 	handler: (app: ReplayController, rpc: RPCPacketT) => {
 		const [id] = rpc.args;
 		console.log(`Reversing NetDestroy for ${id}`);
-		const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
+		// TODO: Refactor to not loop through all packets, is big source of lag
+		// const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
+		const spawnPacket = app.netInstantiatePackets[id];
 		if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);
 		else return spawnPacket;
 		return false;
@@ -40,7 +42,8 @@ replaceRPCHandlers.push({
 	method: "Detonate",
 	handler: (app: ReplayController, rpc: RPCPacketT) => {
 		console.log(`Reversing Detonate for missile ${rpc.id}`);
-		const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == rpc.id);
+		// const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == rpc.id);
+		const spawnPacket = app.netInstantiatePackets[rpc.id];
 		if (!spawnPacket) console.error(`Attempting to undo detonate for ${rpc.id} but no spawn packet found`);
 		else return spawnPacket;
 		return false;
@@ -84,7 +87,7 @@ replaceRPCHandlers.push({
 	className: "PlayerVehicle",
 	method: "Die",
 	handler: (controller: ReplayController, rpc: RPCPacketT) => {
-		console.log(`Reversing Die for ${rpc.id}`);
+		console.log(`Reversing Die for PlayerVehicle ${rpc.id}`);
 		if (!rpc.id) {
 			console.warn(`Die RPC has no id`);
 			return false;
@@ -97,6 +100,54 @@ replaceRPCHandlers.push({
 
 		entity.reverseDeath();
 
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "AIGroundUnit",
+	method: "Die",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		console.log(`Reversing Die for AIGroundUnit ${rpc.id}`);
+
+		const entity = controller.app.getEntityById(parseInt(rpc.id));
+		if (!entity) {
+			// Entity has fully died, find instantiate packet and reverse it
+			const spawnPacket = controller.netInstantiatePackets[rpc.id];
+			if (!spawnPacket) {
+				console.error(`Die RPC has no entity or spawn packet`);
+				return false;
+			}
+
+			return spawnPacket;
+		}
+
+		// Entity "killed" but not deleted yet, just cancel deletion
+		entity.reverseDeath();
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "AIAirVehicle",
+	method: "Die",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		console.log(`Reversing Die for AIAirVehicle ${rpc.id}`);
+
+		const entity = controller.app.getEntityById(parseInt(rpc.id));
+		if (!entity) {
+			// Entity has fully died, find instantiate packet and reverse it
+			const spawnPacket = controller.netInstantiatePackets[rpc.id];
+			if (!spawnPacket) {
+				console.error(`Die RPC has no entity or spawn packet`);
+				return false;
+			}
+
+			return spawnPacket;
+		}
+
+		// Entity "killed" but not deleted yet, just cancel deletion
+		entity.reverseDeath();
 		return false;
 	}
 });

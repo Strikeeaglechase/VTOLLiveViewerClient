@@ -2,7 +2,7 @@ import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/c
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
-import { STORAGE_URL } from "../../config";
+import { IS_DEV, STORAGE_URL } from "../../config";
 import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
@@ -12,11 +12,14 @@ const HEADER_LENGTH = 0; // "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
 const ALLOW_RUN_WHILE_LOADING = true;
-const VALIDATE_NO_REPEAT = false;
+const VALIDATE_NO_REPEAT = IS_DEV;
 
 class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
-	public replayPackets: RPCPacketT[] = [];
+	private replayPackets: RPCPacketT[] = [];
 	private groupedReplayPackets: RPCPacketT[][] = [];
+	public netInstantiatePackets: Record<string, RPCPacketT> = {};
+	public netDestroyPackets: Record<string, RPCPacketT> = {};
+
 	public isReplay = false;
 	public replayStartTime = 0;
 	private replayDataReceived = 0;
@@ -98,14 +101,14 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		// if (this.computedReplaySpeed > 0)
 		// console.log(`Between ${this.prevReplayTime} and ${this.replayCurrentTime} there are ${inTimeframePackets.length} packets`);
 
-		const start = Date.now();
+		// const start = Date.now();
 		this.runReplayOnPackets(inTimeframePackets);
-		const end = Date.now();
-		if (end - start > 100) {
-			this.app.emit("error_message", `Replay took ${end - start}ms to run`);
-			console.log(`Long replay exec time, took ${end - start}ms for ${inTimeframePackets.length} packets`);
-			this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
-		}
+		// const end = Date.now();
+		// if (end - start > 100) {
+		// this.app.emit("error_message", `Replay took ${end - start}ms to run`);
+		// console.log(`Long replay exec time, took ${end - start}ms for ${inTimeframePackets.length} packets`);
+		// this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+		// }
 
 		this.prevReplayTime = this.replayCurrentTime;
 		return expectedDt * this.computedReplaySpeed;
@@ -117,7 +120,12 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			if (this.computedReplaySpeed < 0) {
 				if (VALIDATE_NO_REPEAT) this.executedRpcs.delete(packet.pid as number);
 
-				const handler = replaceRPCHandlers.find(h => h.className == packet.className && h.method == packet.method);
+				const handler = replaceRPCHandlers.find(h => {
+					let classNameMatch = h.className == null || h.className == packet.className;
+					let methodMatch = h.method == null || h.method == packet.method;
+
+					return classNameMatch && methodMatch;
+				});
 				// if (packet.method == "NetDestroy") console.log(`Net destroy packet handled`);
 				if (handler) {
 					const res = handler.handler(this, packet);
@@ -259,6 +267,9 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 				console.log(`Setting first real replay data time to ${this.firstRealReplayDataTime} (${sec})`);
 			}
 
+			if (rpc.className == "MessageHandler" && rpc.method == "NetInstantiate") this.netInstantiatePackets[rpc.args[0]] = rpc;
+			if (rpc.className == "MessageHandler" && rpc.method == "NetDestroy") this.netDestroyPackets[rpc.args[0]] = rpc;
+
 			rpc.pid = this.packetPid++;
 		}
 
@@ -288,6 +299,11 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 	}
 
 	public requestReplay(replayId: string, onProgress?: (progress: number) => void) {
+		this.app.client.unsubscribeFromLiveLobbyList();
+		this.app.gameList.forEach(g => RPCController.deregister(g));
+		this.app.gameList = [];
+		console.log(`Unsubscribed from live lobbies`);
+
 		this.app.client.on("replay_header", (header: VTGRHeader) => this.handleHeader(header));
 		this.app.client.replayGame(replayId);
 

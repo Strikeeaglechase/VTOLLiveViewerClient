@@ -100,7 +100,7 @@ class PlayerVehicle extends Entity {
 			if (this.playerHeadLine) this.playerHeadLine.visible = lookSetting == "On";
 		});
 
-		if (ownerId == "76561198162340088") this.jester = new JesterCallouts(this);
+		// if (ownerId == "76561198162340088") this.jester = new JesterCallouts(this);
 
 		// this.velocityMarker = mark(1, 0x00ff00);
 		// this.headingMarker = mark(1, 0x0000ff);
@@ -303,6 +303,10 @@ class PlayerVehicle extends Entity {
 	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean, pyr: Vector) {
 		this.throttle = throttle;
 		this.pyr.set(pyr);
+		// const mk = mark(50, 0x00ff00);
+		// mk.position.set(pos.x, pos.y, pos.z);
+		// mk.name = "Debug";
+		// this.app.sceneManager.add(mk);
 		// if (Application.time != this.previousUpdateTime) {
 		// 	this.previousRotation = this.rotation.clone();
 		// 	this.updateTimeDelta = Application.time - this.previousUpdateTime;

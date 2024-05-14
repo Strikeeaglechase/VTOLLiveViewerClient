@@ -128,6 +128,14 @@ interface LogMessage {
 	timestamp: number;
 	id: number;
 }
+
+interface CustomTimeout {
+	func: () => void;
+	startAt: number;
+	time: number;
+	isCancelled: boolean;
+}
+
 let logMessageId = 0;
 
 // Master application class, singleton
@@ -176,7 +184,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
 	public socket: WebSocket;
-	private timeouts: { func: () => void; startAt: number; time: number }[] = [];
+	private timeouts: CustomTimeout[] = [];
 
 	private isUiHidden = false;
 	public isTextOverlayHidden = false;
@@ -806,6 +814,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	private spawnLut: Record<string, any> = {};
 	public handleEntitySpawn(id: number, ownerId: string, path: string, position: Vector, rotation: Vector, isActive: boolean) {
 		this.currentlySpawningId = id;
+		const existingEntity = this.getEntityById(id);
+		if (existingEntity) {
+			console.error(`Entity with id ${id} already exists as ${existingEntity}`);
+			return;
+		}
+
+		console.log(`NetInstantiate ${path} [${id}] owner: ${ownerId}`);
+
 		// Rewrite NukOpt GUID to path
 		const isNukOptGuid = path.match(/^\w{32}$/);
 		if (isNukOptGuid) {
@@ -1137,11 +1153,17 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		const now = Application.time;
 		const timeouts = this.timeouts.filter(t => t.time + t.startAt <= now);
 		timeouts.forEach(t => t.func());
-		this.timeouts = this.timeouts.filter(t => t.time + t.startAt > now || now < t.startAt);
+		this.timeouts = this.timeouts.filter(t => (t.time + t.startAt > now || now < t.startAt) && !t.isCancelled);
 	}
 
-	public setTimeout(handler: () => void, ms: number): void {
-		this.timeouts.push({ func: handler, time: ms, startAt: Application.time });
+	public setTimeout(handler: () => void, ms: number): () => void {
+		const timeout: CustomTimeout = { func: handler, isCancelled: false, time: ms, startAt: Application.time };
+		this.timeouts.push(timeout);
+		const cancelationMethod = () => {
+			timeout.isCancelled = true;
+		};
+
+		return cancelationMethod;
 	}
 }
 
