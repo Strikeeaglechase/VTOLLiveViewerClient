@@ -28,7 +28,6 @@ replaceRPCHandlers.push({
 	handler: (app: ReplayController, rpc: RPCPacketT) => {
 		const [id] = rpc.args;
 		console.log(`Reversing NetDestroy for ${id}`);
-		// TODO: Refactor to not loop through all packets, is big source of lag
 		// const spawnPacket = app.replayPackets.find(p => p.className == "MessageHandler" && p.method == "NetInstantiate" && p.args[0] == id);
 		const spawnPacket = app.netInstantiatePackets[id];
 		if (!spawnPacket) console.error(`Attempting to undo net destroy for ${id} but no spawn packet found`);

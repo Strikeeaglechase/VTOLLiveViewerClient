@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 import { Application } from "../app";
+import { Settings } from "../settings.js";
 import { Entity } from "./entity";
 
-const MAX_LINE_TRAIL_LEN = 256 * 4;
 const TRAIL_RATE = 1000 / 5;
 
 interface UnitTrailPoint {
@@ -18,6 +18,8 @@ class SimpleUnitTrail {
 	private lineMesh: THREE.Line;
 	private lineGeom: THREE.BufferGeometry;
 	private linePoints: UnitTrailPoint[] = [];
+	private hiddenLinePoints: UnitTrailPoint[] = [];
+
 	private get points() {
 		return this.linePoints.map(p => p.position);
 	}
@@ -101,7 +103,18 @@ class SimpleUnitTrail {
 			this.lineGeom.attributes["position"].needsUpdate = true;
 		}
 
-		if (this.linePoints.length > MAX_LINE_TRAIL_LEN) this.linePoints.shift();
+		const targetLength = parseInt(Settings.get("Trail Length"));
+		while (this.linePoints.length > targetLength) {
+			const deleted = this.linePoints.shift();
+			this.hiddenLinePoints.push(deleted);
+			this.lineGeom.setFromPoints(this.points);
+		}
+
+		while (this.linePoints.length < targetLength && this.hiddenLinePoints.length > 0) {
+			const restored = this.hiddenLinePoints.pop();
+			this.linePoints.unshift(restored);
+			this.lineGeom.setFromPoints(this.points);
+		}
 	}
 
 	public reset(): void {
@@ -111,10 +124,12 @@ class SimpleUnitTrail {
 
 	public remove(): void {
 		if (this.linePoints.length > 0) {
-			SimpleUnitTrail.entityTrailCache[this.entity.id] = this.linePoints;
-			console.log(`Saving trail to cache for ${this.entity} with ${this.linePoints.length} points`);
+			const allLinePoints = this.hiddenLinePoints.concat(this.linePoints);
+			SimpleUnitTrail.entityTrailCache[this.entity.id] = allLinePoints;
+			console.log(`Saving trail to cache for ${this.entity} with ${allLinePoints.length} points`);
 		}
 		this.linePoints = [];
+		this.hiddenLinePoints = [];
 		this.entity.scene.remove(this.lineMesh);
 	}
 }

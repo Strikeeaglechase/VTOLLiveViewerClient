@@ -1159,6 +1159,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public setTimeout(handler: () => void, ms: number): () => void {
 		const timeout: CustomTimeout = { func: handler, isCancelled: false, time: ms, startAt: Application.time };
 		this.timeouts.push(timeout);
+
 		const cancelationMethod = () => {
 			timeout.isCancelled = true;
 		};

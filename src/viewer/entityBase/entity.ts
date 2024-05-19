@@ -26,7 +26,7 @@ teamColors[Team.B] = { r: 255, g: 0, b: 0 };
 teamColors[Team.Unknown] = { r: 255, g: 0, b: 0 };
 
 const enable_debug_box = false;
-const enable_debug_sphere = true;
+const enable_debug_sphere = false;
 
 export const MAX_OBJECT_SIZE = 1000; // Max scale-size an object can get in meters
 

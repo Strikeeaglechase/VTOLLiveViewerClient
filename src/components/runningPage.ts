@@ -3,7 +3,7 @@ import { addCommas, Application, ApplicationRunningState, deg, ftToMi, msToKnots
 import { MissileEntity } from "../viewer/entities/genericMissileEntity.js";
 import { PlayerVehicle } from "../viewer/entities/playerVehicle.js";
 import { Entity } from "../viewer/entityBase/entity.js";
-import { ISetting, Settings } from "../viewer/settings.js";
+import { ISetting, Settings, SettingType } from "../viewer/settings.js";
 import { Page } from "./page.js";
 
 const closure = (main: Entity, target: Entity) => {
@@ -81,29 +81,51 @@ class RunningPage extends Page {
 	private createSettingsOptions() {
 		const container = document.getElementById("settings-container");
 		Settings.settings.forEach(setting => {
-			const div = document.createElement("div");
-			div.classList.add("settings-entry");
-			const p = document.createElement("p");
-			p.innerText = setting.name;
-			p.classList.add("settings-entry-text");
-			div.appendChild(p);
-
-			const select = document.createElement("select");
-			select.classList.add("settings-select");
-			select.addEventListener("change", e => this.onSettingsUpdate(setting, e));
-
-			const s = Settings.getOptions(setting.name) as string[];
-			s.forEach(option => {
-				const opt = document.createElement("option");
-				opt.value = option;
-				opt.innerText = option;
-				opt.selected = option == Settings.get(setting.name);
-				select.appendChild(opt);
-			});
-
-			div.appendChild(select);
-			container.appendChild(div);
+			this.createSettingFor(setting, container);
 		});
+	}
+
+	private createSettingFor(setting: ISetting, container: HTMLElement) {
+		const div = document.createElement("div");
+		div.classList.add("settings-entry");
+		const p = document.createElement("p");
+		p.innerText = setting.name;
+		p.classList.add("settings-entry-text");
+		div.appendChild(p);
+
+		switch (setting.type) {
+			case SettingType.Dropdown:
+				const select = document.createElement("select");
+				select.classList.add("settings-select");
+				select.addEventListener("change", e => this.onSettingsUpdate(setting, e));
+
+				const s = Settings.getOptions(setting.name) as string[];
+				s.forEach(option => {
+					const opt = document.createElement("option");
+					opt.value = option;
+					opt.innerText = option;
+					opt.selected = option == Settings.get(setting.name);
+					select.appendChild(opt);
+				});
+
+				div.appendChild(select);
+				break;
+
+			case SettingType.Slider:
+				const slider = document.createElement("input");
+				slider.classList.add("settings-slider");
+				slider.type = "range";
+				slider.min = setting.minimum.toString();
+				slider.max = setting.maximum.toString();
+				slider.step = "1";
+				slider.value = Settings.get(setting.name);
+				slider.addEventListener("input", e => this.onSettingsUpdate(setting, e));
+
+				div.appendChild(slider);
+				break;
+		}
+
+		container.appendChild(div);
 	}
 
 	private onSettingsUpdate(setting: ISetting, ev: Event) {

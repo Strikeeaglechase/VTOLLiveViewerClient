@@ -2,16 +2,28 @@ import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js
 import { Application } from "./app";
 
 enum SettingType {
-	Dropdown = 0
+	Dropdown = 0,
+	Slider = 1
 }
 
-type SettingName = "Missile Labels" | "Player Labels" | "BRA Readouts" | "AI Labels" | "Markers" | "Show Jamming" | "Scale Mode" | "Pilot Look Indicator";
+type SettingName =
+	| "Missile Labels"
+	| "Player Labels"
+	| "BRA Readouts"
+	| "AI Labels"
+	| "Markers"
+	| "Show Jamming"
+	| "Scale Mode"
+	| "Pilot Look Indicator"
+	| "Trail Length";
 
 interface ISetting {
 	name: SettingName;
 	type: SettingType;
 	default?: string;
 	options?: { name: string; value: string }[] | string[];
+	minimum?: number;
+	maximum?: number;
 	onChange?: (newState: string, app: Application, settings: Settings) => void;
 }
 
@@ -116,6 +128,14 @@ Settings.register({
 	type: SettingType.Dropdown,
 	options: ["Off", "On"],
 	default: "On"
+});
+
+Settings.register({
+	name: "Trail Length",
+	type: SettingType.Slider,
+	minimum: 1,
+	maximum: 256 * 4,
+	default: "1028"
 });
 
 Settings.init();

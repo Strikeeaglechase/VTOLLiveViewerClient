@@ -15,7 +15,6 @@ interface IMeshOffsets {
 }
 
 // This needs looking at for performance.
-// TODO: Check vts file for how many instances of each entity we need. The less IMesh's we have, the better.
 const INSTANCE_MESH_COUNT = 128; // This might be too low! (or too high for many missions)
 const IMESH_SKIPPED: string[] = [];
 
