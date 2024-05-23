@@ -55,8 +55,9 @@ class SimpleUnitTrail {
 		if (SimpleUnitTrail.entityTrailCache[this.entity.id]) {
 			const points = SimpleUnitTrail.entityTrailCache[this.entity.id];
 			console.log(`Loading trail from cache for ${this.entity} with ${points.length} points`);
-			this.linePoints = points;
-			this.lineGeom.setFromPoints(this.points);
+			// this.linePoints = points;
+			this.hiddenLinePoints = points;
+			// this.lineGeom.setFromPoints(this.points);
 		}
 
 		this.lastTrailTime = Application.time;
@@ -104,17 +105,19 @@ class SimpleUnitTrail {
 		}
 
 		const targetLength = parseInt(Settings.get("Trail Length"));
+		let needsUpdate = false;
 		while (this.linePoints.length > targetLength) {
 			const deleted = this.linePoints.shift();
 			this.hiddenLinePoints.push(deleted);
-			this.lineGeom.setFromPoints(this.points);
+			needsUpdate = true;
 		}
 
 		while (this.linePoints.length < targetLength && this.hiddenLinePoints.length > 0) {
 			const restored = this.hiddenLinePoints.pop();
 			this.linePoints.unshift(restored);
-			this.lineGeom.setFromPoints(this.points);
+			needsUpdate = true;
 		}
+		if (needsUpdate) this.lineGeom.setFromPoints(this.points);
 	}
 
 	public reset(): void {

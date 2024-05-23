@@ -249,7 +249,8 @@ class PlayerVehicle extends Entity {
 			else this.textOverlay.show();
 
 			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-			let text = `${this.owner.pilotName} [${this.displayName}]`;
+			const name = this.owner.pilotName.replace(/\[\d{4}\]/, "");
+			let text = `${name} [${this.displayName}]`;
 			if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
 			this.textOverlay.edit(text);
 		}

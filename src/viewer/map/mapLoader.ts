@@ -19,7 +19,7 @@ interface ChunkInfo {
 }
 
 class MapLoader {
-	private heightMap: HeightMap;
+	public heightMap: HeightMap;
 	private heightMapMesh: THREE.Group;
 
 	constructor(private sceneManager: SceneManager) {}

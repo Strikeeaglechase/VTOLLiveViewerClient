@@ -32,6 +32,8 @@ class Settings extends EventEmitter<SettingName> {
 	public static settings: ISetting[] = [];
 	private static state: Record<SettingName, string> = {} as Record<SettingName, string>;
 
+	public static disableSaving = false;
+
 	private constructor() {
 		super();
 	}
@@ -70,6 +72,7 @@ class Settings extends EventEmitter<SettingName> {
 	}
 
 	private static save() {
+		if (Settings.disableSaving) return;
 		localStorage.setItem("settings", JSON.stringify(this.state));
 	}
 }

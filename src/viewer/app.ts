@@ -9,7 +9,7 @@ import * as THREE from "three";
 import { decompressRpcPackets } from "../../../VTOLLiveViewerCommon/dist/compression/vtcompression";
 import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { EnableRPCs, RPC, RPCController, RPCPacket } from "../../../VTOLLiveViewerCommon/dist/rpc.js";
-import { AssignID, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/shared.js";
+import { AssignID, LobbyConnectionStatus, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/vector";
 import { ComponentManager } from "../components/componentManager.js";
 import { API_URL, IS_DEV, WS_URL } from "../config";
@@ -31,6 +31,7 @@ import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 import { nuclearOptionEntities } from "./nuclearOptionGuids";
 import { ReplayController } from "./replay/replayController";
+import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
 
@@ -145,7 +146,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public messageHandler: MessageHandler;
 	public client: Client;
 	public sceneManager = new SceneManager(this);
-	private mapLoader = new MapLoader(this.sceneManager);
+	public mapLoader = new MapLoader(this.sceneManager);
 	public replayController: ReplayController = new ReplayController(this);
 	public meshLoader: MeshLoader = new MeshLoader();
 	public bulletManager: BulletManager;
@@ -188,6 +189,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	private isUiHidden = false;
 	public isTextOverlayHidden = false;
+	public isWallpaperMode = false;
 
 	private prevFrameTime = Date.now();
 	// Any entity that can be spawned must be added to this list
@@ -223,13 +225,15 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		Application.instance.setState(state);
 	}
 
-	private setState(state: ApplicationRunningState) {
+	private setState(state: ApplicationRunningState, pathRewrite = true) {
 		// if (this.stateHistory[this.stateHistory.length - 1] != state) this.stateHistory.push(state);
-		const stateInfo = stateInfos.find(info => info.state == state);
-		if (stateInfo) {
-			// Check if path is already set
-			if (!window.location.pathname.startsWith(stateInfo.path)) {
-				window.history.pushState({}, "", stateInfo.path);
+		if (pathRewrite) {
+			const stateInfo = stateInfos.find(info => info.state == state);
+			if (stateInfo) {
+				// Check if path is already set
+				if (!window.location.pathname.startsWith(stateInfo.path)) {
+					window.history.pushState({}, "", stateInfo.path);
+				}
 			}
 		}
 
@@ -276,6 +280,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// }
 		this.updateStateViaPath();
 
+		if (window.location.pathname.startsWith("/wallpaper")) this.startWallpaperMode();
 		// const user = getLoggedInUser();
 		// if (user) {
 		// 	const daysTillExpire = (((user.exp ?? 0) * 1000) - Date.now()) / 1000 / 60 / 60 / 24;
@@ -335,6 +340,46 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		if (!foundDefaultState) {
 			this.setState(ApplicationRunningState.welcome);
 		}
+	}
+
+	private async startWallpaperMode() {
+		Settings.disableSaving = true;
+		this.setState(ApplicationRunningState.lobbySelect, false);
+		this.isWallpaperMode = true;
+
+		let lobby: VTOLLobby;
+		console.log(`Wallpaper mode, waiting to find BVR lobby`);
+		await new Promise<void>(res => {
+			let interv = setInterval(() => {
+				const game = this.gameList.find(g => g.name.startsWith("24/7 BVR"));
+				if (game) {
+					console.log(`Found BVR lobby ${game.name} (${game.id})`);
+					clearInterval(interv);
+					lobby = game;
+					res();
+				}
+			});
+		});
+
+		if (lobby.state == LobbyConnectionStatus.Connected) {
+			Application.instance.subscribe(lobby);
+		} else {
+			Application.instance.requestJoinLobby(lobby.id);
+
+			const connRes = lobby.waitForConnectionResult();
+			connRes.then(({ status, reason }) => {
+				if (status == LobbyConnectionStatus.Connected) {
+					Application.instance.subscribe(lobby);
+				} else {
+					location.reload();
+				}
+			});
+		}
+
+		this.setUIHidden(true);
+
+		Settings.set("Missile Labels", "Type Only");
+		Settings.set("Markers", "Off");
 	}
 
 	private _hasStarted = false;
@@ -678,6 +723,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
+
+		if (this.isWallpaperMode && this.game && this.game.state != LobbyConnectionStatus.Connected) {
+			location.reload();
+		}
 
 		// Track websocket usage
 		if (debug_ws_usage && this.tick++ % 60 == 0) {
@@ -1091,7 +1140,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 
 	private toggleUI() {
-		this.isUiHidden = !this.isUiHidden;
+		this.setUIHidden(!this.isUiHidden);
+	}
+
+	private setUIHidden(state: boolean) {
+		this.isUiHidden = state;
 		const elms = document.getElementsByClassName("ui");
 
 		for (const e of elms) {

@@ -53,7 +53,7 @@ class SceneManager {
 		container.appendChild(this.renderer.domElement);
 
 		this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, CAM_NEAR, CAM_FAR);
-		this.cameraController = new CameraController(this.camera, this.renderer.domElement);
+		this.cameraController = new CameraController(this.camera, this.renderer.domElement, this.app);
 		this.cameraController.init();
 
 		this.css2dRenderer = new CSS2DRenderer();
