@@ -24,9 +24,6 @@
 	},
 	"include": [
 		"src/**/*.ts",
-		"tests/**/*.ts",
-		"src/viewer/meshLoader/OBJLoader.js",
-		"src/viewer/meshLoader/GLTFLoader.js",
 	],
 	"exclude": ["node_modules"],
 }
