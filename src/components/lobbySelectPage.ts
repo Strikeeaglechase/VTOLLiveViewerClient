@@ -353,12 +353,14 @@ class LobbySelectPage extends Page {
 			}
 
 			if (userSearchStr) {
-				if (!info.metadata) return false;
-				const playerIsInLobby = info.metadata.players.some(p => {
-					if (!p.name) return false;
-					return p.name.toLowerCase().includes(userSearchStr.toLowerCase());
-				});
-				if (!playerIsInLobby) shouldBeShown = false;
+				if (!info.metadata) shouldBeShown = false;
+				else {
+					const playerIsInLobby = info.metadata.players.some(p => {
+						if (!p.name) return false;
+						return p.name.toLowerCase().includes(userSearchStr.toLowerCase());
+					});
+					if (!playerIsInLobby) shouldBeShown = false;
+				}
 			}
 
 			if (searchStr) {
