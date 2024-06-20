@@ -227,7 +227,10 @@ class LobbySelectPage extends Page {
 	private appendNewReplayInfo(info: RecordedLobbyInfo) {
 		if (this.loadedReplays.has(info.recordingId)) return;
 		this.loadedReplays.add(info.recordingId);
-		const date = new Date(info.startTime || Date.now()).toISOString().substring(0, 10);
+		const date = new Date(info.startTime || Date.now()).toISOString();
+		const dayStr = date.substring(0, 10);
+		const timeStr = date.substring(11, 16);
+
 		const totalSeconds = info.duration / 1000;
 		const totalMinutes = totalSeconds / 60;
 		const totalHours = totalMinutes / 60;
@@ -244,7 +247,7 @@ class LobbySelectPage extends Page {
 			.replaceAll("%LobbyName%", filterStr(info.lobbyName))
 			.replaceAll("%MissionName%", filterStr(info.missionName))
 			.replaceAll("%Time%", time)
-			.replaceAll("%Date%", date)
+			.replaceAll("%Date%", `${dayStr} ${timeStr}`)
 			.replaceAll("%Id%", `recording-${info.recordingId}`);
 
 		const div = document.createElement("div");
@@ -366,7 +369,8 @@ class LobbySelectPage extends Page {
 			if (searchStr) {
 				const lobbyNameMatch = info.lobbyName?.toString().toLowerCase().includes(searchStr.toLowerCase());
 				const missionNameMatch = info.missionName?.toString().toLowerCase()?.includes(searchStr.toLowerCase());
-				if (!lobbyNameMatch && !missionNameMatch) shouldBeShown = false;
+				const dateMatch = new Date(info.startTime || Date.now()).toISOString().includes(searchStr);
+				if (!lobbyNameMatch && !missionNameMatch && !dateMatch) shouldBeShown = false;
 			}
 
 			const div = document.getElementById(`recording-${info.recordingId}`).parentElement;
