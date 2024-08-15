@@ -50,6 +50,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 
 	private executedRpcs: Set<number> = new Set();
 	public currentlyExecutingRpc: RPCPacketT | null = null; // For debug
+	public customStartTime = 0;
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
@@ -111,6 +112,27 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		// }
 
 		this.prevReplayTime = this.replayCurrentTime;
+		// If we have a custom start time set, then speed up replay until we meet that time
+		if (this.customStartTime != 0) {
+			if (this.replayCurrentTime < this.customStartTime) {
+				// If we are before the custom start time - speed up replay
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(64);
+				console.log("Speeding up to replay start time at speed: " + this.replaySpeed);
+			} else {
+				// If we are after custom replay time - stop replay and reset custom start time
+				this.customStartTime = 0;
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(1);
+				let urlParams = new URLSearchParams(window.location.search);
+				if (urlParams.has("id")) {
+					const focusTarget = parseInt(urlParams.get("id"));
+					const entity = this.app.entities.find(e => e.id===focusTarget);
+					if (entity) {
+						entity.focus();
+					}
+				}
+				console.log("Replay start time reached, setting speed to " + this.replaySpeed);
+			}
+		}
 		return expectedDt * this.computedReplaySpeed;
 	}
 

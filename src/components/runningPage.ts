@@ -48,6 +48,9 @@ class RunningPage extends Page {
 		const toggleLogBtn = document.getElementById("toggle-log-btn");
 		toggleLogBtn.addEventListener("click", () => this.toggleLogVisible());
 
+		const shareBtn = document.getElementById("share-btn");
+		shareBtn.addEventListener("click", () => this.shareReplayLink());
+
 		app.on("log_message", (m: string) => {
 			const logContainer = document.getElementById("log-panel");
 			const log = document.createElement("p");
@@ -76,6 +79,21 @@ class RunningPage extends Page {
 		} else {
 			settingsContainer.style.display = "none";
 		}
+	}
+
+	private shareReplayLink() {
+		const shareBtn = document.getElementById("share-btn");
+		let url = new URL(window.location.toString());
+		url.searchParams.set("t", this.app.replayController.replayCurrentTime.toString());
+		url.searchParams.set("id", this.app.currentFocus.id.toString());
+		navigator.clipboard.writeText(url.toString()).then(
+			() => {
+				shareBtn.textContent = "Link Copied to Clipboard";
+			},
+			() => {
+				shareBtn.textContent = "Clipboard Copy Failed";
+			},
+		);
 	}
 
 	private createSettingsOptions() {
