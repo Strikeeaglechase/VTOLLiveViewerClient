@@ -115,8 +115,8 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		// If we have a custom start time set, then speed up replay until we meet that time
 		if (this.customStartTime != 0) {
 			if (this.replayCurrentTime < this.customStartTime) {
-				// If we are before the custom start time - speed up replay
-				this.replaySpeed = REPLAY_SPEEDS.indexOf(64);
+				// If we are before the custom start time - set replay speed to max
+				this.replaySpeed = REPLAY_SPEEDS.length - 1;
 				console.log("Speeding up to replay start time at speed: " + this.replaySpeed);
 			} else {
 				// If we are after custom replay time - stop replay and reset custom start time
