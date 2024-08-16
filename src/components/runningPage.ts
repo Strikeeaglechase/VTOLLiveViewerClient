@@ -174,7 +174,13 @@ class RunningPage extends Page {
 			return;
 		}
 
-		const speed = Math.abs(this.app.replayController.computedReplaySpeed);
+		let speed = Math.abs(this.app.replayController.computedReplaySpeed);
+		if (this.app.replayController.isFastForwarding()) {
+			speed = this.app.replayController.maxReplaySpeed;
+			if (this.hasActiveSpeedTimeout) {
+				clearTimeout(this.speedTimeout);
+			}
+		}
 		if (speed != this.previousSpeed) {
 			replaySpeedContainer.classList.remove("speed-hidden");
 			this.previousSpeed = speed;

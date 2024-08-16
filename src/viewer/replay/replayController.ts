@@ -56,8 +56,16 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
 
+	public get maxReplaySpeed(): number {
+		return REPLAY_SPEEDS[REPLAY_SPEEDS.length - 1];
+	}
+
 	constructor(public app: Application) {
 		super();
+	}
+
+	public isFastForwarding(): boolean {
+		return this.customStartTime !== 0;
 	}
 
 	public runReplay(expectedDt: number): number {
@@ -85,7 +93,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
 				// Do not emit the buffering message if we are fast forwarding through a replay
-				if (this.customStartTime === 0) {
+				if (!this.isFastForwarding()) {
 					this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
 				}
 				this.replayCurrentTime = oldReplayCurrentTime;
@@ -117,7 +125,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 
 		this.prevReplayTime = this.replayCurrentTime;
 		// If we have a custom start time set, then speed up replay until we meet that time
-		if (this.customStartTime != 0) {
+		if (this.isFastForwarding()) {
 			if (this.replayCurrentTime < this.customStartTime) {
 				// If we are before the custom start time - set replay speed to max
 				this.replaySpeed = REPLAY_SPEEDS.length - 1;
