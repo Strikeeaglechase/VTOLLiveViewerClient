@@ -84,7 +84,10 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			if (!this.hasLoadedEntireReplay) {
 				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
-				this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
+				// Do not emit the buffering message if we are fast forwarding through a replay
+				if (this.customStartTime === 0) {
+					this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
+				}
 				this.replayCurrentTime = oldReplayCurrentTime;
 				return 0;
 			} else if (this.computedReplaySpeed > 0) {
