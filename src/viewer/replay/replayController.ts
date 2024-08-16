@@ -7,7 +7,7 @@ import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
-const REPLAY_SPEEDS = [-64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
+const REPLAY_SPEEDS = [-1024, -512, -256, -128, -64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
 const HEADER_LENGTH = 0; // "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
