@@ -7,7 +7,7 @@ import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
-const REPLAY_SPEEDS = [-64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64];
+const REPLAY_SPEEDS = [-64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
 const HEADER_LENGTH = 0; // "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
@@ -67,6 +67,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			console.warn(`Expected dt excessive ${expectedDt}`);
 			expectedDt = 1000 / 60;
 		}
+		const oldReplayCurrentTime = this.replayCurrentTime;
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
 
 		const seconds = Math.abs(Math.floor(this.replayCurrentTime / 1000) - Math.floor(this.prevReplayTime / 1000));
@@ -84,7 +85,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
 				this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
-				this.replayCurrentTime = this.lastPacketTimestamp;
+				this.replayCurrentTime = oldReplayCurrentTime;
 				return 0;
 			} else if (this.computedReplaySpeed > 0) {
 				console.log(`Replay has ended`);
@@ -132,6 +133,10 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 				}
 				console.log("Replay start time reached, setting speed to " + this.replaySpeed);
 			}
+		}
+		// If the replay is faster than 8x, disable all interpolation
+		if (this.computedReplaySpeed > 8) {
+			return 0;
 		}
 		return expectedDt * this.computedReplaySpeed;
 	}
