@@ -89,6 +89,10 @@
 				</div>
 			</div>
 
+			<div class="share-overlay ui" id="share-replay-container" v-if="isReplay" :class="{ hidden: hide }">
+				<button class="share-btn" id="share-btn">Share Replay</button>
+			</div>
+
 			<!-- Bottom right log page -->
 			<div class="log-container ui">
 				<div class="log-header" style="margin-left: 300px;" id="toggle-log-btn">

@@ -995,6 +995,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.messageHandler = new MessageHandler(lobbyId, this);
 		await this.start();
 
+		let urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.has("t")) {
+			this.replayController.customStartTime = parseInt(urlParams.get("t"));
+			console.log("Setting replay start time as: " + this.replayController.customStartTime);
+		}
 		this.replayController.beginReplay();
 
 		// this.groupedReplayPackets[0] = []; So much debugging to find this line of code that was causing issues

@@ -7,7 +7,7 @@ import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
 
-const REPLAY_SPEEDS = [-64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64];
+const REPLAY_SPEEDS = [-1024, -512, -256, -128, -64, -32, -16, -8, -4, -2, -1, -0.5, 0, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024];
 const HEADER_LENGTH = 0; // "REPLAY".length;
 type RPCPacketT = RPCPacket & { timestamp: number };
 
@@ -50,13 +50,22 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 
 	private executedRpcs: Set<number> = new Set();
 	public currentlyExecutingRpc: RPCPacketT | null = null; // For debug
+	public customStartTime = 0;
 
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
 
+	public get maxReplaySpeed(): number {
+		return REPLAY_SPEEDS[REPLAY_SPEEDS.length - 1];
+	}
+
 	constructor(public app: Application) {
 		super();
+	}
+
+	public isFastForwarding(): boolean {
+		return this.customStartTime !== 0;
 	}
 
 	public runReplay(expectedDt: number): number {
@@ -66,6 +75,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			console.warn(`Expected dt excessive ${expectedDt}`);
 			expectedDt = 1000 / 60;
 		}
+		const oldReplayCurrentTime = this.replayCurrentTime;
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
 
 		const seconds = Math.abs(Math.floor(this.replayCurrentTime / 1000) - Math.floor(this.prevReplayTime / 1000));
@@ -82,8 +92,11 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			if (!this.hasLoadedEntireReplay) {
 				console.warn(`Replay is still buffering, current time: ${this.replayCurrentTime} last packet time: ${this.lastPacketTimestamp}`);
 				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
-				this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
-				this.replayCurrentTime = this.lastPacketTimestamp;
+				// Do not emit the buffering message if we are fast forwarding through a replay
+				if (!this.isFastForwarding()) {
+					this.app.emit("error_message", `Buffering. Wait a moment then increase the replay speed`);
+				}
+				this.replayCurrentTime = oldReplayCurrentTime;
 				return 0;
 			} else if (this.computedReplaySpeed > 0) {
 				console.log(`Replay has ended`);
@@ -111,6 +124,31 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		// }
 
 		this.prevReplayTime = this.replayCurrentTime;
+		// If we have a custom start time set, then speed up replay until we meet that time
+		if (this.isFastForwarding()) {
+			if (this.replayCurrentTime < this.customStartTime) {
+				// If we are before the custom start time - set replay speed to max
+				this.replaySpeed = REPLAY_SPEEDS.length - 1;
+				console.log("Speeding up to replay start time at speed: " + this.replaySpeed);
+			} else {
+				// If we are after custom replay time - stop replay and reset custom start time
+				this.customStartTime = 0;
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(1);
+				let urlParams = new URLSearchParams(window.location.search);
+				if (urlParams.has("id")) {
+					const focusTarget = parseInt(urlParams.get("id"));
+					const entity = this.app.entities.find(e => e.id===focusTarget);
+					if (entity) {
+						entity.focus();
+					}
+				}
+				console.log("Replay start time reached, setting speed to " + this.replaySpeed);
+			}
+		}
+		// If the replay is faster than 8x, disable all interpolation
+		if (this.computedReplaySpeed > 8) {
+			return 0;
+		}
 		return expectedDt * this.computedReplaySpeed;
 	}
 
