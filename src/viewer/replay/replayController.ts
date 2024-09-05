@@ -137,7 +137,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 				let urlParams = new URLSearchParams(window.location.search);
 				if (urlParams.has("id")) {
 					const focusTarget = parseInt(urlParams.get("id"));
-					const entity = this.app.entities.find(e => e.id===focusTarget);
+					const entity = this.app.entities.find(e => e.id === focusTarget);
 					if (entity) {
 						entity.focus();
 					}

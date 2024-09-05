@@ -63,6 +63,12 @@ class RunningPage extends Page {
 		this.createSettingsOptions();
 	}
 
+	public override onShow(): void {
+		super.onShow();
+		const shareReplayButton = document.getElementById("share-btn");
+		shareReplayButton.style.display = this.app.isReplay ? "block" : "none";
+	}
+
 	public override update() {
 		this.updateSidebarEntityList();
 		this.updateUnitRangeList();
@@ -92,7 +98,7 @@ class RunningPage extends Page {
 			},
 			() => {
 				shareBtn.textContent = "Clipboard Copy Failed";
-			},
+			}
 		);
 	}
 
