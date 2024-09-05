@@ -243,6 +243,8 @@ class PlayerVehicle extends Entity {
 		// this.carrierApproachTestSphere2.position.set(cx + onPlane2.x + cfO.x, cy + onPlane2.y + cfO.y, cz + onPlane2.z + cfO.z);
 		// this.carrierApproachTestSphere.position.set(cx + onPlane.x, cy + onPlane.y, cz + onPlane.z);
 
+		// this.rateDebug();
+
 		if (this.textOverlay) {
 			const textOptions = Settings.get("Player Labels");
 			if (textOptions == "Off") this.textOverlay.hide();
@@ -254,6 +256,65 @@ class PlayerVehicle extends Entity {
 			if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
 			this.textOverlay.edit(text);
 		}
+	}
+
+	// private vxLineGeom = new THREE.BufferGeometry();
+	// private vyLineGeom = new THREE.BufferGeometry();
+	// private vzLineGeom = new THREE.BufferGeometry();
+	// private vxLine = new THREE.Line(this.vxLineGeom, new THREE.LineBasicMaterial({ color: "#ff0000" }));
+	// private vyLine = new THREE.Line(this.vyLineGeom, new THREE.LineBasicMaterial({ color: "#00ff00" }));
+	// private vzLine = new THREE.Line(this.vzLineGeom, new THREE.LineBasicMaterial({ color: "#0000ff" }));
+	// private spawned = false;
+
+	private lastHeadingTime = 0;
+
+	private lastHeading = 0;
+	private startSpeed = 0;
+	private startAlt = 0;
+
+	private flightLog = "time,trt (°/s),vel (m/s),alt (m),gforce (g),Δv (m/s),Δa (m)\n";
+
+	private rateDebug() {
+		const updateRate = 5000;
+
+		if (this.lastHeadingTime + updateRate > Application.time) return;
+		this.lastHeadingTime = Application.time;
+		// const dh = this.heading - this.lastHeading;
+		let deltaHeading = this.heading - this.lastHeading;
+		const mod = (a: number, n: number) => a - Math.floor(a / n) * n;
+		deltaHeading = mod(deltaHeading + 180, 360) - 180;
+
+		const headingRate = (Math.abs(deltaHeading) / updateRate) * 1000;
+
+		const deltaSpeed = this.velocity.length() - this.startSpeed;
+		const deltaAlt = this.position.y - this.startAlt;
+		console.log(`TRT: ${headingRate.toFixed(2)}°/s, Δv: ${deltaSpeed.toFixed(1)}m/s Δa: ${deltaAlt.toFixed(1)}m, curG: ${this.gForce.toFixed(2)}g`);
+		this.flightLog += `${Application.time},${headingRate},${this.velocity.length()},${this.position.y},${this.gForce},${deltaSpeed},${deltaAlt}\n`;
+		this.lastHeading = this.heading;
+		this.startSpeed = this.velocity.length();
+		this.startAlt = this.position.y;
+
+		// let v = this.acceleration.clone().to<THREE.Vector3>(THREE.Vector3);
+		// v = v.applyQuaternion(this.meshProxyObject.quaternion.clone().invert());
+		// this.vxLineGeom.setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(v.x * 10, 0, 0)]);
+		// this.vyLineGeom.setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, v.y * 10, 0)]);
+		// this.vzLineGeom.setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, v.z * 10)]);
+		// this.vxLine.matrixWorldNeedsUpdate = true;
+		// this.vyLine.matrixWorldNeedsUpdate = true;
+		// this.vzLine.matrixWorldNeedsUpdate = true;
+		// this.vxLine.frustumCulled = false;
+		// this.vyLine.frustumCulled = false;
+		// this.vzLine.frustumCulled = false;
+		// if (!this.spawned) {
+		// 	this.vxLine.name = "vxLine";
+		// 	this.vyLine.name = "vyLine";
+		// 	this.vzLine.name = "vzLine";
+		// 	this.meshProxyObject.add(this.vxLine, this.vyLine, this.vzLine);
+		// }
+		// this.spawned = true;
+		// this.vxLine.position.set(this.position.x, this.position.y, this.position.z);
+		// this.vyLine.position.set(this.position.x, this.position.y, this.position.z);
+		// this.vzLine.position.set(this.position.x, this.position.y, this.position.z);
 	}
 
 	private getAoa() {
@@ -301,7 +362,7 @@ class PlayerVehicle extends Entity {
 	}
 
 	@RPC("in")
-	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean, pyr: Vector) {
+	UpdateData(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3, throttle: number, isLanded: boolean, pyr: Vector3) {
 		this.throttle = throttle;
 		this.pyr.set(pyr);
 		// const mk = mark(50, 0x00ff00);
@@ -342,6 +403,7 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	FireCMS() {
+		this.flightLog += "<<CMS>>\n";
 		this.app.flareManager.fireCm(this);
 	}
 

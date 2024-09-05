@@ -238,7 +238,7 @@ class RunningPage extends Page {
 			const fd = document.getElementById("current-focus-data");
 			const f = this.app.currentFocus;
 			fd.innerText = `${f.owner.pilotName} [${f.displayName}] A: ${addCommas(Math.floor(mToFt(f.position.y)))}ft H: ${Math.abs(
-				Math.floor(deg(f.rotation.y))
+				Math.floor(f.heading)
 			)} S: ${Math.floor(msToKnots(f.velocity.length()))}kt G: ${f.gForce.toFixed(1)} / ${f.maxGForce.toFixed(1)}`;
 		}
 

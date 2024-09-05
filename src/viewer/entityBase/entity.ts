@@ -95,6 +95,7 @@ class Entity implements EntityReference {
 	public displayName: string;
 	public jammers: RadarJammerSync[] = [];
 	public view: EntityViewData = new EntityViewData();
+	public heading: number = 0;
 
 	private euid = nextEuid++;
 
@@ -532,6 +533,8 @@ class Entity implements EntityReference {
 		// 	// console.warn(`Entity ${this} got motion update while inactive`);
 		// 	return;
 		// }
+
+		this.heading = rot.y;
 
 		// Handles the weird unity->threejs rotation
 		quat.setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));

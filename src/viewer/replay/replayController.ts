@@ -397,7 +397,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		if (key == "ArrowRight") this.replaySpeed = Math.min(this.replaySpeed + 1, REPLAY_SPEEDS.length - 1);
 
 		if (prevReplay != this.computedReplaySpeed) {
-			console.log(`New replay speed: ${this.computedReplaySpeed}x`);
+			// console.log(`New replay speed: ${this.computedReplaySpeed}x`);
 		}
 
 		if (this.computedReplaySpeed != 0) {
