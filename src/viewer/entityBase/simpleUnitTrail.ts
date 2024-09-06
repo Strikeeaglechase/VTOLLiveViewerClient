@@ -64,12 +64,12 @@ class SimpleUnitTrail {
 		this.hasInit = true;
 	}
 
-	private extendTrail() {
+	private extendTrail(doGeomUpdate: boolean) {
 		this.linePoints.push({
 			position: new THREE.Vector3(this.entity.position.x, this.entity.position.y, this.entity.position.z),
 			time: Application.time
 		});
-		this.lineGeom.setFromPoints(this.points);
+		if (doGeomUpdate) this.lineGeom.setFromPoints(this.points);
 		this.lastTrailTime = Application.time;
 	}
 
@@ -79,10 +79,14 @@ class SimpleUnitTrail {
 		this.lastTrailTime = Application.time;
 	}
 
+	public checkExtend() {
+		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail(false);
+	}
+
 	public run(): void {
 		if (!this.hasInit) return;
 
-		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail();
+		if (Application.time - this.lastTrailTime > TRAIL_RATE) this.extendTrail(true);
 
 		let previousPoint = this.linePoints[this.linePoints.length - 1];
 		if (previousPoint) {

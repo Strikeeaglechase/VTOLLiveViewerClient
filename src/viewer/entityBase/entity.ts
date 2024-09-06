@@ -545,6 +545,8 @@ class Entity implements EntityReference {
 		this.rotation.set(euler.x, euler.y, euler.z);
 		this.velocity.set(-vel.x, vel.y, vel.z);
 		this.acceleration.set(-accel.x, accel.y, accel.z);
+
+		if (this.hasTrail) this.trail.checkExtend();
 	}
 
 	protected setTeam(team: Team) {
