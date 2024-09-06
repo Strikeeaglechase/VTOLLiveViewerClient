@@ -91,7 +91,9 @@ class RunningPage extends Page {
 		const shareBtn = document.getElementById("share-btn");
 		let url = new URL(window.location.toString());
 		url.searchParams.set("t", this.app.replayController.replayCurrentTime.toString());
-		url.searchParams.set("id", this.app.currentFocus.id.toString());
+		if (this.app.currentFocus) {
+			url.searchParams.set("id", this.app.currentFocus.id.toString());
+		}
 		navigator.clipboard.writeText(url.toString()).then(
 			() => {
 				shareBtn.textContent = "Link Copied to Clipboard";
