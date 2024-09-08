@@ -116,8 +116,9 @@ class LobbySelectPage extends Page {
 
 	private requestReplays() {
 		const query = window.location.search;
-		if (query.startsWith("?replay=")) {
-			const replayId = query.substring(8);
+		let urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.has("replay")) {
+			const replayId = urlParams.get("replay");
 			console.log(`Requesting replay for specific ID: ${replayId}`);
 			this.autoplayReplayId = replayId;
 			this.autoplayHasStarted = true;
