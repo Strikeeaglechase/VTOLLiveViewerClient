@@ -115,7 +115,6 @@ class LobbySelectPage extends Page {
 	}
 
 	private requestReplays() {
-		const query = window.location.search;
 		let urlParams = new URLSearchParams(window.location.search);
 		if (urlParams.has("replay")) {
 			const replayId = urlParams.get("replay");
@@ -380,9 +379,10 @@ class LobbySelectPage extends Page {
 			if (!shouldBeShown && div.style.display != "none") div.style.display = "none";
 		});
 
-		if (!this.autoplayHasStarted && window.location.search.startsWith("?replay=") && !this.replayLoadingId) {
+		let urlParams = new URLSearchParams(window.location.search);
+		if (!this.autoplayHasStarted && urlParams.has("replay") && !this.replayLoadingId) {
 			this.autoplayHasStarted = true;
-			const replayId = window.location.search.substring(8);
+			const replayId = urlParams.get("replay");
 			const replay = this.replays.find(r => r.recordingId == replayId);
 			if (replay) {
 				const div = document.getElementById(`recording-${replayId}`);
