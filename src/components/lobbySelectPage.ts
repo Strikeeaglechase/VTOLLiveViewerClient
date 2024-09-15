@@ -281,8 +281,10 @@ class LobbySelectPage extends Page {
 		app.client.cancelRequestReplayLobbies();
 
 		this.replayLoadingId = info.recordingId;
-		// Update URL
-		window.history.pushState({}, "", `/replay?replay=${info.recordingId}`);
+		// Update URL if this is not an autoplayed replay
+		if (!this.autoplayHasStarted) {
+			window.history.pushState({}, "", `/replay?replay=${info.recordingId}`);
+		}
 
 		// Begin fetch, and start replay after sufficiently buffered
 		await app.replayController.requestReplay(info.recordingId, n => (btn.innerText = `${(n * 100).toFixed(0)}%`));
