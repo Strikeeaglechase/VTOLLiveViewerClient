@@ -222,7 +222,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		let currentChunk = this.header.chunks[this.currentChunkIndex];
 		while (currentChunk && this.receiveBytesBuffer.length >= currentChunk.length) {
 			const chunkBytes = this.receiveBytesBuffer.splice(0, currentChunk.length);
-			console.log(`Received chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
+			console.debug(`Received chunk ${this.currentChunkIndex} with ${chunkBytes.length} bytes ${this.receiveBytesBuffer.length} left in buffer`);
 			this.currentChunkIndex++;
 			currentChunk = this.header.chunks[this.currentChunkIndex];
 
@@ -259,7 +259,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			setTimeout(() => this.handleReplayChunk(), 1000 / 60);
 			return;
 		}
-		console.log(`Processing queued chunk with ${bytes.length} bytes, ${this.replayChunkQueue.length} chunks left.`);
+		console.debug(`Processing queued chunk with ${bytes.length} bytes, ${this.replayChunkQueue.length} chunks left.`);
 		// console.log(bytes.join(","));
 		let timeLastSleep = performance.now();
 		const timeBudget = 10; // 10ms before must yield
@@ -312,7 +312,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		}
 
 		// rpcs.forEach(rpc => this.replayPackets.push(rpc));
-		console.log(
+		console.debug(
 			`Processed replay chunk with ${count} packets (${bytes.length} bytes). Chunks: ${(
 				(this.totalChunksFullyProcessed / this.header.chunks.length) *
 				100

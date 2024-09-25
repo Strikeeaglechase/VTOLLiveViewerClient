@@ -179,6 +179,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	private entitiesById: Record<number, Entity> = {};
 	private entitiesToDelete: Entity[] = [];
 	public logMessages: LogMessage[] = [];
+	private markers: Marker[] = [];
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;
@@ -956,15 +957,34 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.game.on("log_message", (msg: string) => {
 			this.addLogMessage(msg);
 		});
+
 		const rpcMissionInfo = await this.game.waitForMissionInfo();
 		const campaignId = rpcMissionInfo.isBuiltin ? rpcMissionInfo.campaignId : rpcMissionInfo.workshopId;
 		const fullMissionInfo = await this.getMissionInfoFromAPI(campaignId, rpcMissionInfo.id);
 		this.meshLoader.prepareIMeshCounts(fullMissionInfo.allUnitSpawns);
 		this.mapLoader.loadHeightmapFromMission(rpcMissionInfo);
 		this.loadMarkers(fullMissionInfo);
+
+		this.game.on("mission_info", (info: MissionInfo) => this.onNewMissionInfo(info));
 	}
 
-	public async loadMarkers(missionInfo: MissionInfo) {
+	// There's some type hell going on with MissionInfo, despite being called MI its Partial
+	// I think related to replays, as they have a separate special MI type
+	private onNewMissionInfo(info: MissionInfo) {
+		if (info.mapId == this.mapLoader.currentlyLoadedMap) return;
+		console.error(`Current map ${this.mapLoader.currentlyLoadedMap} does not match mission map ${info.mapId}`);
+		console.log(`Dumping old map, loading new map ${info.mapId}`);
+		this.mapLoader.clearMap();
+		this.deleteMarkers();
+		this.getMissionInfoFromAPI(info.workshopId, info.id).then(fullInfo => this.loadMarkers(fullInfo));
+
+		this.mapLoader.loadHeightmapFromMission(info).then(() => {
+			console.log(`Heightmap load finished, watching for map changes`);
+			this.game.once("mission_info", (newInfo: MissionInfo) => this.onNewMissionInfo(newInfo));
+		});
+	}
+
+	public loadMarkers(missionInfo: MissionInfo) {
 		missionInfo?.waypoints.forEach(wp => {
 			let wpType = MarkerType.Waypoint;
 			if (wp.id == missionInfo.bullseye[Team.A] || wp.id == missionInfo.bullseye[Team.B]) {
@@ -972,8 +992,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			}
 
 			const marker = new Marker(wpType, wp.name, new Vector(-wp.position.x, wp.position.y, wp.position.z), this);
+			this.markers.push(marker);
 			marker.init();
 		});
+	}
+
+	private deleteMarkers() {
+		this.markers.forEach(m => m.destroy());
+		this.markers = [];
 	}
 
 	private async getMissionInfoFromAPI(workshopId: string, missionId: string) {
@@ -1016,7 +1042,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// });
 
 		console.log(`Waiting for mission info`);
-		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo());
+		this.mapLoader.loadHeightmapFromMission(await this.game.waitForMissionInfo()).then(() => {
+			console.log(`Heightmap load finished, watching for map changes`);
+			this.game.once("mission_info", (info: MissionInfo) => this.onNewMissionInfo(info));
+		});
 		console.log(`Got mission info!`);
 	}
 

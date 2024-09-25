@@ -22,9 +22,24 @@ class MapLoader {
 	public heightMap: HeightMap;
 	private heightMapMesh: THREE.Group;
 
+	public currentlyLoadedMap: string;
+
 	constructor(private sceneManager: SceneManager) {}
 
+	public clearMap() {
+		console.log(`MAP CLEAR CALLED`);
+		this.sceneManager.remove(this.heightMapMesh);
+		this.heightMapMesh.traverse(obj => {
+			if (obj instanceof THREE.Mesh) {
+				obj.geometry.dispose();
+				obj.material.dispose();
+			}
+		});
+	}
+
 	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
+		this.currentlyLoadedMap = mission.mapId;
+
 		if (mission.mapId == "map_akutan") {
 			console.warn(`Mission has Akutan map, so skipping heightmap load`);
 			return;
@@ -61,6 +76,13 @@ class MapLoader {
 
 		worker.postMessage({ mission: mission, images: this.heightMap.images });
 
+		const bytes = await this.listenToWorkerMessages(worker);
+		console.log(
+			`Chunk loading fully finished. Map load process took ${((Date.now() - start) / 1000).toFixed(2)}sec Map size: ${(bytes / 1000).toFixed(0)}kb`
+		);
+	}
+
+	private listenToWorkerMessages(worker: Worker) {
 		let vertices: ArrayBuffer;
 		let normals: ArrayBuffer;
 		let indices: ArrayBuffer;
@@ -70,45 +92,45 @@ class MapLoader {
 		let loadedCount = 0;
 		let bytes = 0;
 		let expectedChunks = 0;
-		worker.onmessage = (e: MessageEvent) => {
-			if (expectedChunks == 0) {
-				expectedChunks = e.data.expectedChunks;
-				return;
-			}
 
-			if (e.data instanceof ArrayBuffer) bytes += e.data.byteLength;
-
-			// This is uh... an odd way of parsing the messages, but I need to send as shared memory to prevent a memory copy of all the data
-			switch (idx) {
-				case 0:
-					chunkIdx = e.data;
-					break;
-				case 1:
-					vertices = e.data;
-					break;
-				case 2:
-					normals = e.data;
-					break;
-				case 3:
-					indices = e.data;
-					break;
-				case 4:
-					colors = e.data;
-					break;
-			}
-			idx++;
-			if (idx == 5) {
-				this.createChunkMesh(chunkIdx, vertices, normals, indices, colors);
-				idx = 0;
-				loadedCount++;
-				if (loadedCount == expectedChunks) {
-					console.log(
-						`Chunk loading fully finished. Map load process took ${((Date.now() - start) / 1000).toFixed(2)}sec Map size: ${(bytes / 1000).toFixed(0)}kb`
-					);
-					// this.onMapLoaded();
+		return new Promise<number>(res => {
+			worker.onmessage = (e: MessageEvent) => {
+				if (expectedChunks == 0) {
+					expectedChunks = e.data.expectedChunks;
+					return;
 				}
-			}
-		};
+
+				if (e.data instanceof ArrayBuffer) bytes += e.data.byteLength;
+
+				// This is uh... an odd way of parsing the messages, but I need to send as shared memory to prevent a memory copy of all the data
+				switch (idx) {
+					case 0:
+						chunkIdx = e.data;
+						break;
+					case 1:
+						vertices = e.data;
+						break;
+					case 2:
+						normals = e.data;
+						break;
+					case 3:
+						indices = e.data;
+						break;
+					case 4:
+						colors = e.data;
+						break;
+				}
+				idx++;
+				if (idx == 5) {
+					this.createChunkMesh(chunkIdx, vertices, normals, indices, colors);
+					idx = 0;
+					loadedCount++;
+					if (loadedCount == expectedChunks) {
+						res(bytes);
+					}
+				}
+			};
+		});
 	}
 
 	private createChunkMesh(chunkIdx: ChunkInfo, vertices: ArrayBuffer, normals: ArrayBuffer, indices: ArrayBuffer, colors: ArrayBuffer) {

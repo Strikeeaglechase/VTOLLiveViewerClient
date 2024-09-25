@@ -76,6 +76,12 @@ class Marker {
 
 		return material;
 	}
+
+	public destroy() {
+		this.app.sceneManager.remove(this.sprite);
+		this.sprite.material.dispose();
+		this.sprite.geometry.dispose();
+	}
 }
 
 export { Marker, MarkerType };
