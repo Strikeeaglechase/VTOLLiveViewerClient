@@ -87,7 +87,7 @@ class SceneManager {
 		let overrideZoom = 0;
 
 		// If we are focused on something, all scale is relative to that
-		if (this.app.currentFocus != null) {
+		if (this.hasFocus()) {
 			const d = this.app.currentFocus.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
 			overrideZoom = this.calculateScale(d);
 			this.app.emit("unit_scale", overrideZoom);
@@ -214,6 +214,10 @@ class SceneManager {
 		console.log(meshNames);
 
 		console.log(this.buildChildrenTree(this.scene));
+	}
+
+	public hasFocus() {
+		return this.app.currentFocus !== null;
 	}
 }
 

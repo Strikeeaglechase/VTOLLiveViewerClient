@@ -67,7 +67,9 @@ class MapLoader {
 		// Position camera
 		const ctrl = this.sceneManager.cameraController.orbit;
 		const cam = this.sceneManager.cameraController.fakeCamera;
-		cam.position.set(0, 100000, 0);
+		if (!this.sceneManager.hasFocus()) {
+			cam.position.set(0, 100000, 0);
+		}
 		ctrl.target.set(
 			(this.heightMap.width * METERS_PER_PIXEL) / 2 - this.heightMap.width * METERS_PER_PIXEL,
 			0,
