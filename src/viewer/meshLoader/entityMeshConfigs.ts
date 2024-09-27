@@ -41,6 +41,13 @@ export const entityMeshs: EntityMeshConfig[] = [
 		loadScale: 0.019
 	},
 	{
+		key: ["Vehicles/EF-24", "EF-24"],
+		path: "./assets/objects/lowpoly_EF-24G.fbx",
+		position: new Vector(0, 0, 0),
+		rotation: new Vector(Math.PI, Math.PI, Math.PI),
+		loadScale: 0.0069
+	},
+	{
 		key: ["Units/Allied/AlliedCarrier"],
 		path: "./assets/objects/output/vtolvr_AlliedCarrier.gltf",
 		scaleDamper: 0.1,

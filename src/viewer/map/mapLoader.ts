@@ -20,7 +20,7 @@ interface ChunkInfo {
 
 class MapLoader {
 	public heightMap: HeightMap;
-	private heightMapMesh: THREE.Group;
+	public heightMapMesh: THREE.Group;
 
 	public currentlyLoadedMap: string;
 
@@ -49,11 +49,11 @@ class MapLoader {
 
 		const worker = new Worker(new URL("./mapLoad.worker.js", import.meta.url));
 
-		this.heightMap = new HeightMap(mission);
+		this.heightMapMesh = new THREE.Group();
+		this.heightMap = new HeightMap(mission, this.heightMapMesh);
 		await this.heightMap.init();
 
 		// Init mesh
-		this.heightMapMesh = new THREE.Group();
 		this.heightMapMesh.rotation.set(0, Math.PI, 0);
 		this.heightMapMesh.position.set(0, 0, this.heightMap.width * METERS_PER_PIXEL);
 		this.sceneManager.primaryLight.position.set(
@@ -94,9 +94,16 @@ class MapLoader {
 		let loadedCount = 0;
 		let bytes = 0;
 		let expectedChunks = 0;
+		let gottenHeightmapData = false;
 
 		return new Promise<number>(res => {
 			worker.onmessage = (e: MessageEvent) => {
+				if (!gottenHeightmapData) {
+					this.heightMap.loadFromWorkerData(e.data.heights);
+					gottenHeightmapData = true;
+					return;
+				}
+
 				if (expectedChunks == 0) {
 					expectedChunks = e.data.expectedChunks;
 					return;

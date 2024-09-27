@@ -15,6 +15,7 @@ import { ComponentManager } from "../components/componentManager.js";
 import { API_URL, IS_DEV, WS_URL } from "../config";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
+import { Debug } from "./debug.js";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
@@ -35,22 +36,25 @@ import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
 
-const rad = (deg: number): number => (deg * Math.PI) / 180;
-const deg = (rad: number): number => (rad * 180) / Math.PI;
+export const rad = (deg: number): number => (deg * Math.PI) / 180;
+export const deg = (rad: number): number => (rad * 180) / Math.PI;
 
-const ftToMi = (ft: number): number => ft / 6076.12;
-const miToFt = (mi: number): number => mi * 6076.12;
+export const ftToMi = (ft: number): number => ft / 6076.12;
+export const miToFt = (mi: number): number => mi * 6076.12;
 
-const mToFt = (m: number): number => m * 3.28084;
-const ftToM = (ft: number): number => ft / 3.28084;
+export const mToFt = (m: number): number => m * 3.28084;
+export const ftToM = (ft: number): number => ft / 3.28084;
 
-const msToKnots = (ms: number): number => ms * 1.94384;
-const knotsToMs = (knots: number): number => knots / 1.94384;
-const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+export const msToKnots = (ms: number): number => ms * 1.94384;
+export const knotsToMs = (knots: number): number => knots / 1.94384;
+export const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+export const clamp = (val: number, min: number, max: number) => Math.min(Math.max(val, min), max);
+export const clamp01 = (val: number) => clamp(val, 0, 1);
+export const inverseLerp = (a: number, b: number, val: number): number => (val - a) / (b - a);
 
-const vec = (vector: IVector3) => `${vector.x.toFixed(2)}, ${vector.y.toFixed(2)}, ${vector.z.toFixed(2)}`;
+export const vec = (vector: IVector3) => `${vector.x.toFixed(2)}, ${vector.y.toFixed(2)}, ${vector.z.toFixed(2)}`;
 
-function addCommas(num: number) {
+export function addCommas(num: number) {
 	const str = num.toString().split(".");
 	str[0] = str[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 	return str.join(".");
@@ -460,7 +464,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		let id = 1;
 		const aircraft = new PlayerVehicle(this);
-		await aircraft.spawn(id++, "0", "Vehicles/T-55", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
+		await aircraft.spawn(id++, "0", "Vehicles/FA-26B", new Vector(0, 0, 0), new Vector(0, 0, 0), true);
 		aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false, new Vector());
 		const jammer = new RadarJammerSync(aircraft, "8008");
 		aircraft.focus();
@@ -546,7 +550,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			missile.setUnitId(100);
 			let r = 0;
 			setInterval(() => {
-				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 100), new Vector(0, 150, 0), new Vector((r -= 0.075), 0, 0), 0, false, new Vector());
+				aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector((r -= 0.1), 0, 0), 0, false, new Vector());
 				// aircraft.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 100), new Vector(0, 0, 0), new Vector(0, 0, 0), 0, false, new Vector());
 				// landingAircraft.UpdateData(new Vector(-180 - r / 5, 70, -1000), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, -10, 0), 0);
 				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r / 10, 0));
@@ -724,6 +728,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.sceneManager.run();
 		this.sceneManager.postFrame();
+		Debug.frameReset();
 
 		if (this.isWallpaperMode && this.game && this.game.state != LobbyConnectionStatus.Connected) {
 			location.reload();
@@ -1255,4 +1260,4 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	}
 }
 
-export { Application, ApplicationRunningState, LogMessage, deg, rad, mToFt, ftToMi, miToFt, ftToM, msToKnots, knotsToMs, lerp, vec, addCommas };
+export { Application, ApplicationRunningState, LogMessage };

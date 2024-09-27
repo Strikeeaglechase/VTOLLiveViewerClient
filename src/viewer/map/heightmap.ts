@@ -1,5 +1,10 @@
+import * as THREE from "three";
+
 import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
+import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { API_URL } from "../../config";
+import { Debug } from "../debug.js";
+import { METERS_PER_PIXEL } from "./mapInfo.js";
 
 interface Chunk {
 	heights: number[][];
@@ -22,6 +27,8 @@ interface HeightMapData {
 // const chunksPerSide = 7;
 const pixelsPerChunkSide = 150;
 
+const XZ = (v: THREE.Vector3) => new THREE.Vector2(v.x, v.z);
+
 class HeightMap {
 	private maxHeight = 6000;
 	private minHeight = 80; // This is negative
@@ -29,8 +36,10 @@ class HeightMap {
 	public height: number;
 
 	public images: { data: ImageData }[] = [];
-	private map: number[][];
-	constructor(private mission: MissionInfoWithoutSpawns) {}
+	public map: number[][];
+	private highestOfQuad: number[][] = [];
+
+	constructor(private mission: MissionInfoWithoutSpawns, private mapMesh: THREE.Group) {}
 
 	public async init() {
 		console.log(`Height map init start!`);
@@ -87,6 +96,28 @@ class HeightMap {
 		});
 
 		console.log(`Height map calculated ${this.width}x${this.height}`);
+	}
+
+	public loadFromWorkerData(heights: number[][]) {
+		this.map = heights;
+		// Compute heights of quad
+		this.map.forEach((row, y) => {
+			this.highestOfQuad[y] = [];
+			row.forEach((height, x) => {
+				const a = this.map[y][x];
+				if (x + 1 >= this.width || y + 1 >= this.height) {
+					this.highestOfQuad[y][x] = a;
+					return;
+				}
+
+				const b = this.map[y][x + 1];
+				const c = this.map[y + 1][x];
+				const d = this.map[y + 1][x + 1];
+
+				const highest = Math.max(a, b, c, d);
+				this.highestOfQuad[y][x] = highest;
+			});
+		});
 	}
 
 	private imageToPixels(img: HTMLImageElement) {
@@ -148,6 +179,126 @@ class HeightMap {
 		this.map = newMap;
 		this.width = this.map[0].length;
 		this.height = this.map.length;
+	}
+
+	public marchingLinecast(ipt1: IVector3, ipt2: IVector3) {
+		if (!this.map) return { hitGround: false, hitPoint: new THREE.Vector3() };
+
+		const wpt1 = new THREE.Vector3(ipt1.x, ipt1.y, ipt1.z);
+		const wpt2 = new THREE.Vector3(ipt2.x, ipt2.y, ipt2.z);
+		const pt1 = this.mapMesh.worldToLocal(wpt1.clone());
+		const pt2 = this.mapMesh.worldToLocal(wpt2.clone());
+		const maxDistance = pt1.distanceTo(pt2);
+
+		let marchStep = 250;
+		const step = pt2.clone().sub(pt1).normalize().multiplyScalar(marchStep);
+
+		let currentPoint = pt1.clone();
+		while (currentPoint.distanceTo(pt1) < maxDistance) {
+			currentPoint.add(step);
+
+			// If line is going up, and gone longer than 25k there's practically no chance of hitting the ground
+			if (currentPoint.distanceTo(pt1) > 25_000 && pt2.y > pt1.y) {
+				break;
+			}
+
+			// Next point under ground?
+			let worldHeight: number;
+			const cx = Math.floor(currentPoint.x / METERS_PER_PIXEL);
+			const cy = Math.floor(currentPoint.z / METERS_PER_PIXEL);
+			if (cx < 0 || cy < 0 || cx >= this.width || cy >= this.height) {
+				worldHeight = 0;
+				marchStep = 1000;
+			} else {
+				marchStep = 250;
+				worldHeight = this.highestOfQuad[cy][cx];
+			}
+
+			if (currentPoint.y < worldHeight) {
+				// Hit ground
+				this.mapMesh.localToWorld(currentPoint);
+				return { hitGround: true, hitPoint: currentPoint };
+			}
+		}
+
+		return { hitGround: false, hitPoint: new THREE.Vector3() };
+	}
+
+	// Almost works, but not quite
+	private linecast(ipt1: IVector3, ipt2: IVector3, mm: THREE.Group) {
+		if (!this.map) return { hitGround: false, hitPoint: new THREE.Vector3() };
+
+		const wpt1 = new THREE.Vector3(ipt1.x, ipt1.y, ipt1.z);
+		const wpt2 = new THREE.Vector3(ipt2.x, ipt2.y, ipt2.z);
+		const pt1 = mm.worldToLocal(wpt1.clone());
+		const pt2 = mm.worldToLocal(wpt2.clone());
+
+		const startPoint = XZ(pt1).divideScalar(METERS_PER_PIXEL);
+		const endPoint = XZ(pt2).divideScalar(METERS_PER_PIXEL);
+		const ySlope = (pt2.y - pt1.y) / pt1.distanceTo(pt2);
+
+		const dir3 = pt2.clone().sub(pt1).normalize();
+		const dir = XZ(dir3).normalize();
+		const unitStepSize = new THREE.Vector2(Math.sqrt(1 + (dir.y / dir.x) * (dir.y / dir.x)), Math.sqrt(1 + (dir.x / dir.y) * (dir.x / dir.y)));
+		let currentChunk = new THREE.Vector2(Math.floor(startPoint.x), Math.floor(startPoint.y));
+		let lengths = new THREE.Vector2();
+		let step = new THREE.Vector2();
+
+		if (dir.x < 0) {
+			step.x = -1;
+			lengths.x = (startPoint.x - currentChunk.x) * unitStepSize.x;
+		} else {
+			step.x = 1;
+			lengths.x = (currentChunk.x + 1 - startPoint.x) * unitStepSize.x;
+		}
+
+		if (dir.y < 0) {
+			step.y = -1;
+			lengths.y = (startPoint.y - currentChunk.y) * unitStepSize.y;
+		} else {
+			step.y = 1;
+			lengths.y = (currentChunk.y + 1 - startPoint.y) * unitStepSize.y;
+		}
+
+		let distance = 0;
+		const distMax = startPoint.distanceTo(endPoint);
+		let hitGround = false;
+		while (distance < distMax) {
+			if (lengths.x < lengths.y) {
+				currentChunk.x += step.x;
+				distance = lengths.x;
+				lengths.x += unitStepSize.x;
+			} else {
+				currentChunk.y += step.y;
+				distance = lengths.y;
+				lengths.y += unitStepSize.y;
+			}
+
+			let worldHeight;
+			if (currentChunk.x < 0 || currentChunk.y < 0 || currentChunk.x >= this.width || currentChunk.y >= this.height) {
+				worldHeight = 0;
+			} else {
+				worldHeight = this.highestOfQuad[Math.floor(currentChunk.y)][Math.floor(currentChunk.x)];
+			}
+
+			// const currentPoint = pt1.y + ySlope * distance * METERS_PER_PIXEL;
+			const currentPoint3d = pt1.clone().add(dir3.clone().multiplyScalar(distance * METERS_PER_PIXEL));
+			Debug.point(mm.localToWorld(currentPoint3d), 50, 0xff0000);
+			const currentPoint = currentPoint3d.y;
+			const worldPoint = new THREE.Vector3(currentChunk.x * METERS_PER_PIXEL, currentPoint, currentChunk.y * METERS_PER_PIXEL);
+			Debug.point(mm.localToWorld(worldPoint), 50, 0xff00ff);
+			const hPoint = new THREE.Vector3(currentChunk.x * METERS_PER_PIXEL, worldHeight, currentChunk.y * METERS_PER_PIXEL);
+			Debug.point(mm.localToWorld(hPoint), 25, 0x00ff00);
+
+			if (currentPoint < worldHeight) {
+				hitGround = true;
+				break;
+			}
+		}
+
+		const hitPoint = pt1.clone().add(dir3.clone().multiplyScalar(distance * METERS_PER_PIXEL));
+		mm.localToWorld(hitPoint);
+		return { hitGround, hitPoint };
 	}
 
 	// Resolve the height map data as chunks

@@ -21,7 +21,7 @@ class MapLoaderWorker {
 	private heightmap: HeightMap;
 
 	async handleMessage(e: MessageEvent<{ mission: MissionInfo; images: { data: ImageData }[] }>) {
-		this.heightmap = new HeightMap(e.data.mission);
+		this.heightmap = new HeightMap(e.data.mission, null);
 		this.heightmap.initFromImages(e.data.images);
 
 		console.log(e.data);
@@ -32,6 +32,7 @@ class MapLoaderWorker {
 		console.log(data);
 		console.log(`Height map loaded in ${((Date.now() - d) / 1000).toFixed(3)} seconds`);
 
+		self.postMessage({ heights: this.heightmap.map });
 		self.postMessage({ expectedChunks: data.chunks.length * data.chunks[0].length });
 		data.chunks.forEach(row => {
 			row.forEach(chunk => {

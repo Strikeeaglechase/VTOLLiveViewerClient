@@ -6,6 +6,8 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { addCommas, Application, msToKnots, mToFt, rad } from "../app";
 import { SceneManager } from "../managers/sceneManager";
 import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
+import { RadarCrossSection } from "../radarSim/radarCrossSection.js";
+import { unitRCSs } from "../radarSim/rcsDefs.js";
 import { TextOverlay } from "../textOverlayHandler";
 import { EntityViewData } from "./entityViewData";
 import { EquipManager } from "./equipManager";
@@ -203,6 +205,7 @@ class Entity implements EntityReference {
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
 	public equipManager: EquipManager | null = new EquipManager(this);
+	public rcs: RadarCrossSection = new RadarCrossSection(this, null);
 
 	public static spawnFor: string[] | RegExp = [];
 
@@ -478,6 +481,9 @@ class Entity implements EntityReference {
 		// A sort of shitty way to tell if AI is allied or enemy, but it works
 		if (path.includes("Allied")) this.setTeam(Team.A);
 		if (path.includes("Enemy")) this.setTeam(Team.B);
+
+		const unitDef = unitRCSs.find(u => u.path == this.type);
+		if (unitDef) this.rcs = new RadarCrossSection(this, unitDef);
 
 		this.tryFindOwner();
 	}

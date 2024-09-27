@@ -8,11 +8,17 @@ import { addCommas, Application, deg, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
 import { JesterCallouts } from "../jester/jesterCallouts";
+import { Radar } from "../radarSim/radar.js";
 import { Settings } from "../settings";
 
+const markGeomCache: Record<number, THREE.SphereGeometry> = {};
+const markMaterialCache: Record<number, THREE.MeshBasicMaterial> = {};
 function mark(size: number, color: number) {
-	const markerGeom = new THREE.SphereGeometry(size, 8, 8);
-	const markerMat = new THREE.MeshBasicMaterial({ color: color, wireframe: true, side: THREE.DoubleSide });
+	if (!markGeomCache[size]) markGeomCache[size] = new THREE.SphereGeometry(size, 8, 8);
+	if (!markMaterialCache[color]) markMaterialCache[color] = new THREE.MeshBasicMaterial({ color: color, wireframe: true, side: THREE.DoubleSide });
+
+	const markerGeom = markGeomCache[size];
+	const markerMat = markMaterialCache[color];
 	const markerMesh = new THREE.Mesh(markerGeom, markerMat);
 	markerMesh.name = "marker";
 
@@ -40,6 +46,10 @@ class PlayerVehicle extends Entity {
 	private previousRotation: Vector;
 	private previousUpdateTime = 0;
 	private updateTimeDelta = 0;
+
+	private radar: Radar = new Radar(this);
+
+	private rcsVisPoints: THREE.Mesh[] = [];
 
 	// private carrierApproachTestSphere: THREE.Mesh;
 	// private carrierApproachTestSphere2: THREE.Mesh;
@@ -185,6 +195,29 @@ class PlayerVehicle extends Entity {
 		}
 
 		if (this.isFocus) this.renderControlInputs();
+
+		// if (this.isFocus) {
+		// 	for (let i = 0; i < 1024; i++) {
+		// 		if (!this.rcsVisPoints[i]) {
+		// 			this.rcsVisPoints[i] = mark(0.1, 0x00ff00);
+		// 			this.app.sceneManager.add(this.rcsVisPoints[i]);
+		// 		}
+
+		// 		const sampleDir = Vector.randomDirection();
+		// 		const rcs = this.rcs.getCrossSection(sampleDir);
+		// 		const pos = this.position.clone().add(sampleDir.clone().multiply(rcs / 10));
+		// 		this.rcsVisPoints[i].position.set(pos.x, pos.y, pos.z);
+		// 	}
+
+		// 	this.app.entities.forEach(e => {
+		// 		if (!e.isActive || !(e instanceof PlayerVehicle)) return;
+
+		// 		const canDetect = this.radar.checkCanDetect(e);
+		// 		if (canDetect) {
+		// 			Debug.line(this.position, e.position, 0x00ffff);
+		// 		}
+		// 	});
+		// }
 
 		// this.jester?.update();
 
