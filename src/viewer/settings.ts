@@ -3,7 +3,8 @@ import { Application } from "./app";
 
 enum SettingType {
 	Dropdown = 0,
-	Slider = 1
+	Slider = 1,
+	CheckboxList = 2
 }
 
 type SettingName =
@@ -15,16 +16,23 @@ type SettingName =
 	| "Show Jamming"
 	| "Scale Mode"
 	| "Pilot Look Indicator"
-	| "Trail Length";
+	| "Trail Length"
+	| "Label Opts";
 
 interface ISetting {
 	name: SettingName;
 	type: SettingType;
 	default?: string;
 	options?: { name: string; value: string }[] | string[];
+	checkboxes?: { name: string; default: boolean }[];
 	minimum?: number;
 	maximum?: number;
 	onChange?: (newState: string, app: Application, settings: Settings) => void;
+}
+
+interface CheckboxSettingValue {
+	name: string;
+	value: boolean;
 }
 
 class Settings extends EventEmitter<SettingName> {
@@ -46,10 +54,28 @@ class Settings extends EventEmitter<SettingName> {
 		return this.state[name];
 	}
 
+	public static getCheckbox(name: SettingName): CheckboxSettingValue[];
+	public static getCheckbox(name: SettingName, checkbox: string): boolean;
+	public static getCheckbox(name: SettingName, checkbox?: string): CheckboxSettingValue[] | boolean {
+		const checkboxes: CheckboxSettingValue[] = JSON.parse(this.state[name]);
+		if (checkbox) {
+			const cb = checkboxes.find(cb => cb.name === checkbox);
+			return cb?.value ?? false;
+		}
+		return checkboxes;
+	}
+
 	public static getOptions(name: SettingName) {
 		const setting = this.settings.find(setting => setting.name === name);
 		if (setting?.options) return setting.options;
 		return [];
+	}
+
+	public static setCheckbox(name: SettingName, checkbox: string, value: boolean) {
+		const checkboxes: CheckboxSettingValue[] = JSON.parse(this.state[name]);
+		const checkBox = checkboxes.find(cb => cb.name === checkbox);
+		checkBox.value = value;
+		this.set(name, JSON.stringify(checkboxes));
 	}
 
 	public static set(name: SettingName, value: string) {
@@ -61,11 +87,25 @@ class Settings extends EventEmitter<SettingName> {
 		if (setting?.onChange) setting.onChange(value, Application.instance, this.instance);
 	}
 
+	private static loadCheckboxSetting(savedSettings: any, setting: ISetting) {
+		const existing: CheckboxSettingValue[] = JSON.parse(savedSettings[setting.name] ?? "[]");
+		const checkboxes = setting.checkboxes.map(cb => {
+			const existingCheckbox = existing.find(e => e.name === cb.name);
+			return { name: cb.name, value: existingCheckbox?.value ?? cb.default };
+		});
+
+		this.state[setting.name] = JSON.stringify(checkboxes);
+	}
+
 	public static init() {
 		const savedSettings = JSON.parse(localStorage.getItem("settings") ?? "{}");
 
 		this.settings.forEach(setting => {
-			this.state[setting.name] = savedSettings[setting.name] ?? setting.default;
+			if (setting.type === SettingType.CheckboxList) {
+				this.loadCheckboxSetting(savedSettings, setting);
+			} else {
+				this.state[setting.name] = savedSettings[setting.name] ?? setting.default;
+			}
 		});
 
 		console.log(this.state);
@@ -94,7 +134,7 @@ Settings.register({
 Settings.register({
 	name: "BRA Readouts",
 	type: SettingType.Dropdown,
-	options: ["Players Only", "Players and AI"],
+	options: ["Players Only", "Players and AI", "None"],
 	default: "Players Only"
 });
 
@@ -141,6 +181,19 @@ Settings.register({
 	default: "1028"
 });
 
+Settings.register({
+	name: "Label Opts",
+	type: SettingType.CheckboxList,
+	checkboxes: [
+		{ name: "Name", default: true },
+		{ name: "Type", default: true },
+		{ name: "Altitude", default: true },
+		{ name: "Speed", default: true },
+		{ name: "G", default: false },
+		{ name: "AoA", default: false }
+	]
+});
+
 Settings.init();
 
-export { Settings, SettingType, ISetting, SettingName };
+export { Settings, SettingType, ISetting, SettingName, CheckboxSettingValue };

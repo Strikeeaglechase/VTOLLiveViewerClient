@@ -11,7 +11,7 @@
 
 .settings-content {
 	pointer-events: all;
-	width: 50vw;
+	width: 350px;
 	background-color: rgba(0, 0, 0, 0.5);
 
 	border-width: 3px;
@@ -42,5 +42,16 @@
 }
 
 .settings-slider {
+	vertical-align: middle;
+}
+
+.settings-checkbox-label {
+	font-family: monospace;
+	color: white;
+	padding-left: 10px;
+}
+
+.settings-checkbox-label input {
+	margin-right: 5px;
 	vertical-align: middle;
 }

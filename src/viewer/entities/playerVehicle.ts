@@ -283,12 +283,53 @@ class PlayerVehicle extends Entity {
 			if (textOptions == "Off") this.textOverlay.hide();
 			else this.textOverlay.show();
 
-			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
-			const name = this.owner.pilotName.replace(/\[\d{4}\]/, "");
-			let text = `${name} [${this.displayName}]`;
-			if (textOptions == "All") text += `\n${Math.floor(mToFt(this.position.y))}ft\n${speed}kn`;
-			this.textOverlay.edit(text);
+			if (textOptions != "All") {
+				const name = this.owner.pilotName.replace(/\[\d{4}\]/, "");
+				const text = `${name} [${this.displayName}]`;
+				this.textOverlay.edit(text);
+			} else {
+				this.buildTextOverlay();
+			}
 		}
+	}
+
+	private buildTextOverlay() {
+		let text = "";
+		if (Settings.getCheckbox("Label Opts", "Name")) {
+			const name = this.owner.pilotName.replace(/\[\d{4}\]/, "");
+			text += name + " ";
+		}
+
+		if (Settings.getCheckbox("Label Opts", "Type")) {
+			text += `[${this.displayName}]`;
+		}
+
+		if (!text.endsWith("\n")) text += "\n";
+
+		const hasAoaOrG = Settings.getCheckbox("Label Opts", "G") || Settings.getCheckbox("Label Opts", "AoA");
+		if (Settings.getCheckbox("Label Opts", "Altitude")) {
+			text += `${Math.floor(mToFt(this.position.y))}ft  `;
+			if (!hasAoaOrG) text += "\n"; // When no AoA or G, show altitude on own line
+		}
+
+		if (Settings.getCheckbox("Label Opts", "Speed")) {
+			const speed = addCommas(Math.floor(msToKnots(this.velocity.length())));
+			text += `${speed}kn\n`;
+		}
+
+		if (!text.endsWith("\n")) text += "\n";
+
+		if (Settings.getCheckbox("Label Opts", "G")) {
+			text += `G: ${this.gForce.toFixed(2)}\n`;
+		}
+
+		if (Settings.getCheckbox("Label Opts", "AoA")) {
+			const aoa = this.getAoa();
+			const nonNan = isNaN(aoa) ? 0 : aoa;
+			text += `AoA: ${nonNan.toFixed(1)}°\n`;
+		}
+
+		this.textOverlay.edit(text);
 	}
 
 	// private vxLineGeom = new THREE.BufferGeometry();

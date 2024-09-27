@@ -67,6 +67,8 @@ class RunningPage extends Page {
 		super.onShow();
 		const shareReplayButton = document.getElementById("share-btn");
 		shareReplayButton.style.display = this.app.isReplay ? "block" : "none";
+
+		// this.toggleSettingsVisible();
 	}
 
 	public override update() {
@@ -149,6 +151,27 @@ class RunningPage extends Page {
 
 				div.appendChild(slider);
 				break;
+
+			case SettingType.CheckboxList:
+				const currentSettings = Settings.getCheckbox(setting.name);
+				setting.checkboxes.forEach(checkbox => {
+					const label = document.createElement("label");
+					label.classList.add("settings-checkbox-label");
+					label.innerText = checkbox.name;
+
+					const state = currentSettings.find(cb => cb.name === checkbox.name);
+					const input = document.createElement("input");
+					input.type = "checkbox";
+					input.checked = state.value ?? checkbox.default;
+					input.addEventListener("change", e => Settings.setCheckbox(setting.name, checkbox.name, (e.target as HTMLInputElement).checked));
+
+					label.appendChild(input);
+					div.appendChild(label);
+				});
+				break;
+
+			default:
+				throw new Error(`Unknown setting type: ${setting.type}`);
 		}
 
 		container.appendChild(div);
@@ -280,12 +303,15 @@ class RunningPage extends Page {
 		dataEntities.forEach(e => {
 			const entityDiv = document.createElement("div");
 			const p = document.createElement("p");
-			if (e.isLockingUs) entityDiv.classList.add("lockedBy");
-			if (e.isLocking) entityDiv.classList.add("isLocking");
+			if (e.isLockingUs) p.classList.add("lockedBy");
+			if (e.isLocking) p.classList.add("isLocking");
 
 			p.innerText = `${e.entity.owner.pilotName} [${e.entity.displayName}] B: ${bearing(this.app.currentFocus, e.entity)} R: ${Math.round(
 				range(this.app.currentFocus, e.entity)
 			)}nm A: ${addCommas(Math.floor(mToFt(e.entity.position.y)))}ft vC: ${Math.floor(msToKnots(closure(this.app.currentFocus, e.entity)))}kt`;
+
+			entityDiv.appendChild(p);
+			documentFragment.appendChild(entityDiv);
 		});
 
 		container.innerHTML = "";
@@ -295,6 +321,7 @@ class RunningPage extends Page {
 	private getUnitRangeListEntities(): { entity: Entity; isLockingUs: boolean; isLocking: boolean }[] {
 		if (this.app.entities.length == 0) return [];
 		if (this.app.currentFocus == null) return [];
+		if (Settings.get("BRA Readouts") == "None") return [];
 
 		const focus = this.app.currentFocus;
 
