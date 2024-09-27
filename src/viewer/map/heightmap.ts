@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { API_URL } from "../../config";
-import { Debug } from "../debug.js";
 import { METERS_PER_PIXEL } from "./mapInfo.js";
 
 interface Chunk {
@@ -283,12 +282,12 @@ class HeightMap {
 
 			// const currentPoint = pt1.y + ySlope * distance * METERS_PER_PIXEL;
 			const currentPoint3d = pt1.clone().add(dir3.clone().multiplyScalar(distance * METERS_PER_PIXEL));
-			Debug.point(mm.localToWorld(currentPoint3d), 50, 0xff0000);
+			// Debug.point(mm.localToWorld(currentPoint3d), 50, 0xff0000);
 			const currentPoint = currentPoint3d.y;
 			const worldPoint = new THREE.Vector3(currentChunk.x * METERS_PER_PIXEL, currentPoint, currentChunk.y * METERS_PER_PIXEL);
-			Debug.point(mm.localToWorld(worldPoint), 50, 0xff00ff);
+			// Debug.point(mm.localToWorld(worldPoint), 50, 0xff00ff);
 			const hPoint = new THREE.Vector3(currentChunk.x * METERS_PER_PIXEL, worldHeight, currentChunk.y * METERS_PER_PIXEL);
-			Debug.point(mm.localToWorld(hPoint), 25, 0x00ff00);
+			// Debug.point(mm.localToWorld(hPoint), 25, 0x00ff00);
 
 			if (currentPoint < worldHeight) {
 				hitGround = true;

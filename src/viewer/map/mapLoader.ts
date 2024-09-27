@@ -47,7 +47,7 @@ class MapLoader {
 
 		const start = Date.now();
 
-		const worker = new Worker(new URL("./mapLoad.worker.js", import.meta.url));
+		const worker = new Worker("./mapLoad.worker.js");
 
 		this.heightMapMesh = new THREE.Group();
 		this.heightMap = new HeightMap(mission, this.heightMapMesh);
