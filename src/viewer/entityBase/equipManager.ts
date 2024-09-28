@@ -1,4 +1,5 @@
 import { MissileEntity } from "../entities/genericMissileEntity";
+import { PlayerVehicle } from "../entities/playerVehicle.js";
 // import { HardpointEntity } from "../entities/hardpointEntity";
 import { Entity } from "./entity";
 
@@ -55,6 +56,8 @@ function getDisplayEquipName(equipPath: string) {
 }
 
 class EquipManager {
+	public static useOldEquipSystem = true;
+
 	private owned: Entity[] = [];
 	private missiles: Entity[] = [];
 	private miscEquips: Entity[] = [];
@@ -70,11 +73,22 @@ class EquipManager {
 		if (d - this.lastUpdate < 1000 && !force) return;
 		this.lastUpdate = d;
 
-		this.owned = this.entity.app.getEntitiesByOwnerId(this.entity.ownerId).filter(e => e.canShowAsEquip);
-		this.missiles = this.owned.filter(e => e instanceof MissileEntity && !e.fired && !e.type.toLowerCase().includes("/sams/"));
-		this.miscEquips = this.owned.filter(e => {
-			return getDisplayEquipName(e.type) != null;
-		});
+		if (!this.entity.isPlayer) return;
+		const entity = this.entity as PlayerVehicle;
+
+		if (!EquipManager.useOldEquipSystem) {
+			const attachedEntities = entity.attachedEquips.map(eqId => this.entity.app.getEntityById(eqId)).filter(e => e != null);
+			this.missiles = attachedEntities.filter(e => e instanceof MissileEntity && !e.fired);
+			this.miscEquips = attachedEntities.filter(e => {
+				return getDisplayEquipName(e.type) != null;
+			});
+		} else {
+			this.owned = this.entity.app.getEntitiesByOwnerId(this.entity.ownerId).filter(e => e.canShowAsEquip);
+			this.missiles = this.owned.filter(e => e instanceof MissileEntity && !e.fired && !e.type.toLowerCase().includes("/sams/"));
+			this.miscEquips = this.owned.filter(e => {
+				return getDisplayEquipName(e.type) != null;
+			});
+		}
 	}
 
 	public getWeapons() {
@@ -83,6 +97,7 @@ class EquipManager {
 			if (!weapons[missile.displayName]) weapons[missile.displayName] = 0;
 			weapons[missile.displayName]++;
 		});
+
 		let str = "";
 		for (const key in weapons) {
 			str += key + " x" + weapons[key] + "\n";

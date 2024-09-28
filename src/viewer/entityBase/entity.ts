@@ -202,6 +202,7 @@ class Entity implements EntityReference {
 
 	private isCreatingMesh = false;
 	public canShowAsEquip = true;
+	public isPlayer = false;
 
 	protected trail: SimpleUnitTrail = new SimpleUnitTrail(this);
 	public equipManager: EquipManager | null = new EquipManager(this);

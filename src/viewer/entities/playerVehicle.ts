@@ -7,6 +7,7 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector";
 import { addCommas, Application, deg, msToKnots, mToFt, rad } from "../app";
 import { DesignatorLine } from "../entityBase/designatorLine";
 import { Entity, MAX_OBJECT_SIZE } from "../entityBase/entity";
+import { EquipManager } from "../entityBase/equipManager.js";
 import { JesterCallouts } from "../jester/jesterCallouts";
 import { Radar } from "../radarSim/radar.js";
 import { Settings } from "../settings";
@@ -37,6 +38,8 @@ class PlayerVehicle extends Entity {
 
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
+
+	public attachedEquips: number[] = [];
 
 	private predictedPathLine: THREE.Line;
 	private predictedPathLineGeom: THREE.BufferGeometry;
@@ -87,6 +90,7 @@ class PlayerVehicle extends Entity {
 		this.tgp = new DesignatorLine(this, app, "#00ff00");
 		this.throttle = 1;
 
+		this.isPlayer = true;
 		// const pMat = new THREE.LineBasicMaterial({ color: "#ffff00" });
 		// this.predictedPathLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 1000)]);
 		// this.predictedPathLine = new THREE.Line(this.predictedPathLineGeom, pMat);
@@ -508,6 +512,17 @@ class PlayerVehicle extends Entity {
 	@RPC("in")
 	SetFuel(tank: number, fuel: number) {
 		if (tank == 0 && this.equipManager) this.equipManager.fuel = fuel;
+	}
+
+	@RPC("in")
+	AttachEquip(equipEntityId: number, hardpointIndex: number) {
+		const weapon = this.app.getEntityById(equipEntityId);
+		if (!weapon) return console.error(`Unable to find weapon entity ${equipEntityId} for attachment`);
+		console.log(`Attaching ${weapon} to ${this} on hardpoint ${hardpointIndex}`);
+
+		this.attachedEquips.push(equipEntityId);
+
+		EquipManager.useOldEquipSystem = false;
 	}
 }
 
