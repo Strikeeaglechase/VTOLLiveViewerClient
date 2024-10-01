@@ -6,6 +6,7 @@
 @import url("lobbySelect.css");
 @import url("welcome.css");
 @import url("errorMessage.css");
+@import url("replaySelect.css");
 
 #app {
 	height: 100%;

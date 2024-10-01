@@ -58,7 +58,7 @@ const filterStr = (str: string) =>
 
 class LobbySelectPage extends Page {
 	public containerId = "lobby-select-container";
-	public appState = [ApplicationRunningState.lobbySelect, ApplicationRunningState.replaySelect];
+	public appState = [ApplicationRunningState.lobbySelect];
 
 	private lastLobbiesKey = "";
 	private hasAddedClientEventHandler = false;
@@ -121,12 +121,12 @@ class LobbySelectPage extends Page {
 			console.log(`Requesting replay for specific ID: ${replayId}`);
 			this.autoplayReplayId = replayId;
 			this.autoplayHasStarted = true;
-			Application.instance.client.requestReplayLobbies(replayId, null, null);
+			Application.instance.client.requestReplayLobbies(replayId, null, null, null, -Infinity, Infinity);
 		} else {
 			const searchStr = (document.getElementById("lobby-search-input") as HTMLInputElement)?.value || null;
 			const userSearchStr = (document.getElementById("user-search-input") as HTMLInputElement)?.value || null;
 
-			Application.instance.client.requestReplayLobbies(null, searchStr, userSearchStr);
+			Application.instance.client.requestReplayLobbies(null, searchStr, userSearchStr, null, -Infinity, Infinity);
 		}
 	}
 

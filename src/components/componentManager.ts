@@ -1,6 +1,7 @@
 import { Application, ApplicationRunningState } from "../viewer/app.js";
 import { LobbySelectPage } from "./lobbySelectPage.js";
 import { Page } from "./page.js";
+import { ReplaySelectPage } from "./replaySelectPage.js";
 import { RunningPage } from "./runningPage.js";
 import { WelcomePage } from "./welcomePage.js";
 
@@ -10,6 +11,7 @@ class ComponentManager {
 	constructor(public app: Application) {
 		this.pages.push(new RunningPage(app));
 		this.pages.push(new LobbySelectPage(app));
+		this.pages.push(new ReplaySelectPage(app));
 		this.pages.push(new WelcomePage(app));
 
 		app.on("running_state", (rs: ApplicationRunningState) => {
