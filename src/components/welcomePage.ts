@@ -14,7 +14,7 @@ class WelcomePage extends Page {
 		const viewLobbiesButton = document.getElementById("view-lobbies-button") as HTMLDivElement;
 		const viewReplaysButton = document.getElementById("view-replays-button") as HTMLDivElement;
 
-		const canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS);
+		const canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS) || hasPerm(UserScopes.ALPHA_ACCESS);
 		if (!canAccessLobbies) {
 			viewLobbiesButton.classList.add("greyout-wrapper");
 			viewLobbiesButton.children[0].classList.add("greyout");
