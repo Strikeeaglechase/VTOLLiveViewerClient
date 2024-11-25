@@ -104,7 +104,7 @@ class TextOverlay {
 
 	public edit(text: string): this {
 		if (text == this.text) return this;
-		this.text = text;
+		this.text = text?.toString() ?? "";
 		this.needsTextUpdate = true;
 
 		return this;
