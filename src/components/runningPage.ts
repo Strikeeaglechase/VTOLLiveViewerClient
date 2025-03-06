@@ -65,8 +65,21 @@ class RunningPage extends Page {
 
 	public override onShow(): void {
 		super.onShow();
-		const shareReplayButton = document.getElementById("share-btn");
-		shareReplayButton.style.display = this.app.isReplay ? "block" : "none";
+		// const shareReplayButton = document.getElementById("share-btn");
+		// shareReplayButton.style.display = this.app.isReplay ? "block" : "none";
+		if (this.app.isReplay) {
+			const elemsToShow = document.getElementsByClassName("replay-only-hidden");
+			for (let i = 0; i < elemsToShow.length; i++) {
+				elemsToShow[i].classList.add("replay-only-visible");
+				elemsToShow[i].classList.remove("replay-only-hidden");
+			}
+		} else {
+			const elemsToHide = document.getElementsByClassName("replay-only-visible");
+			for (let i = 0; i < elemsToHide.length; i++) {
+				elemsToHide[i].classList.add("replay-only-hidden");
+				elemsToHide[i].classList.remove("replay-only-visible");
+			}
+		}
 
 		// this.toggleSettingsVisible();
 	}

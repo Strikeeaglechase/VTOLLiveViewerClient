@@ -22,6 +22,14 @@
 	overflow-y: hidden;
 }
 
+.replay-only-visible {
+	display: block;
+}
+
+.replay-only-hidden {
+	display: none;
+}
+
 p {
 	font-family: monospace;
 	color: white;

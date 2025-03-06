@@ -48,8 +48,8 @@
 		<div id="main-container" class="page" style="display: none;">
 			<!-- Right hand sidebar -->
 			<div id="sidebar" class="ui">
-				<div class="settings-popout-btn" id="share-replay-container" v-if="isReplay" :class="{ hidden: hide }">
-					<button id="share-btn">Share Replay</button>
+				<div class="settings-popout-btn" id="share-replay-container">
+					<button id="share-btn" class="replay-only-hidden">Share Replay</button>
 				</div>
 
 				<div class="settings-popout-btn" id="settings-popout-btn">
@@ -111,7 +111,7 @@
 								<SettingsEntry :name="setting.name" :type="setting.type" />
 							</div> -->
 						</div>
-						<div class="right-settings-container" style="display: none;" id="carrier-landing-download-button">
+						<div class="right-settings-container" class="replay-only-hidden" id="carrier-landing-download-button">
 							<button>Download Carrier Landings</button>
 						</div>
 					</div>

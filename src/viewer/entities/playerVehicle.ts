@@ -75,6 +75,7 @@ class PlayerVehicle extends Entity {
 	public static spawnFor: string[] = [
 		"Vehicles/SEVTF",
 		"Vehicles/FA-26B",
+		"Vehicles/F-16",
 		"Vehicles/AH-94",
 		"Vehicles/VTOL4",
 		"Vehicles/T-55",
