@@ -79,7 +79,7 @@ class MessageHandler {
 			console.warn(`Got despawn for unknown entity ${id}`);
 			return;
 		}
-		console.log(`Got despawn for ${entity}`);
+		console.log(`Got despawn for ${entity}. Existed for ${Date.now() - entity.createdAt}`);
 		entity.remove(`NetDestroy command`);
 	}
 
@@ -103,6 +103,44 @@ class MessageHandler {
 		const jammer = new RadarJammerSync(entity, jammerId);
 		entity.jammers.push(jammer);
 	}
+
+	@RPC("in")
+	DatalinkActorPos(
+		entityId: number,
+		actorId: number,
+		team: number,
+		identityIndex: number,
+		sensorSource: number,
+		pos: Vector3,
+		vel: Vector3,
+		rwrPrecision: number,
+		falseId: number
+	) {
+		return;
+		var ent = this.app.getEntityById(entityId);
+		if (ent) {
+			if (ent.team == team) {
+				console.log(`DL report for ${ent} was sent by own-team`);
+				return;
+			}
+			ent.handleDatalinkPos(identityIndex, sensorSource, pos, vel, rwrPrecision, falseId);
+		}
+		// console.log({
+		// 	ent,
+		// 	entityId,
+		// 	actorId,
+		// 	team,
+		// 	identityIndex,
+		// 	sensorSource,
+		// 	pos: new Vector().set(pos),
+		// 	vel: new Vector().set(vel),
+		// 	rwrPrecision,
+		// 	falseId
+		// });
+	}
+
+	@RPC("in")
+	SyncTOD() {}
 }
 
 enum ApplicationRunningState {

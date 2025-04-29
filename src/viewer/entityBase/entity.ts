@@ -9,6 +9,7 @@ import InstancedGroupMesh from "../meshLoader/instancedGroupMesh";
 import { RadarCrossSection } from "../radarSim/radarCrossSection.js";
 import { unitRCSs } from "../radarSim/rcsDefs.js";
 import { TextOverlay } from "../textOverlayHandler";
+import { DatalinkMarker, SensorSource } from "./datalinkMarker.js";
 import { EntityViewData } from "./entityViewData";
 import { EquipManager } from "./equipManager";
 import { RadarJammerSync } from "./jammer";
@@ -77,6 +78,7 @@ class EntityReferenceOf implements EntityReference {
 let nextEuid = 0;
 
 class Entity implements EntityReference {
+	public createdAt = Date.now();
 	static persistentData: Record<number, PersistentEntityData> = {};
 	private get persistentData(): PersistentEntityData {
 		if (!Entity.persistentData[this.id]) Entity.persistentData[this.id] = new PersistentEntityData();
@@ -119,6 +121,7 @@ class Entity implements EntityReference {
 	public mesh: THREE.Mesh | THREE.Group;
 	public meshProxyObject: THREE.Object3D;
 	protected sasGeom: THREE.Group;
+	public datalinkMarkers: DatalinkMarker[] = [];
 
 	private damage: {
 		mesh: THREE.Mesh;
@@ -565,6 +568,24 @@ class Entity implements EntityReference {
 		this.trail.updateColor(teamColors[this.team]);
 	}
 
+	public handleDatalinkPos(identityIndex: number, sensorSource: number, pos: Vector3, vel: Vector3, rwrPrecision: number, falseId: number) {
+		pos.x *= -1;
+		vel.x *= -1;
+
+		const source = sensorSource as SensorSource;
+		const existingMarker = this.datalinkMarkers.find(dlm => dlm.falseId == falseId && source == dlm.sensorSource);
+		if (existingMarker) {
+			existingMarker.updateData(pos, vel);
+		} else {
+			const marker = new DatalinkMarker(this, this.app);
+			marker.init(source, falseId);
+
+			marker.updateData(pos, vel);
+
+			this.datalinkMarkers.push(marker);
+		}
+	}
+
 	public update(dt: number): void {
 		if (!this.isActive) {
 			console.warn(`Entity ${this} is not active but update was called! Call runInactiveUpdate instead`);
@@ -634,6 +655,8 @@ class Entity implements EntityReference {
 		}
 
 		this.jammers.forEach(j => j.update());
+		this.datalinkMarkers.forEach(dlm => dlm.update());
+		this.datalinkMarkers = this.datalinkMarkers.filter(dlm => !dlm.hasBeenRemoved);
 
 		this.previousPosition.set(this.position);
 		this.previousVelocity.set(this.velocity);
@@ -745,6 +768,9 @@ class Entity implements EntityReference {
 		this.trail.remove();
 		this.scene.remove(this.baseLine);
 		if (this.damage) this.destroyDamageMesh();
+
+		this.datalinkMarkers.forEach(dlm => dlm.remove());
+		this.datalinkMarkers = [];
 
 		if (this.useInstancedMesh && this.iMesh) {
 			// const obj = new THREE.Object3D();

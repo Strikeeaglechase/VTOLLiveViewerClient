@@ -520,6 +520,7 @@ class PlayerVehicle extends Entity {
 		const weapon = this.app.getEntityById(equipEntityId);
 		if (!weapon) return console.error(`Unable to find weapon entity ${equipEntityId} for attachment`);
 		console.log(`Attaching ${weapon} to ${this} on hardpoint ${hardpointIndex}`);
+		weapon.team = this.team;
 
 		this.attachedEquips.push(equipEntityId);
 

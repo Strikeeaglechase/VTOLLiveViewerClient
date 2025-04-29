@@ -61,6 +61,7 @@ class MissileEntity extends Entity {
 		this.tryFindOwner();
 	}
 
+	// TODO reuse mesh/geometry/material for missiles, no reason to recreate every time
 	protected createDefaultMesh(): THREE.Group {
 		const base = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(-wid, -len), new THREE.Vector2(wid, -len)]);
 		const top = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(len, hei), new THREE.Vector2(len, 0)]);

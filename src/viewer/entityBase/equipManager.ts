@@ -56,7 +56,7 @@ function getDisplayEquipName(equipPath: string) {
 }
 
 class EquipManager {
-	public static useOldEquipSystem = true;
+	public static useOldEquipSystem = false;
 
 	private owned: Entity[] = [];
 	private missiles: Entity[] = [];
@@ -76,6 +76,7 @@ class EquipManager {
 		if (!this.entity.isPlayer) return;
 		const entity = this.entity as PlayerVehicle;
 
+		// console.log(`Using ${EquipManager.useOldEquipSystem ? "old" : "new"} equip system`);
 		if (!EquipManager.useOldEquipSystem) {
 			const attachedEntities = entity.attachedEquips.map(eqId => this.entity.app.getEntityById(eqId)).filter(e => e != null);
 			this.missiles = attachedEntities.filter(e => e instanceof MissileEntity && !e.fired);
@@ -100,7 +101,8 @@ class EquipManager {
 
 		let str = "";
 		for (const key in weapons) {
-			str += key + " x" + weapons[key] + "\n";
+			if (str.length > 0) str += ", ";
+			str += key + " x" + weapons[key];
 		}
 
 		return str;
