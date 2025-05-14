@@ -41,6 +41,8 @@ class PlayerVehicle extends Entity {
 
 	public attachedEquips: number[] = [];
 
+	public damageLog: number[] = [];
+
 	private predictedPathLine: THREE.Line;
 	private predictedPathLineGeom: THREE.BufferGeometry;
 	private accelLines: THREE.Line[] = [];
@@ -525,6 +527,23 @@ class PlayerVehicle extends Entity {
 		this.attachedEquips.push(equipEntityId);
 
 		EquipManager.useOldEquipSystem = false;
+	}
+
+	@RPC("in")
+	HSDamage(damage: number, healthIndex: number, sourcePlayerId: string, sourceEntityId: number) {
+		console.log(`HS Damage on ${this}. Damage: ${damage}, healthIndex: ${healthIndex}, sourcePlayerId: ${sourcePlayerId}, sourceEntityId: ${sourceEntityId}`);
+
+		if (!this.damageLog[healthIndex]) this.damageLog[healthIndex] = 0;
+		this.damageLog[healthIndex] += damage;
+	}
+
+	public reverseHSDamage(damage: number, healthIndex: number) {
+		if (!this.damageLog[healthIndex]) {
+			console.warn(`Tried to reverse damage on ${this} but no damage found for healthIndex ${healthIndex}`);
+			return;
+		}
+
+		this.damageLog[healthIndex] -= damage;
 	}
 }
 

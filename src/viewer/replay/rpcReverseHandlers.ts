@@ -1,4 +1,5 @@
 import { RPCController } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
+import { PlayerVehicle } from "../entities/playerVehicle.js";
 import { RadarJammerSync } from "../entityBase/jammer.js";
 import { ReplayController, RPCPacketT } from "./replayController";
 
@@ -210,6 +211,23 @@ replaceRPCHandlers.push({
 		}
 
 		jammer.popModel(rpc.args[0]);
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "PlayerVehicle",
+	method: "HSDamage",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const entity = controller.app.getEntityById(parseInt(rpc.id));
+		if (!entity) {
+			console.warn(`HSDamage RPC has no entity`);
+			return false;
+		}
+
+		if (!(entity instanceof PlayerVehicle)) return;
+
+		entity.reverseHSDamage(rpc.args[0], rpc.args[1]);
 		return false;
 	}
 });
