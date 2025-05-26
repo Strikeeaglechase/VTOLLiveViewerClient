@@ -58,6 +58,8 @@ class AIGroundUnit extends Entity {
 		"Units/Enemy/staticAAA-20x2",
 		"Units/Allied/staticCIWS",
 		"Units/Allied/WatchmanTruck",
+		"Units/Enemy/ELogisticsTruck",
+		"Units/Enemy/slmrmRadar",
 
 		"NuclearOption/AFV8_APC",
 		"NuclearOption/AFV8_IFV",

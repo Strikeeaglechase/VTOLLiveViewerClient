@@ -2,7 +2,8 @@ import * as THREE from "three";
 
 import { MissionInfoWithoutSpawns } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
-import { API_URL } from "../../config";
+import { API_URL, STORAGE_URL } from "../../config";
+import { Application } from "../app.js";
 import { METERS_PER_PIXEL } from "./mapInfo.js";
 
 interface Chunk {
@@ -50,10 +51,17 @@ class HeightMap {
 				const image = new Image();
 				image.crossOrigin = "Anonymous";
 
-				if (this.mission.isBuiltin) {
-					image.src = `${API_URL}/workshop/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
+				const replayHeader = Application.instance.replayController?.header;
+				if (Application.instance.isReplay && replayHeader.includesMission) {
+					const fPath = encodeURIComponent(`recordings/${replayHeader.id}.vtgr`);
+					image.src = `${STORAGE_URL}/read_unzip/?key=${fPath}&file=map_${idx}.png`;
+					console.log(`Loading image: ${image.src}`);
 				} else {
-					image.src = `${API_URL}/workshop/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
+					if (this.mission.isBuiltin) {
+						image.src = `${API_URL}/workshop/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
+					} else {
+						image.src = `${API_URL}/workshop/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
+					}
 				}
 
 				image.onerror = () => res(null);

@@ -1,10 +1,10 @@
 import * as THREE from "three";
 
+import { IdentityManager } from "../../../../VTOLLiveViewerCommon/dist/identities.js";
 import { EnableRPCs, RPC, RPCController } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { rad } from "../app";
-import { IdentityManager } from "../identities";
 import { Settings } from "../settings";
 import { Entity } from "./entity";
 
@@ -152,8 +152,8 @@ class JTransmitter {
 			return;
 		}
 
-		console.log(`Decoy model with transmitter ${this.index} with decoyIdentityIdx ${decoyIdentityIdx} and ident ${ident?.name} (${ident?.ident})`);
-		this.entity.setSasMesh(ident.ident);
+		console.log(`Decoy model with transmitter ${this.index} with decoyIdentityIdx ${decoyIdentityIdx} and ident ${ident?.targetName} (${ident?.targetId})`);
+		this.entity.setSasMesh(ident.targetId);
 		this.pastModels.push(this.model);
 	}
 
@@ -188,7 +188,7 @@ class JTransmitter {
 				return;
 			}
 
-			this.entity.setSasMesh(ident.ident);
+			this.entity.setSasMesh(ident.targetId);
 		}
 	}
 }

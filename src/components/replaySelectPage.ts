@@ -14,6 +14,10 @@ class ReplaySelectPage extends Page {
 	private replays: RecordedLobbyInfo[] = [];
 	private loadedReplays = new Set<string>();
 
+	private lastReplayFetchTime = 0;
+	private wantsFetchNewReplays = false;
+	private prevFilterParams = "";
+
 	constructor(app: Application) {
 		super(app);
 
@@ -69,8 +73,11 @@ class ReplaySelectPage extends Page {
 	}
 
 	private requestReplays() {
+		if (!Application.instance.client) return;
+
+		this.lastReplayFetchTime = Date.now();
 		let urlParams = new URLSearchParams(window.location.search);
-		if (urlParams.has("replay")) {
+		if (urlParams.has("replay") && urlParams.get("replay").length > 2) {
 			const replayId = urlParams.get("replay");
 			console.log(`Requesting replay for specific ID: ${replayId}`);
 			this.autoplayReplayId = replayId;
@@ -163,7 +170,19 @@ class ReplaySelectPage extends Page {
 	}
 
 	public override update() {
-		const { userSearchStr, searchStr, hostSearchStr, lowerDateBound, upperDateBound } = this.getFilterParams();
+		const filterParams = this.getFilterParams();
+		const filterParamsStr = JSON.stringify(filterParams);
+		if (this.prevFilterParams != filterParamsStr) {
+			this.wantsFetchNewReplays = true;
+			this.prevFilterParams = filterParamsStr;
+		}
+
+		if (this.wantsFetchNewReplays && Date.now() - this.lastReplayFetchTime > 1000) {
+			this.wantsFetchNewReplays = false;
+			this.requestReplays();
+		}
+
+		const { userSearchStr, searchStr, hostSearchStr, lowerDateBound, upperDateBound } = filterParams;
 
 		this.replays.forEach(info => {
 			let shouldBeShown = true;

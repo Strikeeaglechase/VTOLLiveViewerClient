@@ -38,9 +38,9 @@ class MapLoader {
 	}
 
 	public async loadHeightmapFromMission(mission: MissionInfoWithoutSpawns) {
-		this.currentlyLoadedMap = mission.mapId;
+		this.currentlyLoadedMap = mission?.mapId;
 
-		if (mission.mapId == "map_akutan") {
+		if (mission?.mapId == "map_akutan") {
 			console.warn(`Mission has Akutan map, so skipping heightmap load`);
 			return;
 		}
