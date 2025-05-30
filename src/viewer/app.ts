@@ -36,6 +36,7 @@ import { ReplayController } from "./replay/replayController";
 import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
+import { LocalVTGRFile } from "./localVTGRHandler.js";
 
 export const rad = (deg: number): number => (deg * Math.PI) / 180;
 export const deg = (rad: number): number => (rad * 180) / Math.PI;
@@ -110,6 +111,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public sceneManager = new SceneManager(this);
 	public mapLoader = new MapLoader(this.sceneManager);
 	public replayController: ReplayController = new ReplayController(this);
+	public localVtgrFile: LocalVTGRFile = null;
 	public meshLoader: MeshLoader = new MeshLoader();
 	public bulletManager: BulletManager;
 	public flareManager: FlareManager;

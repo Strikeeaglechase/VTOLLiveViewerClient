@@ -389,7 +389,7 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		}
 	}
 
-	private handleHeader(header: VTGRHeader) {
+	public handleHeader(header: VTGRHeader) {
 		this.header = header;
 		console.log(`Got replay header with ${header.chunks.length} chunks`);
 		console.log(header);

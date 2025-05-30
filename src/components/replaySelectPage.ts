@@ -1,6 +1,7 @@
 import { RecordedLobbyInfo } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { API_URL } from "../config.js";
 import { Application, ApplicationRunningState } from "../viewer/app.js";
+import { LocalVTGRFile } from "../viewer/localVTGRHandler.js";
 import { Page } from "./page.js";
 
 class ReplaySelectPage extends Page {
@@ -18,11 +19,40 @@ class ReplaySelectPage extends Page {
 	private wantsFetchNewReplays = false;
 	private prevFilterParams = "";
 
+	private startedLoadingLocalReplay = false;
+
 	constructor(app: Application) {
 		super(app);
 
 		document.getElementById("replay-update-button").addEventListener("click", () => {
 			this.requestReplays();
+		});
+
+		document.getElementById("replay-upload-button").addEventListener("click", e => {
+			if (this.startedLoadingLocalReplay) return;
+			const input = document.getElementById("upload-hidden-input") as HTMLInputElement;
+			input.click();
+			e.preventDefault();
+
+			input.onchange = async () => {
+				const file = input.files?.[0];
+				if (!file) return;
+
+				try {
+					this.startedLoadingLocalReplay = true;
+					const vtgr = await LocalVTGRFile.loadFromFile(file);
+					this.app.localVtgrFile = vtgr;
+
+					// Cancel running requests and stop live game data
+					this.app.client.cancelRequestReplayLobbies();
+
+					vtgr.start();
+				} catch (err) {
+					console.error("Error handling VTGR file:", err);
+					alert(`Error loading VTGR file: ${err}`);
+					this.startedLoadingLocalReplay = false;
+				}
+			};
 		});
 	}
 

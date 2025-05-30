@@ -47,38 +47,54 @@ class HeightMap {
 		// eslint-disable-next-line no-constant-condition
 		while (true) {
 			// Load maps until there are no more to load (404 error)
-			const resolvedImage = await new Promise<HTMLImageElement | null>(res => {
-				const image = new Image();
-				image.crossOrigin = "Anonymous";
+			const imageData = await this.loadNextImageData(idx);
+			if (imageData == null) break;
 
-				const replayHeader = Application.instance.replayController?.header;
-				if (Application.instance.isReplay && replayHeader.includesMission) {
-					const fPath = encodeURIComponent(`recordings/${replayHeader.id}.vtgr`);
-					image.src = `${STORAGE_URL}/read_unzip/?key=${fPath}&file=map_${idx}.png`;
-					console.log(`Loading image: ${image.src}`);
-				} else {
-					if (this.mission.isBuiltin) {
-						image.src = `${API_URL}/workshop/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
-					} else {
-						image.src = `${API_URL}/workshop/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
-					}
-				}
-
-				image.onerror = () => res(null);
-				image.onload = () => {
-					console.log(`Image ${idx} loaded!`);
-					this.width = image.width;
-					this.height = image.height;
-					res(image);
-				};
-			});
-
-			if (!resolvedImage) break;
-			else idx++;
-			this.images.push({ data: this.imageToPixels(resolvedImage) });
+			idx++;
+			this.images.push({ data: imageData });
 		}
 
 		console.log(`All images loaded!`);
+	}
+
+	private async loadNextImageData(idx: number): Promise<ImageData | null> {
+		const resolvedImage = await new Promise<HTMLImageElement | null>(async res => {
+			const image = new Image();
+			image.crossOrigin = "Anonymous";
+
+			const replayHeader = Application.instance.replayController?.header;
+			if (Application.instance.localVtgrFile != null) {
+				console.log(`Loading image from local VTGR file: map_${idx}.png`);
+				const localFile = Application.instance.localVtgrFile;
+				const mapDataui8 = await localFile.getMap(idx);
+				if (mapDataui8 == null) return res(null);
+
+				const blob = new Blob([mapDataui8], { type: "image/png" });
+				image.src = URL.createObjectURL(blob);
+			} else if (Application.instance.isReplay && replayHeader.includesMission) {
+				const fPath = encodeURIComponent(`recordings/${replayHeader.id}.vtgr`);
+				image.src = `${STORAGE_URL}/read_unzip/?key=${fPath}&file=map_${idx}.png`;
+				console.log(`Loading image: ${image.src}`);
+			} else {
+				if (this.mission.isBuiltin) {
+					image.src = `${API_URL}/workshop/mapBuiltin/${this.mission.campaignId}/${this.mission.mapId}/${idx}`;
+				} else {
+					image.src = `${API_URL}/workshop/map/${this.mission.workshopId}/${this.mission.mapId}/${idx}`;
+				}
+			}
+
+			image.onerror = () => res(null);
+			image.onload = () => {
+				console.log(`Image ${idx} loaded!`);
+				this.width = image.width;
+				this.height = image.height;
+				res(image);
+			};
+		});
+
+		if (!resolvedImage) return null;
+
+		return this.imageToPixels(resolvedImage);
 	}
 
 	public computeHeights() {

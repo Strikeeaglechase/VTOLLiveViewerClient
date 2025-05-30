@@ -1,12 +1,37 @@
 import JSZip from "jszip";
 
 import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Application } from "./app.js";
 
-class LocalVTGRHandler {
-	public static async handleFile(file: File) {
+class LocalVTGRFile {
+	private app: Application;
+	constructor(private header: VTGRHeader, private body: Uint8Array, private file: JSZip) {
+		console.log(`Loading VTGR file ${header.info.lobbyName} (${header.id}) ${header.chunks.length} chunks`);
+		this.app = Application.instance;
+	}
+
+	public async start() {
+		this.app.replayController.handleHeader(this.header);
+
+		// Technically we could feed the entire body to the replay controller, however we might exceed the JS max array size limit
+		// this.app.replayController.handleReplayBytes(this.body);
+		this.header.chunks.forEach((chunk, idx) => {
+			const chunkData = this.body.slice(chunk.start, chunk.start + chunk.length);
+			this.app.replayController.handleReplayBytes(chunkData);
+		});
+
+		this.app.beginReplay(this.header.info.lobbyId);
+
+		// Application.instance.beginReplay(header.info.lobbyId);
+	}
+
+	public async getMap(index: number): Promise<Uint8Array> {
+		return await this.file.file(`map_${index}.png`)?.async("uint8array");
+	}
+
+	public static async loadFromFile(file: File): Promise<LocalVTGRFile> {
 		const zip = new JSZip();
 		const fileArrBuff = await file.arrayBuffer();
-		console.log(fileArrBuff);
 		const decompressedFile = await zip.loadAsync(fileArrBuff);
 		console.log(decompressedFile);
 
@@ -16,14 +41,8 @@ class LocalVTGRHandler {
 		if (!body) throw new Error("No data.bin file found in VTGR file");
 
 		const header = JSON.parse(headerText) as VTGRHeader;
-		console.log(`Loading VTGR file ${header.info.lobbyName} (${header.id}) ${header.chunks.length} chunks`);
-
-		// header.chunks.forEach(chunk => {
-		// 	const chunkData = body.slice(chunk.start, chunk.start + chunk.length);
-		// 	Application.instance.replayController.handleReplayChunk(chunkData);
-		// });
-		// Application.instance.beginReplay(header.info.lobbyId);
+		return new LocalVTGRFile(header, body, decompressedFile);
 	}
 }
 
-export { LocalVTGRHandler };
+export { LocalVTGRFile };
