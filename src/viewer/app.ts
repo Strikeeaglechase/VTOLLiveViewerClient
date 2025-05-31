@@ -761,6 +761,12 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		});
 	}
 
+	@RPC("in")
+	public RawLobbySync() {}
+
+	@RPC("in")
+	public RawLobbySyncDone() {}
+
 	private addEntity(entity: Entity): void {
 		if (this.entities.includes(entity)) {
 			console.error(`Entity ${entity} already exists in entities list!`);
