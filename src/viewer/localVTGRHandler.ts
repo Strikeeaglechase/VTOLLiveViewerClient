@@ -1,4 +1,4 @@
-import JSZip from "jszip";
+import JSZip from "jszip/dist/jszip.js";
 
 import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Application } from "./app.js";
