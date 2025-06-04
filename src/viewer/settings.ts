@@ -98,7 +98,7 @@ class Settings extends EventEmitter<SettingName> {
 	}
 
 	public static init() {
-		const savedSettings = JSON.parse(localStorage.getItem("settings") ?? "{}");
+		const savedSettings = JSON.parse(localStorage?.getItem("settings") ?? "{}");
 
 		this.settings.forEach(setting => {
 			if (setting.type === SettingType.CheckboxList) {
@@ -113,7 +113,7 @@ class Settings extends EventEmitter<SettingName> {
 
 	private static save() {
 		if (Settings.disableSaving) return;
-		localStorage.setItem("settings", JSON.stringify(this.state));
+		localStorage?.setItem("settings", JSON.stringify(this.state));
 	}
 }
 

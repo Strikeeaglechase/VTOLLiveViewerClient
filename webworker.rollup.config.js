@@ -8,7 +8,7 @@ export default {
 		dir: 'public',
 		format: 'es',
 	},
-	context: "this",
+	// context: "this",
 
 	plugins: [
 		nodeResolve({ preferBuiltins: false }),
