@@ -98,17 +98,26 @@ class Settings extends EventEmitter<SettingName> {
 	}
 
 	public static init() {
-		const savedSettings = JSON.parse(localStorage?.getItem("settings") ?? "{}");
+		if (!("localStorage" in self)) {
+			console.error("Settings cannot init because LocalStorage is not available in this environment.");
+			return;
+		}
 
-		this.settings.forEach(setting => {
-			if (setting.type === SettingType.CheckboxList) {
-				this.loadCheckboxSetting(savedSettings, setting);
-			} else {
-				this.state[setting.name] = savedSettings[setting.name] ?? setting.default;
-			}
-		});
+		try {
+			const savedSettings = JSON.parse(localStorage?.getItem("settings") ?? "{}");
 
-		console.log(this.state);
+			this.settings.forEach(setting => {
+				if (setting.type === SettingType.CheckboxList) {
+					this.loadCheckboxSetting(savedSettings, setting);
+				} else {
+					this.state[setting.name] = savedSettings[setting.name] ?? setting.default;
+				}
+			});
+
+			console.log(this.state);
+		} catch (e) {
+			console.error(`Failed to load settings config because of: ${e}`);
+		}
 	}
 
 	private static save() {
