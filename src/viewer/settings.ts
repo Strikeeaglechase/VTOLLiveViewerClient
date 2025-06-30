@@ -1,3 +1,8 @@
+// TODO:
+// Settings are currently read by the literal value displayed to the user, this makes very error prone code
+// Instead all settings should have a display name, and an actual internal enum value
+// Additionally it should be typed such that Settings.get("SettingName") returns a specific type, not just a string
+
 import { EventEmitter } from "../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { Application } from "./app";
 

@@ -8,6 +8,7 @@
     "watch": "rollup -c rollup.config.js -w"
   },
   "dependencies": {
+    "@petamoriken/float16": "^3.9.2",
     "buffer": "^6.0.3",
     "jszip": "^3.10.1",
     "node": "^16.16.0",
