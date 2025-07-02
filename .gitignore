@@ -5,6 +5,7 @@ node_modules
 leaks.dont.look
 public/main.js
 public/mapLoad.worker.js
+headless-client.log
 
 # local env files
 .env.local
@@ -27,3 +28,4 @@ pnpm-debug.log*
 
 # JetBrains IDEs
 .idea
+out/

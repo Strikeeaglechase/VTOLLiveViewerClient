@@ -176,7 +176,7 @@ class Entity implements EntityReference {
 	private _isActive = false;
 	public set isActive(v: boolean) {
 		this._isActive = v;
-		console.log(`${this} is now ${v ? "active" : "inactive"}`);
+		console.debug(`${this} is now ${v ? "active" : "inactive"}`);
 	}
 	public get isActive() {
 		return this._isActive;
@@ -238,7 +238,7 @@ class Entity implements EntityReference {
 		this.object = new THREE.Object3D();
 		this.meshProxyObject = new THREE.Object3D();
 		this.meshProxyObject.name = `${this} MeshProxyObject`;
-		console.log(`Creating mesh proxy object for ${app.currentlySpawningId} on spawn, prox obj id: ${this.meshProxyObject.id}`);
+		// console.log(`Creating mesh proxy object for ${app.currentlySpawningId} on spawn, prox obj id: ${this.meshProxyObject.id}`);
 
 		if (enable_debug_sphere) {
 			this.meshProxyObject.add(new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), new THREE.MeshBasicMaterial({ color: "#FF0000" })));
@@ -284,7 +284,7 @@ class Entity implements EntityReference {
 	}
 
 	protected async setInactive(reason: string) {
-		console.log(`Setting ${this} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
+		console.debug(`Setting ${this} inactive because ${reason}, time direction: ${this.app.timeDirection} inactive at: ${this.persistentData.setInactiveAt}`);
 		if (!this.isActive) {
 			console.warn(`${this} is already inactive`);
 			return;
@@ -299,7 +299,7 @@ class Entity implements EntityReference {
 		this.meshProxyObject = new THREE.Object3D();
 		this.meshProxyObject.name = "Mesh Proxy Object";
 		this.object.add(this.meshProxyObject);
-		console.log(`Creating mesh proxy object for ${this.id} on setInactive, mesh prox obj id: ${this.meshProxyObject.id}`);
+		// console.debug(`Creating mesh proxy object for ${this.id} on setInactive, mesh prox obj id: ${this.meshProxyObject.id}`);
 
 		// Often there will be a motion update this frame as well, so defer updating this value until next
 		this.hasGotFirstPos = false;
@@ -317,7 +317,7 @@ class Entity implements EntityReference {
 	}
 
 	protected async setActive(reason: string) {
-		console.log(`Setting ${this} active because ${reason}.`); // RPC Pid: ${this.app?.replayController.currentlyExecutingRpc?.pid}
+		console.debug(`Setting ${this} active because ${reason}.`); // RPC Pid: ${this.app?.replayController.currentlyExecutingRpc?.pid}
 		if (this.isActive) {
 			console.warn(`Entity ${this} is already active`);
 			return;
@@ -512,7 +512,7 @@ class Entity implements EntityReference {
 	}
 
 	protected onFirstPos() {
-		console.log(`Entity ${this} first pos`);
+		console.debug(`Entity ${this} first pos`);
 		this.hasGotFirstPos = true;
 		this.trail.reset();
 	}
@@ -563,7 +563,7 @@ class Entity implements EntityReference {
 		if (this.team != Team.Unknown && this.team != team) {
 			console.warn(`Entity ${this} already has team ${this.team}, overwriting with ${team}`);
 		}
-		console.log(`Entity ${this} set team to ${Team[team]}`);
+		console.debug(`Entity ${this} set team to ${Team[team]}`);
 		this.team = team;
 		this.trail.updateColor(teamColors[this.team]);
 	}
@@ -709,7 +709,7 @@ class Entity implements EntityReference {
 
 	protected triggerDeath() {
 		this.hasDied = true;
-		console.log(`Entity ${this} has died`);
+		console.debug(`Entity ${this} has died`);
 		this.triggerDamage();
 		if (this.textOverlay) {
 			this.textOverlay.color = "#FF0000";
@@ -750,7 +750,7 @@ class Entity implements EntityReference {
 	}
 
 	public async remove(reason: string): Promise<void> {
-		console.log(`Removing entity ${this} because ${reason}`);
+		console.debug(`Removing entity ${this} because ${reason}`);
 		// If entity was removed while it was being activated, we need to wait for activation to complete
 		// This is often caused due to resync causing spawn -> death, this should be changed to a better solution
 		if (this.activatingPromise) {

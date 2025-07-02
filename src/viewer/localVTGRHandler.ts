@@ -1,7 +1,11 @@
-import JSZip from "jszip/dist/jszip.js";
+import * as JSZipTypeObject from "jszip";
+import * as JSZipNT from "jszip/dist/jszip.js";
 
 import { VTGRHeader } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Application } from "./app.js";
+
+const JSZip = JSZipNT.default as typeof JSZipTypeObject;
+type JSZip = typeof JSZip;
 
 class LocalVTGRFile {
 	private app: Application;
@@ -30,11 +34,20 @@ class LocalVTGRFile {
 	}
 
 	public static async loadFromFile(file: File): Promise<LocalVTGRFile> {
-		const zip = new JSZip();
 		const fileArrBuff = await file.arrayBuffer();
+
+		return LocalVTGRFile.loadFromArrayBuffer(Buffer.from(fileArrBuff));
+	}
+
+	public static async loadFromArrayBuffer(fileArrBuff: Buffer): Promise<LocalVTGRFile> {
+		const zip = new JSZip();
 		const decompressedFile = await zip.loadAsync(fileArrBuff);
 		console.log(decompressedFile);
 
+		return LocalVTGRFile.loadFromZip(decompressedFile);
+	}
+
+	public static async loadFromZip(decompressedFile: JSZip): Promise<LocalVTGRFile> {
 		const headerText = await decompressedFile.file("header.json")?.async("string");
 		const body = await decompressedFile.file("data.bin")?.async("uint8array");
 		if (!headerText) throw new Error("No header.json file found in VTGR file");

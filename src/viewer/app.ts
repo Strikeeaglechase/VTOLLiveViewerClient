@@ -12,7 +12,7 @@ import { EnableRPCs, RPC, RPCController, RPCPacket } from "../../../VTOLLiveView
 import { AssignID, LobbyConnectionStatus, MissionInfo, PacketType, Team, Vector3, VTOLLobby } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { IVector3, Vector } from "../../../VTOLLiveViewerCommon/dist/vector";
 import { ComponentManager } from "../components/componentManager.js";
-import { API_URL, IS_DEV, WS_URL } from "../config";
+import { API_URL, IS_DEV, IS_ELECTRON, WS_URL } from "../config";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
 import { Debug } from "./debug.js";
@@ -25,6 +25,7 @@ import { PlayerVehicle } from "./entities/playerVehicle";
 import { Entity } from "./entityBase/entity";
 import { EntityViewData } from "./entityBase/entityViewData";
 import { RadarJammerSync } from "./entityBase/jammer";
+import { LocalVTGRFile } from "./localVTGRHandler.js";
 import { BulletManager } from "./managers/bulletManager";
 import { FlareManager } from "./managers/flareManager";
 import { SceneManager } from "./managers/sceneManager";
@@ -36,7 +37,6 @@ import { ReplayController } from "./replay/replayController";
 import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
-import { LocalVTGRFile } from "./localVTGRHandler.js";
 
 export const rad = (deg: number): number => (deg * Math.PI) / 180;
 export const deg = (rad: number): number => (rad * 180) / Math.PI;
@@ -176,6 +176,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 	constructor() {
 		console.log(`Application constructor called`);
+		if (IS_ELECTRON) console.log(`Running in Electron environment`);
 		super();
 		this.container = document.getElementById("main-container") as HTMLDivElement;
 		this.handleResize();
@@ -221,8 +222,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	// 	console.log(`Popped application state: ${state}`);
 	// }
 
-	public async init(): Promise<void> {
-		console.log(`Application init called`);
+	private async configureWebSocket() {
 		this.socket = new WebSocket(WS_URL);
 		await new Promise<void>(res => {
 			this.socket.onopen = () => {
@@ -241,11 +241,20 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			};
 			this.socket.send(JSON.stringify(socketPacket));
 		});
+	}
+
+	public async init(): Promise<void> {
+		console.log(`Application init called`);
+
+		if (!IS_ELECTRON) await this.configureWebSocket();
+		else {
+			this.configureElectron();
+		}
 
 		// }
 		this.updateStateViaPath();
 
-		if (window.location.pathname.startsWith("/wallpaper")) this.startWallpaperMode();
+		// if (window.location.pathname.startsWith("/wallpaper")) this.startWallpaperMode();
 		// const user = getLoggedInUser();
 		// if (user) {
 		// 	const daysTillExpire = (((user.exp ?? 0) * 1000) - Date.now()) / 1000 / 60 / 60 / 24;
@@ -289,6 +298,40 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			setTimeout(() => {
 				container.style.display = "none";
 			}, 4000);
+		});
+	}
+
+	private configureElectron() {
+		this.client = new Client(`local_client`);
+		RPCController.init(packet => {
+			console.log(`Unable to send RPC in offline environment: ${packet.className}.${packet.method}`);
+		});
+
+		let hasUpdatedButton = false;
+
+		const vtgrBuffer: Buffer[] = [];
+		window.vtgrApi.onChunk(chunk => {
+			console.debug(`[${chunk.index}] Received ${chunk.data.length} bytes from Electron API`);
+
+			if (typeof chunk.data === "string") {
+				vtgrBuffer.push(Buffer.from(chunk.data, "binary"));
+			} else {
+				vtgrBuffer.push(chunk.data);
+			}
+
+			if (!hasUpdatedButton) {
+				hasUpdatedButton = true;
+				const loadLocalReplayButton = document.getElementById("load-local-replay-button-text") as HTMLParagraphElement;
+				loadLocalReplayButton.innerText = `Loading...`;
+			}
+		});
+
+		window.vtgrApi.onFinish(async () => {
+			console.log(`VTGR file finished sending, processing...`);
+			const buf = Buffer.concat(vtgrBuffer);
+
+			const vtgr = await LocalVTGRFile.loadFromArrayBuffer(buf);
+			vtgr.start();
 		});
 	}
 
@@ -841,7 +884,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			return;
 		}
 
-		console.log(`NetInstantiate ${path} [${id}] owner: ${ownerId}`);
+		console.debug(`NetInstantiate ${path} [${id}] owner: ${ownerId}`);
 
 		// Rewrite NukOpt GUID to path
 		const isNukOptGuid = path.match(/^\w{32}$/);
@@ -898,7 +941,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		// console.log(`Entity net.prototype instantiate ${path} [${id}] owner: ${ownerId}. Entity: ${EntityClass}`);
 		const entity = new EntityClass(this);
 		entity.spawn(id, ownerId, path, position, rotation, isActive);
-		console.log(`Entity ${entity} spawned as ${entity.__name}. Spawn as active: ${isActive}`);
+		console.debug(`Entity ${entity} spawned as ${entity.__name}. Spawn as active: ${isActive}`);
 		this.addEntity(entity);
 	}
 
@@ -1116,6 +1159,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			if (header == "REPLAY") {
 				this.replayController.handleReplayBytes(bytes);
 			} else {
+				// @ts-ignore
 				RPCController.handlePacket(bytes);
 				const rpcs = decompressRpcPackets(Buffer.from(bytes));
 				this.rpcs += rpcs.length;

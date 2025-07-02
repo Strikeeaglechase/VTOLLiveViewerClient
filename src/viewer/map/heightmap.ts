@@ -54,7 +54,9 @@ class HeightMap {
 			this.images.push({ data: imageData });
 		}
 
-		console.log(`All images loaded!`);
+		console.log(`All images loaded! Total: ${this.images.length}`);
+
+		if (this.images.length == 0) this.setDefaultWidthHeight();
 	}
 
 	private async loadNextImageData(idx: number): Promise<ImageData | null> {
@@ -110,6 +112,20 @@ class HeightMap {
 
 		this.map = map;
 
+		if (this.images.length == 0) {
+			console.log(`Skipping heightmap normalization, no images provided`);
+			console.log(`Height map calculated ${this.width}x${this.height}`);
+
+			this.map.forEach((row, y) => {
+				row.forEach((height, x) => {
+					// map[y][x] = lerp(this.minHeight, this.maxHeight, height / (4 * 256));
+					map[y][x] = -this.minHeight;
+				});
+			});
+
+			return;
+		}
+
 		// Map the values to the correct height range
 		this.map.forEach((row, y) => {
 			row.forEach((height, x) => {
@@ -122,6 +138,7 @@ class HeightMap {
 	}
 
 	public loadFromWorkerData(heights: number[][]) {
+		// console.log(`Received worker data heights ${heights.length}x${heights[0].length}`);
 		this.map = heights;
 		// Compute heights of quad
 		this.map.forEach((row, y) => {
@@ -161,10 +178,20 @@ class HeightMap {
 		return pixel;
 	}
 
+	private setDefaultWidthHeight() {
+		this.width = 1281;
+		this.height = 1281;
+		console.warn(`No heightmap images provided, using default size ${this.width}x${this.height}`);
+	}
+
 	public initFromImages(images: { data: ImageData }[]) {
 		this.images = images;
-		this.width = images[0].data.width;
-		this.height = images[0].data.height;
+		if (images.length == 0) {
+			this.setDefaultWidthHeight();
+		} else {
+			this.width = images[0].data.width;
+			this.height = images[0].data.height;
+		}
 	}
 
 	public smooth(): void {

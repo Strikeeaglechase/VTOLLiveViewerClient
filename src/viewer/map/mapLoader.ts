@@ -76,6 +76,7 @@ class MapLoader {
 			(this.heightMap.height * METERS_PER_PIXEL) / 2
 		);
 
+		console.log(`Posting map loader worker message: `, { mission: mission, images: this.heightMap.images });
 		worker.postMessage({ mission: mission, images: this.heightMap.images });
 
 		const bytes = await this.listenToWorkerMessages(worker);

@@ -13,3 +13,16 @@ export const REFRESH_URL = IS_DEV ? "http://localhost:8010/api/auth/refresh" : "
 export const STORAGE_URL = IS_DEV ? "http://localhost:8010/api/storage" : "https://vtolvr.live/api/storage";
 export const COOKIE_DOMAIN = IS_DEV ? "localhost" : ".vtolvr.live";
 export const IS_ALPHA = true;
+export const IS_ELECTRON = typeof window != "undefined" && window.isElectron;
+
+type VTGRApi = {
+	onChunk: (callback: (chunk: { data: string | Buffer; index: number }) => void) => void;
+	onFinish: (callback: () => void) => void;
+};
+
+declare global {
+	export interface Window {
+		isElectron: boolean;
+		vtgrApi: VTGRApi;
+	}
+}
