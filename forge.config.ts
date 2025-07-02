@@ -4,6 +4,7 @@
 // import MakerZip from "@electron-forge/maker-zip";
 
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import { gitToken } from "./gitToken.js";
 
 const config: ForgeConfig = {
 	packagerConfig: {
@@ -23,6 +24,19 @@ const config: ForgeConfig = {
 			name: "@electron-forge/maker-squirrel",
 			config: {
 				name: "HeadlessClient"
+			}
+		}
+	],
+
+	publishers: [
+		{
+			name: "@electron-forge/publisher-github",
+			config: {
+				authToken: gitToken,
+				repository: {
+					owner: "Strikeeaglechase",
+					name: "VTOLLiveViewerClient"
+				}
 			}
 		}
 	]

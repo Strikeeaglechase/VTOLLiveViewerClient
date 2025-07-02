@@ -6,6 +6,7 @@ leaks.dont.look
 public/main.js
 public/mapLoad.worker.js
 headless-client.log
+gitToken.js
 
 # local env files
 .env.local
