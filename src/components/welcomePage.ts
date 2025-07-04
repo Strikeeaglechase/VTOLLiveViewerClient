@@ -17,7 +17,7 @@ class WelcomePage extends Page {
 		const viewReplaysButton = document.getElementById("view-replays-button") as HTMLDivElement;
 		const loadLocalReplayButton = document.getElementById("load-local-replay-button") as HTMLDivElement;
 
-		const canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS) || hasPerm(UserScopes.ALPHA_ACCESS);
+		const canAccessLobbies = !IS_ALPHA || hasPerm(UserScopes.ALPHA_ACCESS) || hasPerm(UserScopes.DONOR);
 		if (!canAccessLobbies) {
 			viewLobbiesButton.classList.add("greyout-wrapper");
 			viewLobbiesButton.children[0].classList.add("greyout");
