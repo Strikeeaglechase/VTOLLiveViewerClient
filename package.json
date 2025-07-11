@@ -2,7 +2,7 @@
   "name": "vtol-live-viewer-client",
   "author": "Strikeeaglechase",
   "description": "Headless Client / Replay Tool for VTGR files",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "main": "dist/desktopApplication/index.js",
@@ -12,8 +12,9 @@
     "releaseType": "release"
   },
   "scripts": {
-    "build": "tsc && rollup -c rollup.config.js && rollup -c webworker.rollup.config.js",
+    "build": "tsc && rollup -c rollup.config.js && rollup -c webworker.rollup.config.js && rollup -c graph.rollup.config.js",
     "watch": "rollup -c rollup.config.js -w",
+    "watch-graph": "rollup -c graph.rollup.config.js -w",
     "electron": "electron dist/desktopApplication/index.js",
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -30,7 +31,7 @@
     "rollup-plugin-web-worker-loader": "^1.6.1",
     "rstatsjs": "^1.0.1",
     "stats.js": "^0.17.0",
-    "strik-2d-renderer": "^1.0.2",
+    "strik-2d-renderer": "^1.0.3",
     "three": "^0.136.0",
     "three-css2drender": "^1.0.0",
     "three.meshline": "^1.4.0",

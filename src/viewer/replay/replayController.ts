@@ -2,7 +2,7 @@ import { decompressRpcPacketsGen } from "../../../../VTOLLiveViewerCommon/dist/c
 import { EventEmitter } from "../../../../VTOLLiveViewerCommon/dist/eventEmitter.js";
 import { RPCController, RPCPacket } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { VTGRHeader } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
-import { IS_DEV, STORAGE_URL } from "../../config";
+import { IS_DEV, IS_ELECTRON, STORAGE_URL } from "../../config";
 import { Application } from "../app";
 import { PlayerVehicle } from "../entities/playerVehicle";
 import { replaceRPCHandlers } from "./rpcReverseHandlers";
@@ -77,6 +77,9 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		}
 		const oldReplayCurrentTime = this.replayCurrentTime;
 		this.replayCurrentTime += expectedDt * this.computedReplaySpeed;
+		if (IS_ELECTRON) {
+			window.vtgrApi.setTime(this.replayCurrentTime);
+		}
 
 		const seconds = Math.abs(Math.floor(this.replayCurrentTime / 1000) - Math.floor(this.prevReplayTime / 1000));
 		const startInSeconds = Math.max(0, Math.floor(this.prevReplayTime / 1000));

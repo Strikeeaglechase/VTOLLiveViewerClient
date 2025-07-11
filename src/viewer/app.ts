@@ -15,7 +15,7 @@ import { ComponentManager } from "../components/componentManager.js";
 import { API_URL, IS_DEV, IS_ELECTRON, WS_URL } from "../config";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
-import { Debug } from "./debug.js";
+import { Debug } from "./debug/debug.js";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
@@ -332,6 +332,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 			const vtgr = await LocalVTGRFile.loadFromArrayBuffer(buf);
 			vtgr.start();
+			this.localVtgrFile = vtgr;
 		});
 	}
 
@@ -559,6 +560,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				carrier.UpdateData(new Vector(-200, 0, 0), new Vector(0, 0, 0), new Vector(0, 0, 0), new Vector(0, r / 10, 0));
 				// this.testRotate(carrier.position, carrier.rotation);
 			}, 0);
+
+			// setInterval(() => {
+			// 	aircraft.FireCMS();
+			// }, 50);
 
 			aircraft.SetLock(100, true);
 			// aircraft4.UpdateData(new Vector(0, 0, 0), new Vector(0, 0, 10), new Vector(0, 0, 0), new Vector(0, 0, 0));

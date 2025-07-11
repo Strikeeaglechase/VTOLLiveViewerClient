@@ -182,7 +182,6 @@ class FlareManager {
 	}
 
 	public updateScale(scale: number) {
-		console.log(scale);
 		this.scaleMult = Math.max(1, scale * 0.7);
 	}
 }

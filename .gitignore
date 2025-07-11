@@ -3,8 +3,7 @@
 node_modules
 /dist
 leaks.dont.look
-public/main.js
-public/mapLoad.worker.js
+public/*.js
 headless-client.log
 gitToken.js
 

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, BrowserWindowConstructorOptions, screen } from "electron";
+import { app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, Menu, MenuItem, screen } from "electron";
 import squirrelStartupExit from "electron-squirrel-startup";
 import windowStateKeeper from "electron-window-state";
 import fs from "fs";
@@ -6,187 +6,235 @@ import path from "path";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import { fileURLToPath } from "url";
 
-if (squirrelStartupExit) app.quit();
-app.setAppUserModelId("com.strik.HeadlessClient");
+import { getLogger, Logger } from "./logger.js";
 
-const watchDelay = 1000;
-
-function getLogger(filePath?: string) {
-	let writeStream: fs.WriteStream = null;
-
-	if (filePath) {
-		writeStream = fs.createWriteStream(filePath, { flags: "a" });
-		writeStream.write(`Logger initialized at ${new Date().toISOString()}\n`);
-	}
-
-	function log(header: string, message: any[]) {
-		if (!writeStream) return;
-
-		const formattedMessage = message.map(m => (typeof m === "object" ? JSON.stringify(m, null, 2) : m)).join(" ");
-		writeStream.write(`${header}${formattedMessage}\n`);
-	}
-
-	const logObject = {
-		info: (message: string) => logObject.log(message),
-		log: (...message: any[]) => {
-			const header = `[${new Date().toISOString()}][INFO] `;
-			log(header, message);
-			console.log(header, ...message);
-		},
-		warn: (...message: any[]) => {
-			const header = `[${new Date().toISOString()}][WARN] `;
-			log(header, message);
-			console.warn(header, ...message);
-		},
-		error: (...message: any[]) => {
-			const header = `[${new Date().toISOString()}][ERROR] `;
-			log(header, message);
-			console.error(header, ...message);
-		}
-	};
-
-	return logObject;
-}
-
-// const logger = getLogger(`C:/Users/strik/Desktop/Programs/Typescript/VTOLLiveViewer/VTOLLiveViewerClient/headless-client.log`);
-const logPath = path.join(app.getPath("userData"), "headless-client.log");
-const logger = getLogger(logPath);
-logger.log(`Logger file path: ${logPath}`);
+const targetFileIgnore = "dist/desktopApplication/index.js";
+const forceLoadFile = ""; //"C:/Users/strik/Desktop/Programs/CSharp/UnityGERunner/UnityTranspiler/output.vtgr";
 
 const devModeOpen = false;
+class ElectronApplication {
+	private earlyQuit = false;
+	private logger: Logger;
 
-async function createWindow() {
-	const displays = screen.getAllDisplays();
-	logger.log(`Found ${displays.length} displays:`);
-	displays.forEach((display, index) => {
-		logger.log(`Display ${index + 1}:`);
-		logger.log(`  - ID: ${display.id}`);
-		logger.log(`  - Size: ${display.size.width}x${display.size.height}`);
-		logger.log(`  - Bounds: x=${display.bounds.x}, y=${display.bounds.y}, width=${display.bounds.width}, height=${display.bounds.height}`);
-	});
+	private win: BrowserWindow;
+	private graphWin: BrowserWindow;
+	private targetFile: string;
 
-	const openOnDisplay = displays.find(d => d.bounds.x > 0) ?? screen.getPrimaryDisplay();
-	logger.log(`Opening on display ${displays.indexOf(openOnDisplay) + 1} (${openOnDisplay.id})`);
+	constructor() {
+		const logPath = path.join(app.getPath("userData"), "headless-client.log");
+		this.logger = getLogger(logPath);
 
-	const dirname = fileURLToPath(import.meta.url);
-
-	const winState = windowStateKeeper({
-		defaultWidth: 1000,
-		defaultHeight: 800
-	});
-
-	const winOptions: BrowserWindowConstructorOptions = {
-		title: "Headless Client",
-		// fullscreen: true,
-
-		x: winState.x,
-		y: winState.y,
-		width: winState.width,
-		height: winState.height,
-
-		webPreferences: {
-			preload: path.join(dirname, "..", "preload.js"),
-			sandbox: false
-		}
-	};
-
-	if (devModeOpen) {
-		winOptions.width = openOnDisplay.size.width;
-		winOptions.height = openOnDisplay.size.height;
-		winOptions.x = openOnDisplay.bounds.x;
-		winOptions.y = openOnDisplay.bounds.y;
+		if (squirrelStartupExit) app.quit();
+		app.setAppUserModelId("com.strik.HeadlessClient");
 	}
 
-	const win = new BrowserWindow(winOptions);
-	winState.manage(win);
+	public init() {
+		if (this.earlyQuit) return;
 
-	if (devModeOpen) {
-		win.webContents.openDevTools();
-		win.maximize();
+		this.buildMenuBar();
+		app.whenReady().then(() => this.afterAppReady());
+		app.on("window-all-closed", () => {
+			app.quit();
+		});
 	}
 
-	await win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html"));
-
-	configureAutoUpdate();
-
-	// const targetFile: string = "C:/Users/strik/Desktop/Programs/Typescript/VTOLLiveViewer/HCServices/vtgrService/ingest-finished/test.vtgr";
-	const targetFile = process.argv[1];
-	if (!targetFile || targetFile == "dist/desktopApplication/index.js") return;
-
-	if (!fs.existsSync(targetFile)) {
-		logger.error(`Target file does not exist: ${targetFile}`);
-		return;
+	private async afterAppReady() {
+		await this.createMainWindow();
+		this.configureAutoUpdate();
+		this.loadFileFromArgs();
 	}
 
-	sendFileToRenderer(targetFile, win);
+	private getOpenOnDisplay() {
+		const displays = screen.getAllDisplays();
+		this.logger.log(`Found ${displays.length} displays:`);
+		displays.forEach((display, index) => {
+			this.logger.log(`Display ${index + 1}:`);
+			this.logger.log(`  - ID: ${display.id}`);
+			this.logger.log(`  - Size: ${display.size.width}x${display.size.height}`);
+			this.logger.log(`  - Bounds: x=${display.bounds.x}, y=${display.bounds.y}, width=${display.bounds.width}, height=${display.bounds.height}`);
+		});
 
-	let watchTimer: NodeJS.Timeout;
-	fs.watch(targetFile, {}, (eventType, filename) => {
-		if (watchTimer) clearTimeout(watchTimer);
+		const openOnDisplay = displays.find(d => d.bounds.x > 0) ?? screen.getPrimaryDisplay();
+		this.logger.log(`Opening on display ${displays.indexOf(openOnDisplay) + 1} (${openOnDisplay.id})`);
 
-		watchTimer = setTimeout(async () => {
-			logger.log(`File change detected: ${eventType} on ${filename}`);
-			if (!fs.existsSync(targetFile)) {
-				logger.error(`Target file does not exist: ${targetFile}`);
-				return;
+		return openOnDisplay;
+	}
+
+	private async createMainWindow() {
+		const dirname = fileURLToPath(import.meta.url);
+
+		const winState = windowStateKeeper({
+			defaultWidth: 1000,
+			defaultHeight: 800
+		});
+
+		const winOptions: BrowserWindowConstructorOptions = {
+			title: "Headless Client",
+			// fullscreen: true,
+
+			x: winState.x,
+			y: winState.y,
+			width: winState.width,
+			height: winState.height,
+
+			webPreferences: {
+				preload: path.join(dirname, "..", "preload.js"),
+				sandbox: false
 			}
+		};
 
-			await win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html"));
-			sendFileToRenderer(targetFile, win);
-
-			watchTimer = null;
-		}, watchDelay);
-	});
-}
-
-function configureAutoUpdate() {
-	updateElectronApp({
-		logger: logger,
-		updateInterval: "1 hour",
-
-		updateSource: {
-			type: UpdateSourceType.ElectronPublicUpdateService,
-			repo: "Strikeeaglechase/VTOLLiveViewerClient"
+		if (devModeOpen) {
+			const openOnDisplay = this.getOpenOnDisplay();
+			winOptions.width = openOnDisplay.size.width;
+			winOptions.height = openOnDisplay.size.height;
+			winOptions.x = openOnDisplay.bounds.x;
+			winOptions.y = openOnDisplay.bounds.y;
 		}
-	});
 
-	// autoUpdater.checkForUpdates();
-	// autoUpdater.on("update-downloaded", (event, releaseNotes, releaseName, releaseDate, updateURL) => {
-	// 	logger.log(`Update downloaded: ${releaseName} on ${releaseDate}`);
+		this.win = new BrowserWindow(winOptions);
+		winState.manage(this.win);
 
-	// 	const result = dialog.showMessageBoxSync(win, {
-	// 		type: "question",
-	// 		title: "An Update is Available",
-	// 		message: `An update is available: ${releaseName}\n\n${releaseNotes}`,
-	// 		buttons: ["Install Now", "Later"]
-	// 	});
+		if (devModeOpen) {
+			this.win.webContents.openDevTools();
+			this.win.maximize();
+		}
 
-	// 	if (result === 0) {
-	// 		logger.log("User chose to install update immediately.");
-	// 		autoUpdater.quitAndInstall();
-	// 	} else {
-	// 		logger.log("User chose to install update later.");
-	// 	}
-	// });
+		await this.win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html"));
+
+		ipcMain.on("set-time", (event, time: number) => {
+			if (this.graphWin && !this.graphWin.isDestroyed()) {
+				this.graphWin.webContents.send("time", time);
+			}
+		});
+	}
+
+	private configureAutoUpdate() {
+		updateElectronApp({
+			logger: this.logger,
+			updateInterval: "1 hour",
+
+			updateSource: {
+				type: UpdateSourceType.ElectronPublicUpdateService,
+				repo: "Strikeeaglechase/VTOLLiveViewerClient"
+			}
+		});
+	}
+
+	private loadFileFromArgs() {
+		this.targetFile = forceLoadFile ? forceLoadFile : process.argv[1];
+		if (!this.targetFile || this.targetFile == targetFileIgnore) return;
+
+		if (!fs.existsSync(this.targetFile)) {
+			this.logger.error(`Target file does not exist: ${this.targetFile}`);
+			return;
+		}
+
+		this.sendFileToRenderer(this.targetFile);
+	}
+
+	private sendFileToRenderer(filePath: string) {
+		this.logger.log(`Loading target file: ${filePath}`);
+
+		const readStream = fs.createReadStream(filePath, { encoding: "binary" });
+		let idx = 0;
+		readStream.on("data", chunk => {
+			// logger.log(`[${idx}] Sent ${chunk.length} bytes of data to renderer`);
+			this.win.webContents.send(`vtgr-chunk`, { data: chunk, index: idx++ });
+		});
+
+		readStream.on("close", () => {
+			this.logger.log(`Finished reading file: ${filePath}`);
+			this.win.webContents.send(`vtgr-complete`);
+		});
+
+		this.emitGraphData();
+	}
+
+	private emitGraphData() {
+		if (!this.graphWin || this.graphWin.isDestroyed()) return;
+		const graphPath = path.join(path.dirname(this.targetFile), "graphs.json");
+		if (fs.existsSync(graphPath) && this.graphWin) {
+			this.logger.log(`Loading graph data from: ${graphPath}`);
+			const graphData = fs.readFileSync(graphPath, "utf-8");
+			this.graphWin.webContents.send("vtgr-graph-data", graphData);
+		}
+	}
+
+	private async reloadWithFile(filePath: string) {
+		this.logger.log(`Reloading window with file: ${filePath}`);
+
+		const dirname = fileURLToPath(import.meta.url);
+		await this.win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html"));
+		if (this.graphWin && !this.graphWin.isDestroyed()) this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html"));
+
+		if (!filePath || !fs.existsSync(filePath) || filePath == targetFileIgnore) {
+			this.logger.warn(`File path is invalid or does not exist: ${filePath}`);
+			return;
+		}
+
+		this.sendFileToRenderer(filePath);
+	}
+
+	private async createGraphWindow() {
+		if (this.graphWin && !this.graphWin.isDestroyed()) {
+			this.graphWin.close();
+		}
+
+		const dirname = fileURLToPath(import.meta.url);
+		this.graphWin = new BrowserWindow({
+			title: "VTOL Live Viewer Graph",
+			width: 1000,
+			height: 800,
+			webPreferences: {
+				preload: path.join(dirname, "..", "preload.js"),
+				sandbox: false
+			}
+		});
+
+		await this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html"));
+		this.emitGraphData();
+	}
+
+	private buildMenuBar() {
+		const menu = new Menu();
+
+		menu.append(
+			new MenuItem({
+				label: "Quit",
+				click: () => {
+					app.quit();
+				},
+				accelerator: "CmdOrCtrl+Q"
+			})
+		);
+
+		menu.append(
+			new MenuItem({
+				label: "Restart",
+				click: async () => this.reloadWithFile(this.targetFile),
+				accelerator: "CmdOrCtrl+R"
+			})
+		);
+
+		menu.append(
+			new MenuItem({
+				label: "Dev Tools",
+				click: async (menu, win: BrowserWindow) => win.webContents.toggleDevTools(),
+				accelerator: "CmdOrCtrl+Shift+I"
+			})
+		);
+
+		menu.append(
+			new MenuItem({
+				label: "Graph",
+				click: async () => this.createGraphWindow(),
+				accelerator: "CmdOrCtrl+G"
+			})
+		);
+
+		Menu.setApplicationMenu(menu);
+	}
 }
 
-function sendFileToRenderer(filePath: string, win: BrowserWindow) {
-	logger.log(`Loading target file: ${filePath}`);
-
-	const readStream = fs.createReadStream(filePath, { encoding: "binary" });
-	let idx = 0;
-	readStream.on("data", chunk => {
-		// logger.log(`[${idx}] Sent ${chunk.length} bytes of data to renderer`);
-		win.webContents.send(`vtgr-chunk`, { data: chunk, index: idx++ });
-	});
-
-	readStream.on("close", () => {
-		logger.log(`Finished reading file: ${filePath}`);
-		win.webContents.send(`vtgr-complete`);
-	});
-}
-
-app.whenReady().then(() => createWindow());
-app.on("window-all-closed", () => {
-	app.quit();
-});
+const eApp = new ElectronApplication();
+eApp.init();

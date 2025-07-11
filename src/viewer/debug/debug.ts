@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-import { IVector3 } from "../../../VTOLLiveViewerCommon/dist/vector.js";
-import { Application } from "./app.js";
+import { IVector3 } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
+import { Application } from "../app.js";
 
 class Debug {
 	private static pointGeomCache: Record<number, THREE.SphereGeometry> = {};

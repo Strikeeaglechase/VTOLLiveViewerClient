@@ -18,6 +18,9 @@ export const IS_ELECTRON = typeof window != "undefined" && window.isElectron;
 type VTGRApi = {
 	onChunk: (callback: (chunk: { data: string | Buffer; index: number }) => void) => void;
 	onFinish: (callback: () => void) => void;
+	onGraphData: (callback: (data: string) => void) => void;
+	onTime: (callback: (time: number) => void) => void;
+	setTime: (time: number) => void;
 };
 
 declare global {

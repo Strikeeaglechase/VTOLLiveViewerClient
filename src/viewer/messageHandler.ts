@@ -2,6 +2,8 @@ import { EnableRPCs, RPC } from "../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { Vector3 } from "../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Vector } from "../../../VTOLLiveViewerCommon/dist/vector.js";
 import { Application } from "./app.js";
+import { DebugLine } from "./debug/debugLine.js";
+import { DebugSphere } from "./debug/debugSphere.js";
 import { RadarJammerSync } from "./entityBase/jammer.js";
 
 // MessageHandler is a class within HC, this wrapper handles its RPCs
@@ -79,6 +81,16 @@ class MessageHandler {
 		// 	rwrPrecision,
 		// 	falseId
 		// });
+	}
+
+	@RPC("in")
+	CreateDebugSphere(id: number) {
+		new DebugSphere(this.app, id);
+	}
+
+	@RPC("in")
+	CreateDebugLine(id: number) {
+		new DebugLine(this.app, id);
 	}
 
 	@RPC("in")
