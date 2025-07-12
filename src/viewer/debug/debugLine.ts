@@ -18,6 +18,7 @@ class DebugLine {
 
 		this.mesh = new THREE.Line(this.geom, this.material);
 		this.mesh.name = "debugLine";
+		this.mesh.frustumCulled = false;
 		this.app.sceneManager.add(this.mesh);
 	}
 

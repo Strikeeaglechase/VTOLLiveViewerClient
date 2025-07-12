@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import { getLogger, Logger } from "./logger.js";
 
 const targetFileIgnore = "dist/desktopApplication/index.js";
-const forceLoadFile = ""; //"C:/Users/strik/Desktop/Programs/CSharp/UnityGERunner/UnityTranspiler/output.vtgr";
+const forceLoadFile = "C:/Users/strik/Desktop/Programs/CSharp/UnityGERunner/UnityTranspiler/output.vtgr";
 
 const devModeOpen = false;
 class ElectronApplication {
@@ -18,6 +18,7 @@ class ElectronApplication {
 
 	private win: BrowserWindow;
 	private graphWin: BrowserWindow;
+	private sensorWin: BrowserWindow;
 	private targetFile: string;
 
 	constructor() {
@@ -105,6 +106,10 @@ class ElectronApplication {
 			if (this.graphWin && !this.graphWin.isDestroyed()) {
 				this.graphWin.webContents.send("time", time);
 			}
+
+			if (this.sensorWin && !this.sensorWin.isDestroyed()) {
+				this.sensorWin.webContents.send("time", time);
+			}
 		});
 	}
 
@@ -148,10 +153,12 @@ class ElectronApplication {
 		});
 
 		this.emitGraphData();
+		this.emitSensorData();
 	}
 
 	private emitGraphData() {
 		if (!this.graphWin || this.graphWin.isDestroyed()) return;
+
 		const graphPath = path.join(path.dirname(this.targetFile), "graphs.json");
 		if (fs.existsSync(graphPath) && this.graphWin) {
 			this.logger.log(`Loading graph data from: ${graphPath}`);
@@ -160,19 +167,35 @@ class ElectronApplication {
 		}
 	}
 
-	private async reloadWithFile(filePath: string) {
-		this.logger.log(`Reloading window with file: ${filePath}`);
+	private emitSensorData() {
+		if (!this.sensorWin || this.sensorWin.isDestroyed()) return;
+
+		const sensorPath = path.join(path.dirname(this.targetFile), "state.json");
+		if (!fs.existsSync(sensorPath) || !this.sensorWin) return;
+
+		const sensorData = fs.readFileSync(sensorPath, "utf-8");
+		this.logger.log(`Loading sensor data from: ${sensorPath}`);
+		this.sensorWin.webContents.send("vtgr-sensor-data", sensorData);
+	}
+
+	private async reloadWithFile() {
+		this.logger.log(`Reloading window with file: ${this.targetFile}`);
 
 		const dirname = fileURLToPath(import.meta.url);
-		await this.win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html"));
-		if (this.graphWin && !this.graphWin.isDestroyed()) this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html"));
+		const loadProms: Promise<void>[] = [];
+		loadProms.push(this.win.loadFile(path.join(dirname, "..", "..", "..", "public", "index.html")));
+		if (this.graphWin && !this.graphWin.isDestroyed()) loadProms.push(this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html")));
+		if (this.sensorWin && !this.sensorWin.isDestroyed())
+			loadProms.push(this.sensorWin.loadFile(path.join(dirname, "..", "..", "..", "public", "sensor.html")));
 
-		if (!filePath || !fs.existsSync(filePath) || filePath == targetFileIgnore) {
-			this.logger.warn(`File path is invalid or does not exist: ${filePath}`);
+		await Promise.all(loadProms);
+
+		if (!this.targetFile || !fs.existsSync(this.targetFile) || this.targetFile == targetFileIgnore) {
+			this.logger.warn(`File path is invalid or does not exist: ${this.targetFile}`);
 			return;
 		}
 
-		this.sendFileToRenderer(filePath);
+		this.sendFileToRenderer(this.targetFile);
 	}
 
 	private async createGraphWindow() {
@@ -182,7 +205,7 @@ class ElectronApplication {
 
 		const dirname = fileURLToPath(import.meta.url);
 		this.graphWin = new BrowserWindow({
-			title: "VTOL Live Viewer Graph",
+			title: "AIP Graph",
 			width: 1000,
 			height: 800,
 			webPreferences: {
@@ -193,6 +216,26 @@ class ElectronApplication {
 
 		await this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html"));
 		this.emitGraphData();
+	}
+
+	private async createSensorWin() {
+		if (this.sensorWin && !this.sensorWin.isDestroyed()) {
+			this.sensorWin.close();
+		}
+
+		const dirname = fileURLToPath(import.meta.url);
+		this.sensorWin = new BrowserWindow({
+			title: "AIP Sensor View",
+			width: 1000,
+			height: 800,
+			webPreferences: {
+				preload: path.join(dirname, "..", "preload.js"),
+				sandbox: false
+			}
+		});
+
+		await this.sensorWin.loadFile(path.join(dirname, "..", "..", "..", "public", "sensor.html"));
+		this.emitSensorData();
 	}
 
 	private buildMenuBar() {
@@ -211,7 +254,7 @@ class ElectronApplication {
 		menu.append(
 			new MenuItem({
 				label: "Restart",
-				click: async () => this.reloadWithFile(this.targetFile),
+				click: async () => this.reloadWithFile(),
 				accelerator: "CmdOrCtrl+R"
 			})
 		);
@@ -229,6 +272,14 @@ class ElectronApplication {
 				label: "Graph",
 				click: async () => this.createGraphWindow(),
 				accelerator: "CmdOrCtrl+G"
+			})
+		);
+
+		menu.append(
+			new MenuItem({
+				label: "Sensor View",
+				click: async () => this.createSensorWin(),
+				accelerator: "CmdOrCtrl+S"
 			})
 		);
 
