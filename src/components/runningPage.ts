@@ -1,4 +1,5 @@
 import { Team } from "../../../VTOLLiveViewerCommon/dist/shared.js";
+import { IS_ELECTRON } from "../config.js";
 import { addCommas, Application, ApplicationRunningState, deg, ftToMi, msToKnots, mToFt } from "../viewer/app.js";
 import { MissileEntity } from "../viewer/entities/genericMissileEntity.js";
 import { PlayerVehicle } from "../viewer/entities/playerVehicle.js";
@@ -79,6 +80,11 @@ class RunningPage extends Page {
 				elemsToHide[i].classList.add("replay-only-hidden");
 				elemsToHide[i].classList.remove("replay-only-visible");
 			}
+		}
+
+		if (IS_ELECTRON) {
+			this.logVisible = false;
+			this.updateLogContainerVisibility();
 		}
 
 		// this.toggleSettingsVisible();
@@ -197,7 +203,10 @@ class RunningPage extends Page {
 
 	private toggleLogVisible() {
 		this.logVisible = !this.logVisible;
+		this.updateLogContainerVisibility();
+	}
 
+	private updateLogContainerVisibility() {
 		const logToggleBtn = document.getElementById("toggle-log-btn");
 		const logContainer = document.getElementById("log-panel");
 		if (this.logVisible) {

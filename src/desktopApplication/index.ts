@@ -7,13 +7,14 @@ import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import { fileURLToPath } from "url";
 
 import { getLogger, Logger } from "./logger.js";
+import { Converter } from "./recordingToVtgr.js";
 
 const targetFileIgnore = "dist/desktopApplication/index.js";
-const forceLoadFile = "C:/Users/strik/Desktop/Programs/CSharp/UnityGERunner/UnityTranspiler/output.vtgr";
+const forceLoadFile = process.argv[1] == targetFileIgnore ? "C:/Users/strik/Desktop/Programs/CSharp/AIPLoader/sim/result.vtgr" : "";
 
+// console.log({ argv: process.argv, forceLoadFile });
 const devModeOpen = false;
 class ElectronApplication {
-	private earlyQuit = false;
 	private logger: Logger;
 
 	private win: BrowserWindow;
@@ -25,17 +26,83 @@ class ElectronApplication {
 		const logPath = path.join(app.getPath("userData"), "headless-client.log");
 		this.logger = getLogger(logPath);
 
-		if (squirrelStartupExit) app.quit();
 		app.setAppUserModelId("com.strik.HeadlessClient");
 	}
 
-	public init() {
-		if (this.earlyQuit) return;
+	public async init() {
+		if (squirrelStartupExit) {
+			app.quit();
+			return;
+		}
+
+		if (await this.checkCLICommand()) {
+			app.quit();
+			return;
+		}
 
 		this.buildMenuBar();
 		app.whenReady().then(() => this.afterAppReady());
 		app.on("window-all-closed", () => {
 			app.quit();
+		});
+	}
+
+	private async copyEmittedFile(sourceFile: string, outputFolder: string, filename: string) {
+		const filePath = path.join(path.dirname(sourceFile), filename);
+		const outputFilePath = path.join(path.dirname(outputFolder), filename);
+		if (fs.existsSync(filePath)) {
+			fs.copyFileSync(filePath, outputFilePath);
+			console.log(`Copied emitted file from ${filePath} to ${outputFilePath}`);
+		} else {
+			console.warn(`Emitted file not found: ${filePath}`);
+		}
+	}
+
+	private async checkCLICommand(): Promise<boolean> {
+		const args = process.argv.slice(1);
+		if (args[0] != "--convert") return false;
+
+		const inputFile = args[args.indexOf("--input") + 1];
+		const outputPath = args[args.indexOf("--output") + 1];
+		const mapPath = args[args.indexOf("--map") + 1];
+		if (!fs.existsSync(inputFile)) {
+			this.logger.error(`Input file does not exist: ${inputFile}`);
+			return true;
+		}
+
+		if (!outputPath) {
+			this.logger.error(`Output path not specified. Use --output <path>`);
+			return true;
+		}
+
+		if (!outputPath || outputPath == args[0]) {
+			this.logger.error(`Invalid output path: ${outputPath}`);
+			return true;
+		}
+
+		if (!mapPath) {
+			this.logger.error(`Map path not specified. Use --map <path>`);
+			return true;
+		}
+
+		const converter = new Converter(this.logger);
+		const writeStream = fs.createWriteStream(outputPath);
+		const vtgr = converter.convert(inputFile, mapPath);
+		vtgr.pipe(writeStream);
+
+		this.copyEmittedFile(inputFile, outputPath, "graphs.json");
+		this.copyEmittedFile(inputFile, outputPath, "state.json");
+
+		return new Promise<boolean>((resolve, reject) => {
+			writeStream.on("finish", () => {
+				this.logger.log(`Conversion complete. VTGR file written to ${outputPath}`);
+				resolve(true);
+			});
+			writeStream.on("error", err => {
+				this.logger.error(`Error writing VTGR file: ${err.message}`);
+				// reject(err);
+				resolve(true);
+			});
 		});
 	}
 

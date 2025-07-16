@@ -24,9 +24,17 @@ class LocalVTGRFile {
 			this.app.replayController.handleReplayBytes(chunkData);
 		});
 
-		this.app.beginReplay(this.header.info.lobbyId);
-
+		this.startReplayOncePacketsExist();
 		// Application.instance.beginReplay(header.info.lobbyId);
+	}
+
+	private startReplayOncePacketsExist() {
+		if (this.app.replayController.replayPacketCount > 0) {
+			this.app.beginReplay(this.header.info.lobbyId);
+		} else {
+			console.log(`Replay controller hasn't loaded any packets yet, waiting...`);
+			setTimeout(() => this.startReplayOncePacketsExist(), 250);
+		}
 	}
 
 	public async getMap(index: number): Promise<Uint8Array> {

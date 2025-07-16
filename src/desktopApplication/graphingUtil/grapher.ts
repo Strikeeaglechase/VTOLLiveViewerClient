@@ -48,6 +48,7 @@ class Application {
 	private timeEnd = 1000;
 
 	private timeMark = 0;
+	private timeMarkIdx = 0;
 
 	public async init() {
 		this.renderer = new Renderer("render-target");
@@ -262,7 +263,7 @@ class Application {
 		if (customStartIndex == -1) customStartIndex = 0;
 		if (customEndIndex == -1) customEndIndex = this.lastDataIndex;
 
-		this.graphs.forEach(graph => graph.draw(customStartIndex, customEndIndex));
+		this.graphs.forEach(graph => graph.draw(customStartIndex, customEndIndex, this.timeMarkIdx));
 
 		let lastDispTime = 0;
 		const pointWidth = customEndIndex - customStartIndex;
@@ -275,6 +276,7 @@ class Application {
 			if (time >= this.timeMark && !hasDisplayedTimeMark) {
 				this.renderer.line(x, 0, x, this.canvas.height, [255, 255, 255]);
 				hasDisplayedTimeMark = true;
+				this.timeMarkIdx = idx;
 			}
 
 			if (time - lastDispTime < this.timeMarkInterval) return;
@@ -283,13 +285,6 @@ class Application {
 			const timeStr = time.toFixed(this.timeMarkInterval < 1 ? 1 : 0);
 			this.renderer.text(`${timeStr}s`, x, y, 255);
 			this.renderer.dashedLine(x, 0, x, this.canvas.height, [10, 20], 100);
-
-			// if (displayValues) {
-			// 	this.graphs.forEach(g => {
-			// 		g.graph.displayValueAt(idx);
-			// 		// var pt = g.graph.points[idx]
-			// 	});
-			// }
 		});
 
 		Graph.nameY = 20;

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@petamoriken/float16": "^3.9.2",
+    "archiver": "^7.0.1",
     "buffer": "^6.0.3",
     "electron-squirrel-startup": "^1.0.1",
     "electron-window-state": "^5.0.3",
@@ -39,7 +40,9 @@
     "typescript": "^5.4.5",
     "typescript-transform-paths": "^3.4.6",
     "update-electron-app": "^3.1.1",
-    "vite": "^5.2.11"
+    "uuid": "^11.1.0",
+    "vite": "^5.2.11",
+    "vtol-live-viewer-shared": "^1.0.3"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -53,6 +56,7 @@
     "@electron/fuses": "^1.8.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/archiver": "^6.0.3",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/jszip": "^3.4.0",
     "@types/node": "^18.19.115",

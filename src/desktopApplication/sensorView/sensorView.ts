@@ -1,9 +1,10 @@
 import { Color, ColorValue, Renderer } from "strik-2d-renderer";
-import { rad } from "strik-2d-renderer/dist/renderer.js";
+import { deg, rad } from "strik-2d-renderer/dist/renderer.js";
+import { Team } from "vtol-live-viewer-shared";
 
 import { Quaternion } from "../../../../VTOLLiveViewerCommon/dist/math/quaternion.js";
 import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
-import { RadarTarget, State } from "./state.js";
+import { RadarTarget, State, VisualTargetType } from "./state.js";
 
 const radarColor: ColorValue = 155;
 const radarPartialDetectColor: ColorValue = [25, 184, 0];
@@ -20,13 +21,16 @@ class Application {
 	private renderer: Renderer;
 	private time: number = 0;
 	private binnedStates: State[][] = [];
+
 	private state: State;
+	private rot: Quaternion = new Quaternion(0, 0, 0, 1);
+	private euler: Vector = new Vector(0, 0, 0);
 
 	private lastFrameTime: number = Date.now();
 
 	private selfScreenX = 0;
 	private selfScreenY = 0;
-	private scale = 0.5; //0.01;
+	private scale = 0.01;
 
 	private currentDisplayY = 15;
 	private legendDisplayY = 15;
@@ -88,6 +92,14 @@ class Application {
 			if (state.time <= this.time) this.state = state;
 			else break;
 		}
+
+		this.rot = new Quaternion(
+			this.state.kinematics.rotation.x,
+			this.state.kinematics.rotation.y,
+			this.state.kinematics.rotation.z,
+			this.state.kinematics.rotation.w
+		);
+		this.euler = this.rot.toEuler("ZXY");
 	}
 
 	private run() {
@@ -143,19 +155,31 @@ class Application {
 	}
 
 	private drawRWRContacts() {
+		const ourBearing = deg(this.euler.y);
 		this.state.rwrContacts.forEach(contact => {
-			const x = Math.cos(rad(contact.bearing - 90)) * 10000;
-			const y = Math.sin(rad(contact.bearing - 90)) * 10000;
+			const x = Math.cos(rad(contact.bearing - ourBearing - 90)) * 10000;
+			const y = Math.sin(rad(contact.bearing - ourBearing - 90)) * 10000;
 
-			this.renderer.line(0, 0, x, y, contact.isMissile ? rwrMissileColor : rwrNonMissileColor);
+			this.renderer.line(0, 0, -x, y, contact.isMissile ? rwrMissileColor : rwrNonMissileColor);
 		});
 	}
 
 	private drawVisualTargets() {
+		const tOffDist = 150;
 		this.state.visualTargets.forEach(vt => {
-			const x = vt.direction.x * 10000;
-			const y = -vt.direction.z * 10000;
+			const dir = Vector.from(vt.direction).applyQuaternion(this.rot);
+			const xz = new Vector(dir.x, 0, dir.z).normalized();
+			const x = xz.x * 10000;
+			const y = -xz.z * 10000;
 			this.renderer.line(0, 0, x, y, visualTargetColor);
+
+			const tX = xz.x * tOffDist;
+			const tY = -xz.z * tOffDist;
+
+			let teamText = vt.team != Team.Unknown ? Team[vt.team] : "";
+			const text = `${VisualTargetType[vt.type]}\n${teamText}`;
+			const tLen = this.renderer.ctx.measureText(text).width;
+			this.renderer.text(text, tX - tLen / 2, tY + 5, visualTargetColor, 10);
 		});
 	}
 
@@ -203,13 +227,7 @@ class Application {
 	}
 
 	private drawRadarTarget(td: RadarTarget, isStt: boolean) {
-		const rot = new Quaternion(
-			this.state.kinematics.rotation.x,
-			this.state.kinematics.rotation.y,
-			this.state.kinematics.rotation.z,
-			this.state.kinematics.rotation.w
-		);
-		const relPos = Vector.from(td.position).subtract(this.state.kinematics.position).applyQuaternion(rot);
+		const relPos = Vector.from(td.position).subtract(this.state.kinematics.position).applyQuaternion(this.rot);
 		const x = relPos.x * this.scale;
 		const y = -relPos.z * this.scale;
 
@@ -232,8 +250,9 @@ class Application {
 	private drawIrSeeker() {
 		if (this.state.ir.seekerFov == 0) return;
 
+		const ourBearing = deg(this.euler.y);
 		const displaySize = 150;
-		const angle = Math.atan2(this.state.ir.lookDir.z, this.state.ir.lookDir.x);
+		const angle = Math.atan2(this.state.ir.lookDir.z, this.state.ir.lookDir.x) + rad(ourBearing);
 
 		const hFov = rad(this.state.ir.seekerFov) / 2;
 		const x1 = Math.cos(angle + hFov) * displaySize;

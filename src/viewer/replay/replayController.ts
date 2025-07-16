@@ -16,6 +16,9 @@ const VALIDATE_NO_REPEAT = IS_DEV;
 
 class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 	private replayPackets: RPCPacketT[] = [];
+	public get replayPacketCount(): number {
+		return this.replayPackets.length;
+	}
 	private groupedReplayPackets: RPCPacketT[][] = [];
 	public netInstantiatePackets: Record<string, RPCPacketT> = {};
 	public netDestroyPackets: Record<string, RPCPacketT> = {};

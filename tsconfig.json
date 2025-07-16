@@ -21,6 +21,7 @@
 			{ "transform": "typescript-transform-paths",	"afterDeclarations": true }
 		],
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
+		"skipLibCheck": true
 	},
 	"include": [
 		"src/**/*.ts",

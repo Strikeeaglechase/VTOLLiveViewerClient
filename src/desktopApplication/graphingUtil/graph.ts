@@ -30,7 +30,7 @@ class Graph {
 		}
 	}
 
-	public draw(startIdx: number, endIdx: number) {
+	public draw(startIdx: number, endIdx: number, timeMarkIdx: number) {
 		if (this.derivativeData.length != this.points.length) {
 			this.calculateDerivative();
 		}
@@ -67,9 +67,15 @@ class Graph {
 
 			this.renderer.line(prevX, prevY, x, y, this.color);
 
+			if (idx == timeMarkIdx) {
+				this.renderer.text(pt.toFixed(2), x + 5, y - 10, this.color);
+			}
+
 			previous = pt;
 		});
 	}
+
+	public drawValueAt() {}
 }
 
 export { Graph };
