@@ -85,12 +85,21 @@ class MessageHandler {
 
 	@RPC("in")
 	CreateDebugSphere(id: number) {
-		new DebugSphere(this.app, id);
+		if (this.app.debugShapes[id]) {
+			console.log(`Skipping debug sphere creation for ${id}, already exists`);
+			return;
+		}
+
+		this.app.debugShapes[id] = new DebugSphere(this.app, id);
 	}
 
 	@RPC("in")
 	CreateDebugLine(id: number) {
-		new DebugLine(this.app, id);
+		if (this.app.debugShapes[id]) {
+			console.log(`Skipping debug line creation for ${id}, already exists`);
+			return;
+		}
+		this.app.debugShapes[id] = new DebugLine(this.app, id);
 	}
 
 	@RPC("in")

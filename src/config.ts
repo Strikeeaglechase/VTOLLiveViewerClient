@@ -20,8 +20,10 @@ type VTGRApi = {
 	onFinish: (callback: () => void) => void;
 	onGraphData: (callback: (data: string) => void) => void;
 	onSensorData: (callback: (data: string) => void) => void;
+	onRvtSliderData: (callback: (data: string) => void) => void;
 	onTime: (callback: (time: number) => void) => void;
 	setTime: (time: number) => void;
+	setRvtData: (data: string) => void;
 };
 
 declare global {

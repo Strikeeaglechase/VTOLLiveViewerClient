@@ -16,6 +16,8 @@ import { API_URL, IS_DEV, IS_ELECTRON, WS_URL } from "../config";
 import { Client } from "./client/client";
 import { getLoggedInUser, isLoggedIn, readUserKey } from "./client/cookies";
 import { Debug } from "./debug/debug.js";
+import { DebugLine } from "./debug/debugLine.js";
+import { DebugSphere } from "./debug/debugSphere.js";
 import { AIAirVehicle } from "./entities/aiAirVehicle";
 import { AIGroundUnit } from "./entities/aiGroundUnit";
 import { MissileEntity } from "./entities/genericMissileEntity";
@@ -144,6 +146,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	private entitiesToDelete: Entity[] = [];
 	public logMessages: LogMessage[] = [];
 	private markers: Marker[] = [];
+	public debugShapes: Record<number, DebugLine | DebugSphere> = {};
 
 	private stats = new Stats();
 	public currentFocus: Entity | null = null;

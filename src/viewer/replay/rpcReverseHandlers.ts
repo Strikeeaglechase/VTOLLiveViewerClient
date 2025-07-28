@@ -232,4 +232,36 @@ replaceRPCHandlers.push({
 	}
 });
 
+replaceRPCHandlers.push({
+	className: "MessageHandler",
+	method: "CreateDebugLine",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const debugShape = controller.app.debugShapes[parseInt(rpc.id)];
+		if (!debugShape) {
+			console.warn(`Reversing CreateDebugLine RPC has no debug shape for id ${rpc.id}`);
+			return false;
+		}
+
+		debugShape.Hide();
+
+		return false;
+	}
+});
+
+replaceRPCHandlers.push({
+	className: "MessageHandler",
+	method: "CreateDebugSphere",
+	handler: (controller: ReplayController, rpc: RPCPacketT) => {
+		const debugShape = controller.app.debugShapes[parseInt(rpc.id)];
+		if (!debugShape) {
+			console.warn(`Reversing CreateDebugSphere RPC has no debug shape for id ${rpc.id}`);
+			return false;
+		}
+
+		debugShape.Hide();
+
+		return false;
+	}
+});
+
 export { replaceRPCHandlers };

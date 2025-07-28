@@ -1,3 +1,4 @@
+import { exec } from "child_process";
 import { app, BrowserWindow, BrowserWindowConstructorOptions, ipcMain, Menu, MenuItem, screen } from "electron";
 import squirrelStartupExit from "electron-squirrel-startup";
 import windowStateKeeper from "electron-window-state";
@@ -12,7 +13,7 @@ import { Converter } from "./recordingToVtgr.js";
 const targetFileIgnore = "dist/desktopApplication/index.js";
 const forceLoadFile = process.argv[1] == targetFileIgnore ? "C:/Users/strik/Desktop/Programs/CSharp/AIPLoader/sim/result.vtgr" : "";
 
-// console.log({ argv: process.argv, forceLoadFile });
+const aipSimCwdPath = "./aipSimResults/";
 const devModeOpen = false;
 class ElectronApplication {
 	private logger: Logger;
@@ -21,6 +22,12 @@ class ElectronApplication {
 	private graphWin: BrowserWindow;
 	private sensorWin: BrowserWindow;
 	private targetFile: string;
+
+	private isRvtMode = false;
+	private hasSentRvtData = false;
+	private aipSimCommand: string;
+	private rvtValuesDirty = false;
+	private aipSimRunning = false;
 
 	constructor() {
 		const logPath = path.join(app.getPath("userData"), "headless-client.log");
@@ -35,8 +42,14 @@ class ElectronApplication {
 			return;
 		}
 
-		if (await this.checkCLICommand()) {
-			app.quit();
+		let argv = process.argv.slice(1);
+		if (argv[0] == targetFileIgnore) {
+			argv = argv.slice(1);
+			this.logger.warn(`Ignoring target file: ${targetFileIgnore}`);
+		}
+
+		if (await this.checkCLICommand(argv)) {
+			if (!this.isRvtMode) app.quit();
 			return;
 		}
 
@@ -58,31 +71,45 @@ class ElectronApplication {
 		}
 	}
 
-	private async checkCLICommand(): Promise<boolean> {
-		const args = process.argv.slice(1);
-		if (args[0] != "--convert") return false;
+	private async checkCLICommand(args: string[]): Promise<boolean> {
+		if (args.length == 0) return false;
 
+		switch (args[0].toLowerCase()) {
+			case "--convert":
+				await this.handleConvertCommand(args);
+				break;
+			case "--rvt":
+				await this.handleRapidValueTestingCommand(args);
+				break;
+			default:
+				return false;
+		}
+
+		return true;
+	}
+
+	private async handleConvertCommand(args: string[]): Promise<void> {
 		const inputFile = args[args.indexOf("--input") + 1];
 		const outputPath = args[args.indexOf("--output") + 1];
 		const mapPath = args[args.indexOf("--map") + 1];
 		if (!fs.existsSync(inputFile)) {
 			this.logger.error(`Input file does not exist: ${inputFile}`);
-			return true;
+			return;
 		}
 
 		if (!outputPath) {
 			this.logger.error(`Output path not specified. Use --output <path>`);
-			return true;
+			return;
 		}
 
 		if (!outputPath || outputPath == args[0]) {
 			this.logger.error(`Invalid output path: ${outputPath}`);
-			return true;
+			return;
 		}
 
 		if (!mapPath) {
 			this.logger.error(`Map path not specified. Use --map <path>`);
-			return true;
+			return;
 		}
 
 		const converter = new Converter(this.logger);
@@ -93,17 +120,99 @@ class ElectronApplication {
 		this.copyEmittedFile(inputFile, outputPath, "graphs.json");
 		this.copyEmittedFile(inputFile, outputPath, "state.json");
 
-		return new Promise<boolean>((resolve, reject) => {
+		return new Promise<void>((resolve, reject) => {
 			writeStream.on("finish", () => {
 				this.logger.log(`Conversion complete. VTGR file written to ${outputPath}`);
-				resolve(true);
+				resolve();
 			});
 			writeStream.on("error", err => {
 				this.logger.error(`Error writing VTGR file: ${err.message}`);
 				// reject(err);
-				resolve(true);
+				resolve();
 			});
 		});
+	}
+
+	private async executeAipSim() {
+		if (this.aipSimRunning) return;
+		this.aipSimRunning = true;
+		const cwd = path.resolve(aipSimCwdPath);
+		if (!fs.existsSync(cwd)) {
+			fs.mkdirSync(cwd, { recursive: true });
+		}
+
+		const child = exec(this.aipSimCommand, { cwd: cwd });
+		const start = Date.now();
+
+		child.stdout.on("data", data => {
+			this.logger.info(`[AIP]${data.trim()}`);
+		});
+
+		child.stderr.on("data", data => {
+			this.logger.error(`AIP Sim error: ${data}`);
+		});
+
+		child.on("exit", code => {
+			this.logger.log(`AIP Sim exited with code ${code}, exec time: ${Date.now() - start}ms`);
+			this.aipSimRunning = false;
+			if (this.rvtValuesDirty) {
+				this.rvtValuesDirty = false;
+				this.executeAipSim();
+			}
+
+			this.emitGraphData();
+		});
+	}
+
+	private async handleRapidValueTestingCommand(args: string[]): Promise<void> {
+		this.isRvtMode = true;
+		app.on("window-all-closed", () => app.quit());
+		this.buildMenuBar();
+
+		this.aipSimCommand = args[1];
+		if (!this.aipSimCommand.includes("--no-map")) {
+			this.aipSimCommand += " --no-map";
+		}
+		this.logger.log(`AIP Sim command: ${this.aipSimCommand}`);
+
+		await new Promise(res => app.whenReady().then(res));
+
+		const dirname = fileURLToPath(import.meta.url);
+
+		const winState = windowStateKeeper({
+			defaultWidth: 1000,
+			defaultHeight: 800
+		});
+
+		const winOptions: BrowserWindowConstructorOptions = {
+			title: "AIP Rapid Value Testing",
+			// fullscreen: true,
+
+			x: winState.x,
+			y: winState.y,
+			width: winState.width,
+			height: winState.height,
+
+			webPreferences: {
+				preload: path.join(dirname, "..", "preload.js"),
+				sandbox: false
+			}
+		};
+
+		this.graphWin = new BrowserWindow(winOptions);
+		winState.manage(this.graphWin);
+
+		ipcMain.on("set-rvt-data", (event, data: string) => {
+			try {
+				fs.writeFileSync(path.join(aipSimCwdPath, "rvt.json"), data, "utf-8");
+			} catch (e) {}
+
+			this.rvtValuesDirty = true;
+			this.executeAipSim();
+		});
+
+		await this.graphWin.loadFile(path.join(dirname, "..", "..", "..", "public", "graph.html"));
+		this.executeAipSim();
 	}
 
 	private async afterAppReady() {
@@ -226,11 +335,17 @@ class ElectronApplication {
 	private emitGraphData() {
 		if (!this.graphWin || this.graphWin.isDestroyed()) return;
 
-		const graphPath = path.join(path.dirname(this.targetFile), "graphs.json");
+		const graphPath = !this.isRvtMode ? path.join(path.dirname(this.targetFile), "graphs.json") : path.join(aipSimCwdPath, "graphs.json");
 		if (fs.existsSync(graphPath) && this.graphWin) {
 			this.logger.log(`Loading graph data from: ${graphPath}`);
 			const graphData = fs.readFileSync(graphPath, "utf-8");
 			this.graphWin.webContents.send("vtgr-graph-data", graphData);
+		}
+
+		if (this.isRvtMode && !this.hasSentRvtData) {
+			const testingValuesData = fs.readFileSync(path.join(aipSimCwdPath, "rvt.json"), "utf-8");
+			this.logger.log(`Loading RVT data from: ${path.join(aipSimCwdPath, "rvt.json")}`);
+			this.graphWin.webContents.send("vtgr-rvt-data", testingValuesData);
 		}
 	}
 
@@ -245,7 +360,17 @@ class ElectronApplication {
 		this.sensorWin.webContents.send("vtgr-sensor-data", sensorData);
 	}
 
+	private async reloadVtrMode() {
+		await this.graphWin.loadFile(path.join(fileURLToPath(import.meta.url), "..", "..", "..", "public", "graph.html"));
+		this.emitGraphData();
+	}
+
 	private async reloadWithFile() {
+		if (this.isRvtMode) {
+			this.reloadVtrMode();
+			return;
+		}
+
 		this.logger.log(`Reloading window with file: ${this.targetFile}`);
 
 		const dirname = fileURLToPath(import.meta.url);
@@ -334,21 +459,23 @@ class ElectronApplication {
 			})
 		);
 
-		menu.append(
-			new MenuItem({
-				label: "Graph",
-				click: async () => this.createGraphWindow(),
-				accelerator: "CmdOrCtrl+G"
-			})
-		);
+		if (!this.isRvtMode) {
+			menu.append(
+				new MenuItem({
+					label: "Graph",
+					click: async () => this.createGraphWindow(),
+					accelerator: "CmdOrCtrl+G"
+				})
+			);
 
-		menu.append(
-			new MenuItem({
-				label: "Sensor View",
-				click: async () => this.createSensorWin(),
-				accelerator: "CmdOrCtrl+S"
-			})
-		);
+			menu.append(
+				new MenuItem({
+					label: "Sensor View",
+					click: async () => this.createSensorWin(),
+					accelerator: "CmdOrCtrl+S"
+				})
+			);
+		}
 
 		Menu.setApplicationMenu(menu);
 	}

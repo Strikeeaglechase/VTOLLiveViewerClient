@@ -6,6 +6,7 @@ leaks.dont.look
 public/*.js
 headless-client.log
 gitToken.js
+aipSimResults
 
 # local env files
 .env.local

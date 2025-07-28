@@ -43,7 +43,6 @@ class DebugSphere {
 	public SetScale(scale: number) {
 		this.scaleOffset = scale;
 		this.updateScale();
-		this.mesh.visible = true;
 	}
 
 	@RPC("in")

@@ -26,6 +26,14 @@ const GRAPH_COLORS: ColorValue[] = [
 	[192, 57, 43] // Dark Red
 ];
 
+interface RVTData {
+	name: string;
+	value: number;
+	minValue: number;
+	maxValue: number;
+	step: number;
+}
+
 function getLastDataIdx(data: number[]) {
 	let lastIdx = 0;
 	for (let i = 0; i < data.length; i++) {
@@ -50,6 +58,8 @@ class Application {
 	private timeMark = 0;
 	private timeMarkIdx = 0;
 
+	private rvtData: RVTData[] = [];
+
 	public async init() {
 		this.renderer = new Renderer("render-target");
 		const graphCanvas = document.getElementById("render-target") as HTMLCanvasElement;
@@ -58,25 +68,19 @@ class Application {
 		this.addEventListeners();
 		this.onResize();
 
-		await this.loadMapData();
-		this.graphs.forEach(g => {
-			g.points = g.points.slice(0, this.lastDataIndex);
-			console.log(`Graph ${g.name} has ${g.points.length} points.`);
-		});
-		this.timeValues = this.timeValues.slice(0, this.lastDataIndex);
-		this.graphs.forEach(g => (g.timeValues = this.timeValues));
+		this.setupHandleRvt();
+		await this.loadGraphData();
 
 		window.vtgrApi.onTime(time => {
 			this.timeMark = time / 1000;
 		});
 
 		this.setupCollapseToggle();
-		this.createGraphControls();
 
 		this.run();
 	}
 
-	private async loadMapData() {
+	private async loadGraphData() {
 		// const response = await fetch("http://localhost:8000/sdata");
 		// const graphData: Record<string, number[]> = await response.json();
 
@@ -84,18 +88,18 @@ class Application {
 		this.renderer.text("Waiting for graphs.json data.", 25, 200, 255, 16);
 		this.renderer.text("File must be in the same directory as the loaded VTGR.", 25, 225, 255, 16);
 
-		let graphDataStr: string;
 		await new Promise<void>(res => {
 			window.vtgrApi.onGraphData(data => {
-				graphDataStr = data;
+				this.handleNewGraphDataString(data);
 				res();
 			});
 		});
+	}
 
+	private handleNewGraphDataString(graphDataStr: string) {
+		this.graphs = [];
 		const graphData: Record<string, number[]> = JSON.parse(graphDataStr);
-
 		let colorIndex = 0;
-
 		for (const [name, points] of Object.entries(graphData)) {
 			if (name == "time") {
 				this.timeValues = points;
@@ -113,6 +117,64 @@ class Application {
 
 			this.graphs.push(graph);
 		}
+
+		this.graphs.forEach(g => {
+			g.points = g.points.slice(0, this.lastDataIndex);
+			console.log(`Graph ${g.name} has ${g.points.length} points.`);
+		});
+		this.timeValues = this.timeValues.slice(0, this.lastDataIndex);
+		this.graphs.forEach(g => (g.timeValues = this.timeValues));
+
+		this.createGraphControls();
+	}
+
+	private setupHandleRvt() {
+		window.vtgrApi.onRvtSliderData(dataStr => {
+			const data: RVTData[] = JSON.parse(dataStr);
+			this.rvtData = data;
+			this.createRVTControls();
+		});
+	}
+
+	private createRVTControls() {
+		const rvtPanel = document.getElementById("rvt-panel");
+
+		// Clear existing controls except title
+		const title = rvtPanel.querySelector(".rvt-panel-title");
+		rvtPanel.innerHTML = "";
+		rvtPanel.appendChild(title);
+
+		// Create controls for each RVT data entry
+		this.rvtData.forEach((rvt, index) => {
+			this.createRVTControl(rvt, index, rvtPanel);
+		});
+	}
+
+	private createRVTControl(rvt: RVTData, index: number, panel: HTMLElement) {
+		const rvtControl = document.createElement("div");
+		rvtControl.className = "rvt-control";
+
+		rvtControl.innerHTML = `
+			<div class="rvt-name">${rvt.name}</div>
+			<div class="rvt-slider-container">
+				<input type="range" class="rvt-slider" id="rvt-slider-${index}" 
+					   min="${rvt.minValue}" max="${rvt.maxValue}" step="${rvt.step}" value="${rvt.value}">
+				<span class="rvt-value" id="rvt-value-${index}">${rvt.value.toFixed(2)}</span>
+			</div>
+		`;
+
+		panel.appendChild(rvtControl);
+
+		const slider = document.getElementById(`rvt-slider-${index}`) as HTMLInputElement;
+		const valueDisplay = document.getElementById(`rvt-value-${index}`);
+
+		slider.addEventListener("input", () => {
+			const newValue = parseFloat(slider.value);
+			valueDisplay.textContent = newValue.toFixed(2);
+			rvt.value = newValue;
+
+			window.vtgrApi.setRvtData(JSON.stringify(this.rvtData, null, 2));
+		});
 	}
 
 	private setupCollapseToggle() {
@@ -138,7 +200,8 @@ class Application {
 	}
 
 	private createGraphControls() {
-		const controlPanel = document.getElementById("control-panel");
+		const controlPanel = document.getElementById("control-panel-graphs");
+		controlPanel.innerHTML = "";
 
 		const timeStartSlider = document.getElementById("time-start-slider") as HTMLInputElement;
 		const timeEndSlider = document.getElementById("time-end-slider") as HTMLInputElement;
