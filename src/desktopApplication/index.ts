@@ -217,7 +217,7 @@ class ElectronApplication {
 
 	private async afterAppReady() {
 		await this.createMainWindow();
-		this.configureAutoUpdate();
+		// this.configureAutoUpdate();
 		this.loadFileFromArgs();
 	}
 
@@ -285,6 +285,16 @@ class ElectronApplication {
 
 			if (this.sensorWin && !this.sensorWin.isDestroyed()) {
 				this.sensorWin.webContents.send("time", time);
+			}
+		});
+
+		ipcMain.on("set-targeted-entity", (event, entityId: number) => {
+			if (this.graphWin && !this.graphWin.isDestroyed()) {
+				this.graphWin.webContents.send("targeted-entity", entityId);
+			}
+
+			if (this.sensorWin && !this.sensorWin.isDestroyed()) {
+				this.sensorWin.webContents.send("targeted-entity", entityId);
 			}
 		});
 	}

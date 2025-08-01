@@ -17,12 +17,18 @@ const irSeekerColor: ColorValue = [255, 0, 255];
 const scaleMin = 0.001;
 const scaleMax = 1;
 
+interface WrappedState {
+	state: State;
+	aiId: number;
+}
+
 class Application {
 	private renderer: Renderer;
 	private time: number = 0;
-	private binnedStates: State[][] = [];
+	private binnedStates: Record<number, State[][]> = [];
 
 	private state: State;
+	private targetedAi: number = 0;
 	private rot: Quaternion = new Quaternion(0, 0, 0, 1);
 	private euler: Vector = new Vector(0, 0, 0);
 
@@ -50,6 +56,11 @@ class Application {
 			this.time = time / 1000;
 		});
 
+		window.vtgrApi.onTargetedEntity(entityId => {
+			this.targetedAi = entityId;
+			this.updateCurrentState();
+		});
+
 		this.run();
 	}
 
@@ -68,24 +79,25 @@ class Application {
 			});
 		});
 
-		const stateData: State[] = stateDataStr
+		const stateData: WrappedState[] = stateDataStr
 			.split("\n")
 			.filter(l => l.trim().length > 0)
 			.map(l => JSON.parse(l));
 		console.log(`Loaded ${stateData.length} sensor states`);
 
-		stateData.forEach(state => {
-			const binIdx = Math.floor(state.time);
-			if (!this.binnedStates[binIdx]) this.binnedStates[binIdx] = [];
+		stateData.forEach(ws => {
+			const binIdx = Math.floor(ws.state.time);
+			if (!this.binnedStates[ws.aiId]) this.binnedStates[ws.aiId] = [];
+			if (!this.binnedStates[ws.aiId][binIdx]) this.binnedStates[binIdx] = [];
 
-			this.binnedStates[binIdx].push(state);
+			this.binnedStates[ws.aiId][binIdx].push(ws.state);
 		});
 	}
 
 	private updateCurrentState() {
 		const binIdx = Math.floor(this.time);
-		if (!this.binnedStates[binIdx]) return;
-		const states = this.binnedStates[binIdx];
+		if (!this.binnedStates[this.targetedAi] || !this.binnedStates[this.targetedAi][binIdx]) return;
+		const states = this.binnedStates[this.targetedAi][binIdx];
 
 		for (let i = 0; i < states.length; i++) {
 			const state = states[i];

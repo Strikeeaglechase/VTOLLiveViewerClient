@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("vtgrApi", {
 	onSensorData: (callback: (data: string) => void) => ipcRenderer.on("vtgr-sensor-data", (event, data) => callback(data)),
 	onRvtSliderData: (callback: (data: string) => void) => ipcRenderer.on("vtgr-rvt-data", (event, data) => callback(data)),
 	onTime: (callback: (time: number) => void) => ipcRenderer.on("time", (event, time) => callback(time)),
+	onTargetedEntity: (callback: (entityId: number) => void) => ipcRenderer.on("targeted-entity", (event, entityId) => callback(entityId)),
+	setTargetedEntity: (entityId: number) => ipcRenderer.send("set-targeted-entity", entityId),
 	setTime: (time: number) => ipcRenderer.send("set-time", time),
 	setRvtData: (data: string) => ipcRenderer.send("set-rvt-data", data)
 });

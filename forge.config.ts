@@ -1,8 +1,3 @@
-// const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-// const { FuseV1Options, FuseVersion } = require('@electron/fuses');
-// import MakerSquirrel from "@electron-forge/maker-squirrel";
-// import MakerZip from "@electron-forge/maker-zip";
-
 import type { ForgeConfig } from "@electron-forge/shared-types";
 import { gitToken } from "./gitToken.js";
 
@@ -19,13 +14,13 @@ const config: ForgeConfig = {
 			name: "@electron-forge/maker-zip",
 			platforms: ["win32"],
 			config: {}
-		},
-		{
-			name: "@electron-forge/maker-squirrel",
-			config: {
-				name: "HeadlessClient"
-			}
 		}
+		// {
+		// 	name: "@electron-forge/maker-squirrel",
+		// 	config: {
+		// 		name: "HeadlessClient"
+		// 	}
+		// }
 	],
 
 	publishers: [

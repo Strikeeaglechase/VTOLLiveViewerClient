@@ -880,6 +880,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
 			entity.object.add(this.sceneManager.camera);
 		});
+
+		if (IS_ELECTRON) {
+			window.vtgrApi.setTargetedEntity(entity.id);
+		}
 	}
 
 	public currentlySpawningId = 0; // For debug

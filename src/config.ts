@@ -22,6 +22,8 @@ type VTGRApi = {
 	onSensorData: (callback: (data: string) => void) => void;
 	onRvtSliderData: (callback: (data: string) => void) => void;
 	onTime: (callback: (time: number) => void) => void;
+	onTargetedEntity: (callback: (entityId: number) => void) => void;
+	setTargetedEntity: (entityId: number) => void;
 	setTime: (time: number) => void;
 	setRvtData: (data: string) => void;
 };
