@@ -10,8 +10,8 @@ import { fileURLToPath } from "url";
 import { getLogger, Logger } from "./logger.js";
 import { Converter } from "./recordingToVtgr.js";
 
-const targetFileIgnore = "dist/desktopApplication/index.js";
-const forceLoadFile = process.argv[1] == targetFileIgnore ? "C:/Users/strik/Desktop/Programs/CSharp/AIPLoader/sim/result.vtgr" : "";
+const targetFileIgnore = "index.js";
+const forceLoadFile = process.argv[1]?.endsWith(targetFileIgnore) ? "C:/Users/strik/Desktop/Programs/CSharp/AIPLoader/sim/result.vtgr" : "";
 
 const aipSimCwdPath = "./aipSimResults/";
 const devModeOpen = false;
@@ -43,7 +43,7 @@ class ElectronApplication {
 		}
 
 		let argv = process.argv.slice(1);
-		if (argv[0] == targetFileIgnore) {
+		if (argv[0]?.endsWith(targetFileIgnore)) {
 			argv = argv.slice(1);
 			this.logger.warn(`Ignoring target file: ${targetFileIgnore}`);
 		}
@@ -165,6 +165,7 @@ class ElectronApplication {
 	}
 
 	private async handleRapidValueTestingCommand(args: string[]): Promise<void> {
+		this.logger.info(`Starting AIP Rapid Value Testing mode...`);
 		this.isRvtMode = true;
 		app.on("window-all-closed", () => app.quit());
 		this.buildMenuBar();
@@ -356,6 +357,7 @@ class ElectronApplication {
 			const testingValuesData = fs.readFileSync(path.join(aipSimCwdPath, "rvt.json"), "utf-8");
 			this.logger.log(`Loading RVT data from: ${path.join(aipSimCwdPath, "rvt.json")}`);
 			this.graphWin.webContents.send("vtgr-rvt-data", testingValuesData);
+			this.hasSentRvtData = true;
 		}
 	}
 

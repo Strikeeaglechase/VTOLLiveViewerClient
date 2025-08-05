@@ -8,20 +8,24 @@ import { RPCPacket } from "vtol-live-viewer-shared/dist/rpc.js";
 import { DebugLine, DebugSphere, MessageHandler, MissileEntity, PlayerVehicle, VTOLLobby } from "vtol-live-viewer-shared/dist/rpcApi.js";
 import { Vector } from "vtol-live-viewer-shared/dist/vector.js";
 
+import { readBinaryRecording } from "./binaryRecording.js";
 import { EntityEvent, EventType } from "./events.js";
 import { Logger } from "./logger.js";
 
-interface KinematicData {
+export interface KinematicData {
 	position: Vector3;
 	velocity: Vector3;
 	rotation: Vector3;
 	pyr: Vector3;
+	throttle: number;
+	fuel: number;
 	entityId: number;
 }
 
-interface RecordedFrame {
+export interface RecordedFrame {
 	motion: KinematicData[];
 	events: EntityEvent[];
+	logs: string[];
 	time: number;
 }
 
@@ -36,13 +40,24 @@ class Converter {
 	private messageHandler: MessageHandler;
 	private lobby: VTOLLobby;
 	private entities: Record<number, PlayerVehicle | MissileEntity | DebugLine | DebugSphere> = {};
+	private previousFuelValues: Record<number, number> = {};
 
 	public constructor(private logger: Logger) {}
 
-	public convert(inputFile: string, mapPath: string) {
-		const content = fs.readFileSync(inputFile, "utf-8").split("\n");
-		const data: RecordedFrame[] = content.filter(l => l != "").map(line => JSON.parse(line));
+	private loadFrames(inputFile: string) {
+		try {
+			const content = fs.readFileSync(inputFile, "utf-8").split("\n");
+			const data: RecordedFrame[] = content.filter(l => l != "").map(line => JSON.parse(line));
+			return data;
+		} catch (error) {
+			console.log(`JSON parse failed, trying binary format`);
+			const content = fs.readFileSync(inputFile, "binary");
+			return readBinaryRecording(content);
+		}
+	}
 
+	public convert(inputFile: string, mapPath: string) {
+		const data = this.loadFrames(inputFile);
 		this.logger.log(`Loaded ${data.length} frames from ${inputFile}`);
 
 		const lobbyId = (Math.random() * 1e9).toFixed(0);
@@ -60,7 +75,7 @@ class Converter {
 				pilotName: init.name,
 				slot: -1,
 				unitId: -1,
-				team: Team.Unknown
+				team: init.team
 			};
 
 			playerInfos.push(playerInfo);
@@ -172,7 +187,12 @@ class Converter {
 
 			switch (entity.constructor) {
 				case PlayerVehicle:
-					(entity as PlayerVehicle).UpdateData(motion.position, motion.velocity, new Vector(), motion.rotation, 0, false, motion.pyr);
+					(entity as PlayerVehicle).UpdateData(motion.position, motion.velocity, new Vector(), motion.rotation, motion.throttle, false, motion.pyr);
+					const shouldRecordFuel = !this.previousFuelValues[entity.id] || Math.floor(motion.fuel * 100) != this.previousFuelValues[entity.id];
+					if (shouldRecordFuel) {
+						(entity as PlayerVehicle).SetFuel(0, motion.fuel);
+						this.previousFuelValues[entity.id] = Math.floor(motion.fuel * 100);
+					}
 					break;
 				case MissileEntity:
 					(entity as MissileEntity).SyncShit(motion.position, motion.rotation, motion.velocity, new Vector());
