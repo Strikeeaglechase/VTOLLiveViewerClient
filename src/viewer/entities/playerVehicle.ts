@@ -31,10 +31,18 @@ const predictedStep = 0.05;
 
 @EnableRPCs("instance", ["F45A", "FA26B", "AV42", "AH94", "T55", "EF24", "Aircraft"]) // "Aircraft" is NukOpt
 class PlayerVehicle extends Entity {
+	// public static speedLogs: (string | number | number[])[][] = [[]];
+	// private mySpeedLog: number[][];
+
 	private tgp: DesignatorLine;
 	public lockLine: DesignatorLine;
 	private throttle: number;
 	private pyr: Vector = new Vector(0, 0, 0);
+
+	private speedErrorScore = 0;
+	private speedPrevPos: Vector;
+	private speedPrevTime = 0;
+	// private speedDeltas: number[] = [];
 
 	private playerHeadLine: THREE.Line;
 	private playerHeadLineGeom: THREE.BufferGeometry; // calculateScale
@@ -456,6 +464,7 @@ class PlayerVehicle extends Entity {
 		// 	this.previousUpdateTime = Application.time;
 		// }
 		this.updateMotion(pos, vel, accel, rot);
+		this.validateReportedSpeed(pos, vel);
 
 		// const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rad(rot.x), -rad(rot.y), -rad(rot.z), "YXZ"));
 		// const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat);
@@ -463,6 +472,80 @@ class PlayerVehicle extends Entity {
 		// let aoaOffset = 0;
 		// if (this.type == "Vehicles/FA-26B" || this.type == "Vehicles/T-55") aoaOffset = 0.806;
 		// console.log(`Aoa: ${deg(aoa) + aoaOffset}`);
+	}
+
+	private validateReportedSpeed(pos: Vector3, vel: Vector3) {
+		if (this.hasDied) return;
+		// if (!this.isFocus) return;
+
+		const position = Vector.from(pos);
+		const velocity = Vector.from(vel);
+
+		if (this.app.timeDirection < 0) {
+			this.speedPrevPos = position;
+			this.speedPrevTime = Application.time;
+			// this.speedDeltas = [];
+			return;
+		}
+
+		if (!this.speedPrevPos) {
+			this.speedPrevPos = position;
+			this.speedPrevTime = Application.time;
+			return;
+		}
+
+		const time = (Application.time - this.speedPrevTime) / 1000;
+		if (time < 0.1) return;
+
+		const dist = position.subtract(this.speedPrevPos).length();
+		if (dist > 100) {
+			this.speedPrevPos = position;
+			this.speedPrevTime = Application.time;
+			return;
+		}
+
+		const speed = dist / time;
+
+		const reportedSpeed = velocity.length();
+		const deltaSpeed = speed - reportedSpeed;
+
+		if (reportedSpeed > 100) {
+			if (deltaSpeed > 0) this.speedErrorScore++;
+			else this.speedErrorScore--;
+
+			this.speedErrorScore *= 0.98;
+		}
+
+		// console.log({ dist, time, speed, reportedSpeed, deltaFromAccel, deltaSpeed });
+		// if (!this.mySpeedLog) {
+		// 	this.mySpeedLog = [];
+		// 	PlayerVehicle.speedLogs.push(this.mySpeedLog);
+		// 	PlayerVehicle.speedLogs[0].push(this.owner.pilotName);
+		// }
+
+		// this.mySpeedLog.push([speed, reportedSpeed]);
+
+		// this.speedDeltas.push(deltaSpeed);
+
+		this.speedPrevPos = position.clone();
+		this.speedPrevTime = Application.time;
+
+		if (this.speedErrorScore > 20) {
+			console.warn(`Client ${this.owner.pilotName} (${this.ownerId}) has a high speed error score of ${this.speedErrorScore.toFixed(0)}`);
+			this.speedErrorScore = 0;
+		}
+		// if (this.speedDeltas.length >= 10) {
+		// 	const avgDelta = this.speedDeltas.reduce((a, b) => a + b, 0) / this.speedDeltas.length;
+		// 	if (avgDelta > 50)
+		// 		console.warn(
+		// 			`Client ${this.owner.pilotName} (${
+		// 				this.ownerId
+		// 			}) is reporting a speed that is significantly different to the calculated speed. Reported: ${reportedSpeed.toFixed(
+		// 				0
+		// 			)}m/s, Calculated: ${speed.toFixed(0)}m/s, Avg Δ: ${avgDelta.toFixed(0)}m/s`
+		// 		);
+		// 	this.speedDeltas = [];
+		// }
 	}
 
 	@RPC("in")
@@ -531,7 +614,9 @@ class PlayerVehicle extends Entity {
 
 	@RPC("in")
 	HSDamage(damage: number, healthIndex: number, sourcePlayerId: string, sourceEntityId: number) {
-		console.log(`HS Damage on ${this}. Damage: ${damage}, healthIndex: ${healthIndex}, sourcePlayerId: ${sourcePlayerId}, sourceEntityId: ${sourceEntityId}`);
+		console.debug(
+			`HS Damage on ${this}. Damage: ${damage}, healthIndex: ${healthIndex}, sourcePlayerId: ${sourcePlayerId}, sourceEntityId: ${sourceEntityId}`
+		);
 
 		if (!this.damageLog[healthIndex]) this.damageLog[healthIndex] = 0;
 		this.damageLog[healthIndex] += damage;
