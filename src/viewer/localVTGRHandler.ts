@@ -47,6 +47,14 @@ class LocalVTGRFile {
 		return LocalVTGRFile.loadFromArrayBuffer(Buffer.from(fileArrBuff));
 	}
 
+	public static async loadFromUrl(url: string): Promise<LocalVTGRFile> {
+		const response = await fetch(url);
+		if (!response.ok) throw new Error(`Failed to fetch VTGR file from URL: ${response.status} ${response.statusText}`);
+		const fileArrBuff = await response.arrayBuffer();
+
+		return LocalVTGRFile.loadFromArrayBuffer(Buffer.from(fileArrBuff));
+	}
+
 	public static async loadFromArrayBuffer(fileArrBuff: Buffer): Promise<LocalVTGRFile> {
 		const zip = new JSZip();
 		const decompressedFile = await zip.loadAsync(fileArrBuff);

@@ -102,7 +102,7 @@ class ReplaySelectPage extends Page {
 		});
 	}
 
-	private requestReplays() {
+	private async requestReplays() {
 		if (!Application.instance.client) return;
 
 		this.lastReplayFetchTime = Date.now();
@@ -113,6 +113,12 @@ class ReplaySelectPage extends Page {
 			this.autoplayReplayId = replayId;
 			this.autoplayHasStarted = true;
 			Application.instance.client.requestReplayLobbies(replayId, null, null, null, -Infinity, Infinity);
+		} else if (urlParams.has("url")) {
+			const url = urlParams.get("url");
+			console.log(`Requesting replay for URL: ${url}`);
+			Application.instance.client.cancelRequestReplayLobbies();
+			const vtgr = await LocalVTGRFile.loadFromUrl(url);
+			vtgr.start();
 		} else {
 			const { userSearchStr, searchStr, hostSearchStr, lowerDateBound, upperDateBound } = this.getFilterParams();
 

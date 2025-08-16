@@ -114,7 +114,7 @@ class LobbySelectPage extends Page {
 		}
 	}
 
-	private requestReplays() {
+	private async requestReplays() {
 		let urlParams = new URLSearchParams(window.location.search);
 		if (urlParams.has("replay")) {
 			const replayId = urlParams.get("replay");
