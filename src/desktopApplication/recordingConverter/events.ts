@@ -1,4 +1,4 @@
-import { Team } from "../../../VTOLLiveViewerCommon/dist/shared.js";
+import { Team } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
 import { Reader } from "./binaryRecording.js";
 
 export enum EventType {
@@ -9,7 +9,8 @@ export enum EventType {
 	Win,
 	DebugLine,
 	DebugSphere,
-	RemoveDebugShape
+	RemoveDebugShape,
+	BulletFire
 }
 
 type IdEvent<T extends string, ET extends EventType> = { [key in T]: number } & { type: ET };
@@ -117,7 +118,30 @@ export interface RemoveDebugShapeEvent extends BaseEvent {
 
 const removeDebugShapeEventFromBin = idOnlyEvent(EventType.RemoveDebugShape, "id");
 
-export type EntityEvent = EntityInitData | EntityDeleteData | FlareEvent | ChaffEvent | WinEvent | DebugLineEvent | DebugSphereEvent | RemoveDebugShapeEvent;
+export interface BulletFireEvent extends BaseEvent {
+	type: EventType.BulletFire;
+	position: { x: number; y: number; z: number };
+	velocity: { x: number; y: number; z: number };
+}
+
+const bulletFireEventFromBin = (reader: Reader): BulletFireEvent => {
+	return {
+		type: EventType.BulletFire,
+		position: { x: reader.readF32(), y: reader.readF32(), z: reader.readF32() },
+		velocity: { x: reader.readF32(), y: reader.readF32(), z: reader.readF32() }
+	};
+};
+
+export type EntityEvent =
+	| EntityInitData
+	| EntityDeleteData
+	| FlareEvent
+	| ChaffEvent
+	| WinEvent
+	| DebugLineEvent
+	| DebugSphereEvent
+	| RemoveDebugShapeEvent
+	| BulletFireEvent;
 
 export const eventFromBinMap: { [key in EventType]: (reader: Reader) => EntityEvent & { type: key } } = {
 	[EventType.EntityInit]: entityInitDataFromBin,
@@ -127,5 +151,6 @@ export const eventFromBinMap: { [key in EventType]: (reader: Reader) => EntityEv
 	[EventType.Win]: winEventFromBin,
 	[EventType.DebugLine]: debugLineEventFromBin,
 	[EventType.DebugSphere]: debugSphereEventFromBin,
-	[EventType.RemoveDebugShape]: removeDebugShapeEventFromBin
+	[EventType.RemoveDebugShape]: removeDebugShapeEventFromBin,
+	[EventType.BulletFire]: bulletFireEventFromBin
 };

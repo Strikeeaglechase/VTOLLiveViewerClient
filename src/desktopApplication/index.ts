@@ -8,7 +8,7 @@ import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import { fileURLToPath } from "url";
 
 import { getLogger, Logger } from "./logger.js";
-import { Converter } from "./recordingToVtgr.js";
+import { Converter } from "./recordingConverter/recordingToVtgr.js";
 
 const targetFileIgnore = "index.js";
 const forceLoadFile = process.argv[1]?.endsWith(targetFileIgnore) ? "C:/Users/strik/Desktop/Programs/CSharp/AIPLoader/sim/result.vtgr" : "";

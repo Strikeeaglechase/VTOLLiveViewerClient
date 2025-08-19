@@ -5,12 +5,12 @@ import { v4 as uuidv4 } from "uuid";
 import { RawPlayerInfo, Team, Vector3, VTGRDataChunk, VTGRHeader } from "vtol-live-viewer-shared";
 import { compressRpcPackets } from "vtol-live-viewer-shared/dist/compression/compress.js";
 import { RPCPacket } from "vtol-live-viewer-shared/dist/rpc.js";
-import { DebugLine, DebugSphere, MessageHandler, MissileEntity, PlayerVehicle, VTOLLobby } from "vtol-live-viewer-shared/dist/rpcApi.js";
+import { DebugLine, DebugSphere, GunEntity, MessageHandler, MissileEntity, PlayerVehicle, VTOLLobby } from "vtol-live-viewer-shared/dist/rpcApi.js";
 import { Vector } from "vtol-live-viewer-shared/dist/vector.js";
 
+import { Logger } from "../logger.js";
 import { readBinaryRecording } from "./binaryRecording.js";
 import { EntityEvent, EventType } from "./events.js";
-import { Logger } from "./logger.js";
 
 export interface KinematicData {
 	position: Vector3;
@@ -41,6 +41,8 @@ class Converter {
 	private lobby: VTOLLobby;
 	private entities: Record<number, PlayerVehicle | MissileEntity | DebugLine | DebugSphere> = {};
 	private previousFuelValues: Record<number, number> = {};
+
+	private gunEntity: GunEntity;
 
 	public constructor(private logger: Logger) {}
 
@@ -82,6 +84,10 @@ class Converter {
 		});
 
 		this.logger.log(`Generated ${playerInfos.length} player infos`);
+
+		const gunId = Math.floor(Math.random() * 1e9);
+		this.gunEntity = new GunEntity(gunId, this.onRpc.bind(this));
+		this.messageHandler.NetInstantiate(+gunId, playerInfos[0].steamId, "HPEquips/AFighter/fa26_gun", new Vector(), new Vector(), true);
 
 		this.lobby.UpdateMissionInfo(lobbyName, missionId, ``, ``, ``, false);
 		this.lobby.UpdateLobbyInfo(lobbyName, missionName, 0, 0, false, false, playerInfos, `host`);
@@ -141,7 +147,9 @@ class Converter {
 				}
 				(entityToRemove as DebugLine | DebugSphere).Hide();
 				break;
-
+			case EventType.BulletFire:
+				this.gunEntity.FireBullet(event.position, event.velocity);
+				break;
 			default:
 				this.logger.log(`Unhandled event type: ${EventType[event.type]} (${event.type})`);
 		}
