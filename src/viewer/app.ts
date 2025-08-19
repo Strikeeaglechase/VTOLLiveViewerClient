@@ -125,6 +125,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		if (!this.isReplay) return 1;
 		return this.replayController.computedReplaySpeed >= 0 ? 1 : -1;
 	}
+	public static get timeDirection() {
+		return this.instance.timeDirection;
+	}
 	public get time(): number {
 		if (this.isReplay) return this.replayController.replayCurrentTime;
 		return Date.now();

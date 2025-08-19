@@ -110,7 +110,35 @@ class Entity implements EntityReference {
 		return new EntityReferenceOf(this);
 	}
 
-	public gForce = 0;
+	private gForcePrevVel = new Vector();
+	private gForcePrevVelTime = 0;
+	private prevCalcGForce = 0;
+	public get gForce() {
+		// console.log(this._gForce);
+		if (this._gForce != 0 && this._gForce != 1) return this._gForce;
+
+		const velDelta = this.velocity.subtract(this.gForcePrevVel);
+		const timeDelta = Application.time - this.gForcePrevVelTime;
+		// console.log({ velDelta, timeDelta });
+		if (velDelta.length() > 100 || timeDelta > 1000 || Application.timeDirection < 0) {
+			this.gForcePrevVel.set(this.velocity);
+			this.gForcePrevVelTime = Application.time;
+
+			return this.prevCalcGForce; // No g-force if we don't have a valid previous velocity
+		}
+
+		if (timeDelta < 100) return this.prevCalcGForce;
+
+		this.gForcePrevVel.set(this.velocity);
+		this.gForcePrevVelTime = Application.time;
+
+		const accel = velDelta.length() / (timeDelta / 1000);
+		// const gForce = velDelta.length() / 9.8 + 1;
+		const gForce = accel / 9.8 + 1;
+		this.prevCalcGForce = gForce;
+		return gForce;
+	}
+	private _gForce = 0;
 	public maxGForce = 0;
 
 	// Dims is likely unused/needs to be removed
@@ -596,8 +624,8 @@ class Entity implements EntityReference {
 		this.velocity = this.velocity.add(this.acceleration.multiply(dt / 1000));
 		this.position = this.position.add(this.velocity.multiply(dt / 1000));
 
-		this.gForce = this.acceleration.length() / 9.8 + 1;
-		this.maxGForce = Math.max(this.maxGForce, this.gForce);
+		this._gForce = this.acceleration.length() / 9.8 + 1;
+		this.maxGForce = Math.max(this.maxGForce, this._gForce);
 
 		if (this.owner && this.useHostTeam) this.team = this.owner.team;
 
