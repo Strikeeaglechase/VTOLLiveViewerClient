@@ -616,78 +616,74 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.testPt.position.set(Axx * x + Axy * y + Axz * z, Ayx * x + Ayy * y + Ayz * z, Azx * x + Azy * y + Azz * z);
 	}
 
-	// private async loadTestHSData() {
-	// 	await this.start();
+	private async loadTestHSData() {
+		await this.start();
 
-	// 	await this.mapLoader.loadHeightmapFromMission({
-	// 		campaignId: "mp_pvpscenarios",
-	// 		id: "airshowFreeflight",
-	// 		isBuiltin: true,
-	// 		mapId: "hMap2",
-	// 		name: "BVR",
-	// 		workshopId: "built-in"
-	// 	});
+		await this.mapLoader.loadHeightmapFromMission({
+			campaignId: "2860956181",
+			id: "BVR afMtnsHills",
+			isBuiltin: false,
+			mapId: "afMtnsHills",
+			name: "BVR afMtnsHills",
+			workshopId: "2860956181"
+		});
 
-	// 	this.game = new VTOLLobby("0");
-	// 	this.game.players.push({
-	// 		entityId: 1,
-	// 		pilotName: "Chase",
-	// 		slot: 0,
-	// 		steamId: "0",
-	// 		team: Team.A,
-	// 		unitId: 0
-	// 	});
-	// 	this.messageHandler = new MessageHandler(this.game.id, this);
+		this.game = new VTOLLobby("0");
+		this.game.players.push({
+			entityId: 1,
+			pilotName: "Chase",
+			slot: 0,
+			steamId: "0",
+			team: Team.A,
+			unitId: 0
+		});
+		this.messageHandler = new MessageHandler(this.game.id, this);
 
-	// 	const victimAIMesh = new THREE.InstancedMesh(
-	// 		new THREE.SphereGeometry(200),
-	// 		new THREE.MeshBasicMaterial({ color: "#0000FF" }),
-	// 		kills.length
-	// 	);
-	// 	const victimBIMesh = new THREE.InstancedMesh(
-	// 		new THREE.SphereGeometry(200),
-	// 		new THREE.MeshBasicMaterial({ color: "#0000FF" }),
-	// 		kills.length
-	// 	);
+		const hsMissileDataReq = await fetch(`${API_URL}/temp`);
+		const hsMissileData: { position: IVector3; velocity: IVector3; vehicle: number }[] = await hsMissileDataReq.json();
+		console.log(`Loaded HS missile data with ${hsMissileData.length} entries`);
 
-	// 	const killIMesh = new THREE.InstancedMesh(
-	// 		new THREE.SphereGeometry(200),
-	// 		new THREE.MeshBasicMaterial({ color: "#FF0000" }),
-	// 		kills.length
-	// 	);
+		const vehicleColors = [
+			"#000000", // AV42c
+			"#0033FF", // FA-26B
+			"#00FF00", // F-45
+			"#000000", // Ah94
+			"#000000", // Invalid
+			"#FF0000", // T-55
+			"#FFFF00" // EF24G
+		];
+		const vehicleIMeshes: THREE.InstancedMesh[] = vehicleColors.map((color, idx) => {
+			const vCount = hsMissileData.filter(v => v.vehicle == idx).length;
+			console.log(`Creating instanced mesh for vehicle ${idx} with ${vCount} instances`);
 
-	// 	console.log(kills.length);
+			const mesh = new THREE.InstancedMesh(
+				new THREE.SphereGeometry(200),
+				new THREE.MeshBasicMaterial({ color: color, transparent: false, opacity: 0.3 }),
+				vCount
+			);
+			mesh.name = `VehicleMissiles_${idx}`;
+			this.sceneManager.add(mesh);
 
-	// 	kills.forEach((kill, idx) => {
-	// 		if (!kill.killerPosition || !kill.victimPosition) return;
-	// 		if (kill.killerPosition.x == 0 && kill.killerPosition.y == 0 && kill.killerPosition.z == 0) return;
-	// 		if (kill.victimPosition.x == 0 && kill.victimPosition.y == 0 && kill.victimPosition.z == 0) return;
+			return mesh;
+		});
 
-	// 		const victimPos = new THREE.Vector3(-kill.victimPosition.x, kill.victimPosition.y, kill.victimPosition.z);
-	// 		const victimMatrix = new THREE.Matrix4().setPosition(victimPos);
-	// 		if (kill.victimTeam == 0) victimAIMesh.setMatrixAt(idx, victimMatrix);
-	// 		if (kill.victimTeam == 1) victimBIMesh.setMatrixAt(idx, victimMatrix);
+		hsMissileData.forEach((missile, idx) => {
+			if (missile.vehicle != 1 && missile.vehicle != 6) return;
 
-	// 		const killerPos = new THREE.Vector3(-kill.killerPosition.x, kill.killerPosition.y, kill.killerPosition.z);
-	// 		const killerMatrix = new THREE.Matrix4().setPosition(killerPos);
-	// 		killIMesh.setMatrixAt(idx, killerMatrix);
+			const pos = new THREE.Vector3(-missile.position.x, missile.position.y, missile.position.z);
+			const matrix = new THREE.Matrix4().setPosition(pos);
 
-	// 		// // Create a line between the two;
-	// 		// const lineGeo = new THREE.BufferGeometry().setFromPoints([victimPos, killerPos]);
-	// 		// const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: true });
-	// 		// const line = new THREE.Line(lineGeo, lineMat);
-	// 		// line.name = "Line";
-	// 		// this.sceneManager.add(line);
-	// 	});
+			vehicleIMeshes[missile.vehicle].setMatrixAt(idx, matrix);
 
-	// 	victimAIMesh.name = "Victims";
-	// 	victimBIMesh.name = "Victims";
-	// 	killIMesh.name = "Killers";
-
-	// 	this.sceneManager.add(victimAIMesh);
-	// 	this.sceneManager.add(victimBIMesh);
-	// 	this.sceneManager.add(killIMesh);
-	// }
+			// const velPos = pos.clone().add(new THREE.Vector3(missile.velocity.x, missile.velocity.y, missile.velocity.z).multiplyScalar(1));
+			// // // Create a line between the two;
+			// const lineGeo = new THREE.BufferGeometry().setFromPoints([pos, velPos]);
+			// const lineMat = new THREE.LineBasicMaterial({ color: "#FFFFFF", opacity: 0.25, transparent: false });
+			// const line = new THREE.Line(lineGeo, lineMat);
+			// line.name = "Line";
+			// this.sceneManager.add(line);
+		});
+	}
 
 	private run(): void {
 		this.stats.begin();

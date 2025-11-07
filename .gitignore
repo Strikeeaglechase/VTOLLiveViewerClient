@@ -7,6 +7,7 @@ public/*.js
 headless-client.log
 gitToken.js
 aipSimResults
+hsMissileData.ts
 
 # local env files
 .env.local
