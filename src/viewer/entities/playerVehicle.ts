@@ -82,6 +82,10 @@ class PlayerVehicle extends Entity {
 		return this._scale;
 	}
 
+	public get hasRadarData(): boolean {
+		return this.app.radarDataVisualizer.hasRadarDataForEntity(this.id);
+	}
+
 	public static spawnFor: string[] = [
 		"Vehicles/SEVTF",
 		"Vehicles/FA-26B",
@@ -210,6 +214,17 @@ class PlayerVehicle extends Entity {
 		}
 
 		if (this.isFocus) this.renderControlInputs();
+
+		// Special focus mode
+		if (this.app.isSpecialLockFocusMode) {
+			this.mesh.visible = false;
+		} else {
+			this.mesh.visible = true;
+		}
+
+		if (this.hasRadarData) {
+			this.lockLine.hide();
+		}
 
 		// if (this.isFocus) {
 		// 	for (let i = 0; i < 1024; i++) {

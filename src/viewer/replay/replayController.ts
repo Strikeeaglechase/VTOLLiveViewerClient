@@ -55,6 +55,9 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 	public currentlyExecutingRpc: RPCPacketT | null = null; // For debug
 	public customStartTime = 0;
 
+	private tickTillRadarDataFrom: number = -1;
+	private nextRadarTickRequestedOn: number = 0;
+
 	public get computedReplaySpeed(): number {
 		return REPLAY_SPEEDS[this.replaySpeed];
 	}
@@ -190,7 +193,9 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			}
 		});
 
+		let earlyExit = false;
 		resultPackets.forEach(packet => {
+			if (earlyExit) return;
 			// console.log(`(${packet.id}) ${packet.className}.${packet.method}`);
 			// const hit = this.packetHits[packet.pid as number];
 			// hit.hits++;
@@ -200,7 +205,15 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 			// console.log(`Running packet ${packet.pid}`);
 			this.currentlyExecutingRpc = packet;
 			RPCController.handlePacket(packet);
+
 			this.replayCurrentTime = untouchedTime;
+
+			if (this.tickTillRadarDataFrom != -1 && packet.method == "RadarDataReport") {
+				earlyExit = true;
+				console.log(`Skipped to radar data packet: ${this.replayCurrentTime - this.nextRadarTickRequestedOn}ms forward`);
+				this.tickTillRadarDataFrom = -1;
+				this.replaySpeed = REPLAY_SPEEDS.indexOf(0);
+			}
 		});
 	}
 
@@ -242,6 +255,13 @@ class ReplayController extends EventEmitter<"replay_bytes" | "replay_chunk"> {
 		}
 
 		this.emit("replay_bytes", bytes);
+	}
+
+	public tickReplayUntilNextRadarDataPacket(radarOwnedBy: number) {
+		if (!this.isReadyToRun) return;
+		this.tickTillRadarDataFrom = radarOwnedBy;
+		this.replaySpeed = REPLAY_SPEEDS.indexOf(0.5);
+		this.nextRadarTickRequestedOn = this.replayCurrentTime;
 	}
 
 	// Empty remaining data in receive buffer

@@ -120,6 +120,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public flareManager: FlareManager;
 	public controlInputsRenderer: Renderer;
 	private componentManager: ComponentManager;
+	public radarDataVisualizer: RadarDataVisualizer = new RadarDataVisualizer(this);
 
 	public isReplay = false;
 	public get timeDirection(): number {
@@ -153,6 +154,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public debugShapes: Record<number, DebugLine | DebugSphere> = {};
 
 	private stats = new Stats();
+	public isSpecialLockFocusMode = false;
 	public currentFocus: Entity | null = null;
 	public gameList: VTOLLobby[] = [];
 	public game: VTOLLobby;
@@ -735,6 +737,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
+		this.radarDataVisualizer.update(dt);
 		this.runTimeouts();
 
 		this.sceneManager.run();
@@ -843,7 +846,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.entitiesByOwner[entity.ownerId].push(entity);
 	}
 
-	public setFocusImmediately(entity: Entity): void {
+	public setFocusImmediately(entity: Entity | THREE.Object3D): void {
 		console.log(`Setting focus to ${entity}`);
 		if (this.currentFocus && this.currentFocus != entity) {
 			// Remove parenting from whatever we are currently focused on
@@ -852,13 +855,23 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			this.sceneManager.cameraController.set(camPos);
 		}
 
-		this.currentFocus = entity;
+		if (entity instanceof THREE.Object3D) {
+			this.currentFocus = null;
+			this.isSpecialLockFocusMode = true;
+		} else {
+			this.currentFocus = entity;
+			this.isSpecialLockFocusMode = false;
+		}
 
 		const camPos = this.sceneManager.camera.getWorldPosition(new THREE.Vector3());
 		camPos.subVectors(camPos, new THREE.Vector3(entity.position.x, entity.position.y, entity.position.z));
 		this.sceneManager.cameraController.set(camPos);
 		this.sceneManager.cameraController.orbit.target.set(0, 0, 0);
-		entity.object.add(this.sceneManager.camera);
+		if (entity instanceof Entity) {
+			entity.object.add(this.sceneManager.camera);
+		} else {
+			entity.add(this.sceneManager.camera);
+		}
 	}
 
 	public setFocusTo(entity: Entity): void {
@@ -871,6 +884,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		}
 
 		this.currentFocus = entity;
+		this.isSpecialLockFocusMode = false;
 
 		// This bullshit is to parent the camera to the entity
 		this.sceneManager.cameraController.lerpCamTo(entity.position.x, entity.position.y, entity.position.z, () => {
@@ -1076,6 +1090,11 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 				this.game.once("mission_info", (info: MissionInfo) => this.onNewMissionInfo(info));
 			});
 		}
+
+		this.game.on("radar_data_report", (report: string) => {
+			this.radarDataVisualizer.handleRadarDataReport(report);
+			// console.log(`Radar Data Report: ${report}`);
+		});
 		console.log(`Got mission info!`);
 	}
 
@@ -1231,11 +1250,22 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.isTextOverlayHidden = !this.isTextOverlayHidden;
 	}
 
+	private focusRealLr() {
+		if (!this.currentFocus) return;
+		const focusedRadar = this.radarDataVisualizer.getRadarForEntity(this.currentFocus.id);
+		if (!focusedRadar) return;
+
+		const lr = focusedRadar.getCamRig();
+		this.setFocusImmediately(lr);
+	}
+
 	private handleKeyDown(e: KeyboardEvent) {
 		if (Application.state != ApplicationRunningState.running) return;
 
 		if (e.key == "f") this.toggleUI();
 		if (e.key == "o") this.toggleTextOverlay();
+		if (e.key == "l") this.focusRealLr();
+		if (e.key == "s") this.replayController.tickReplayUntilNextRadarDataPacket(0);
 
 		if (e.key == "ArrowLeft" || e.key == "ArrowRight") {
 			this.replayController.handleArrowKey(e.key);

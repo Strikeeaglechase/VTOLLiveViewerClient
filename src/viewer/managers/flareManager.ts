@@ -89,6 +89,10 @@ class FlareManager {
 		this.material.emissiveIntensity = 1;
 		// this.material.emissive = new THREE.Color("#ffe357");
 		this.material.emissive = new THREE.Color("#fff25e");
+
+		scene.app.on("unit_scale", (scale: number) => {
+			this.scaleMult = Math.max(1, scale * 0.7);
+		});
 	}
 
 	public update(dt: number) {
@@ -181,9 +185,9 @@ class FlareManager {
 		return velocity;
 	}
 
-	public updateScale(scale: number) {
-		this.scaleMult = Math.max(1, scale * 0.7);
-	}
+	// public updateScale(scale: number) {
+	// 	this.scaleMult = Math.max(1, scale * 0.7);
+	// }
 }
 
 export { FlareManager };

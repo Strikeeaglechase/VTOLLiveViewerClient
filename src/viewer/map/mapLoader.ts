@@ -55,7 +55,7 @@ class MapLoader {
 
 		// Init mesh
 		this.heightMapMesh.rotation.set(0, Math.PI, 0);
-		this.heightMapMesh.position.set(0, 0, this.heightMap.width * METERS_PER_PIXEL);
+		this.heightMapMesh.position.set(0, -5, this.heightMap.width * METERS_PER_PIXEL);
 		this.sceneManager.primaryLight.position.set(
 			(this.heightMap.width * METERS_PER_PIXEL) / 2 - this.heightMap.width * METERS_PER_PIXEL,
 			100000,

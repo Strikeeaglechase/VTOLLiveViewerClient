@@ -5,6 +5,42 @@
 	pointer-events: none;
 }
 
+#radar-sidebar {
+	height: 100%;
+	left: 0;
+	top: 110px;
+	position: fixed;
+	pointer-events: none;
+}
+
+#radar-sidebar-header {
+	font-family: Anonymous Pro, monospace;
+	color: #ffffff;
+	text-align: center;
+	background-color: rgba(50, 50, 50, 0.8);
+	padding: 4px 8px;
+	margin: 0 10px 5px 10px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #04508a;
+}
+
+#sidebar-radar-list {
+	margin-top: 10px;
+}
+
+#radar-sidebar .entity {
+	margin-left: 10px;
+}
+
+.radar-visible {
+	opacity: 1;
+}
+
+.radar-hidden {
+	opacity: 0.4;
+}
+
 .entity p {
 	font-family: Anonymous Pro, monospace;
 	display: inline;
@@ -12,7 +48,7 @@
 }
 
 .thick-border {
-	border-width: 2px !important;
+	border-width: 4px !important;
 }
 
 .entity button {
@@ -63,6 +99,7 @@
 .team-a {
 	border-color: blue;
 }
+
 .team-b {
 	border-color: red;
 }
