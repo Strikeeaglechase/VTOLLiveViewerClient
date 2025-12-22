@@ -40,7 +40,7 @@ class SceneManager {
 	private sceneAddQueue: THREE.Object3D[] = [];
 
 	private hasInit = false;
-	constructor(private app: Application) {}
+	constructor(public app: Application) {}
 
 	public async init(container: HTMLDivElement): Promise<void> {
 		this.scene = new THREE.Scene();
@@ -88,7 +88,8 @@ class SceneManager {
 
 		// If we are focused on something, all scale is relative to that
 		if (this.hasFocus()) {
-			const d = this.app.currentFocus.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
+			// const d = this.app.currentFocus.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
+			const d = this.camera.parent.position.distanceTo(this.camera.getWorldPosition(new THREE.Vector3()));
 			overrideZoom = this.calculateScale(d);
 			this.app.emit("unit_scale", overrideZoom);
 		}
@@ -217,7 +218,8 @@ class SceneManager {
 	}
 
 	public hasFocus() {
-		return this.app.currentFocus !== null;
+		return this.camera.parent != null;
+		// return this.app.currentFocus !== null;
 	}
 }
 

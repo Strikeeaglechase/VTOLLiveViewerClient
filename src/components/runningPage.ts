@@ -29,6 +29,7 @@ class RunningPage extends Page {
 	public appState = [ApplicationRunningState.running, ApplicationRunningState.lobbyEnd];
 
 	private previousSidebarIdsKey = "";
+	private previousRadarSidebarKey = "";
 
 	private settingsVisible = false;
 	private equipsVisible = false;
@@ -92,9 +93,57 @@ class RunningPage extends Page {
 
 	public override update() {
 		this.updateSidebarEntityList();
+		this.updateRadarList();
 		this.updateUnitRangeList();
 		this.updateEquipsList();
 		this.updateReplaySpeedText();
+	}
+
+	private updateRadarList() {
+		const parentElm = document.getElementById("sidebar-radar-list");
+		const sidebar = document.getElementById("radar-sidebar");
+		if (!parentElm || !sidebar) return;
+
+		const radarVisualizers = this.app.radarDataVisualizer.getRadarVisualizers();
+		if (!radarVisualizers || radarVisualizers.length === 0) {
+			parentElm.innerHTML = "";
+			sidebar.style.display = "none";
+			this.previousRadarSidebarKey = "";
+			return;
+		}
+		sidebar.style.display = "block";
+
+		// Avoid rebuilding the list if nothing relevant changed (ids or visibility)
+		const newKey = radarVisualizers.map(r => `${r.parentId}-${r.visible}-${this.app.getEntityById(r.parentId)?.isFocus}`).join(",");
+		if (newKey === this.previousRadarSidebarKey) return;
+		this.previousRadarSidebarKey = newKey;
+
+		const documentFragment = document.createDocumentFragment();
+		radarVisualizers.forEach(radarVis => {
+			const parentEntity = this.app.getEntityById(radarVis.parentId);
+			const container = document.createElement("div");
+			container.classList.add("entity");
+			container.id = `sidebar-radar-${radarVis.parentId}`;
+			container.classList.toggle("radar-visible", radarVis.visible);
+			container.classList.toggle("radar-hidden", !radarVis.visible);
+			container.classList.toggle("thick-border", parentEntity?.isFocus);
+
+			const label = document.createElement("p");
+			if (parentEntity) label.innerText = `${parentEntity.owner.pilotName} (${parentEntity.displayName})`;
+			else label.innerText = `Unit ${radarVis.parentId}`;
+			container.appendChild(label);
+
+			container.onclick = () => {
+				radarVis.visible = !radarVis.visible;
+				container.classList.toggle("radar-visible", radarVis.visible);
+				container.classList.toggle("radar-hidden", !radarVis.visible);
+			};
+
+			documentFragment.appendChild(container);
+		});
+
+		parentElm.innerHTML = "";
+		parentElm.appendChild(documentFragment);
 	}
 
 	private toggleSettingsVisible() {

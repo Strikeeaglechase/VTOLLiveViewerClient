@@ -547,10 +547,10 @@ class Entity implements EntityReference {
 
 	protected onScaleUpdate() {
 		this.meshProxyObject.scale.setScalar(this._scale);
-		if (this.isFocus) {
-			// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
-			this.app.flareManager.updateScale(this._scale);
-		}
+		// if (this.isFocus) {
+		// 	// TODO: This is not where we should be updating the flare scale, scene should directly update a global app scale
+		// 	this.app.flareManager.updateScale(this._scale);
+		// }
 	}
 
 	protected updateMotion(pos: Vector3, vel: Vector3, accel: Vector3, rot: Vector3) {
