@@ -35,6 +35,7 @@ import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 import { MessageHandler } from "./messageHandler.js";
 import { nuclearOptionEntities } from "./nuclearOptionGuids";
+import { RadarDataVisualizer } from "./sensorVis/radarDataVisulizer.js";
 import { ReplayController } from "./replay/replayController";
 import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
