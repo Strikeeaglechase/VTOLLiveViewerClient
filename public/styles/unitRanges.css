@@ -21,13 +21,14 @@
 }
 
 #unit-data p {
-	color: white;
+	/* color: white; */
 	font-family: monospace;
 	margin-left: 10px;
 	margin-top: 5px;
 	margin-bottom: 0px;
 	text-align: left;
 }
+
 #unit-data h3 {
 	color: white;
 	font-family: monospace;
