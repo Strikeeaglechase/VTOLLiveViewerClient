@@ -8,26 +8,7 @@ import { ManagedLine } from "./mesh/line.js";
 import { DashedAndSolidLinedSphereMarker, LinedBoxMarker, LinedMarker } from "./mesh/marker.js";
 import { allReturnTypes, GateState, LockingRadarData, LockReturn, RadarData, RadarDataReport, RadarDetectedTarget, ReturnTypes } from "./radarDataReport.js";
 import { Reader } from "./reader.js";
-
-interface IDisposable {
-	onScale(scale: number);
-	dispose(): void;
-}
-
-class ManagedObject implements IDisposable {
-	constructor(public obj: THREE.Object3D) {
-		if (!obj.name) obj.name = "managedObject";
-		Application.instance.sceneManager.add(obj);
-	}
-
-	public onScale(scale: number) {
-		this.obj.scale.set(scale, scale, scale);
-	}
-
-	public dispose() {
-		Application.instance.sceneManager.remove(this.obj);
-	}
-}
+import { IDisposable, ManagedObject } from "./managedObject.js";
 
 // const TWS_COLOR = 0xae00ff; // Purple
 const TWS_COLOR = 0x0066ff; // Blue
@@ -487,4 +468,4 @@ class RadarDataVisualizer {
 	}
 }
 
-export { RadarDataVisualizer, RadarVisualizer, IDisposable, ManagedObject };
+export { RadarDataVisualizer, RadarVisualizer };

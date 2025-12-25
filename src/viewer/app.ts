@@ -1095,6 +1095,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			this.radarDataVisualizer.handleRadarDataReport(report);
 			// console.log(`Radar Data Report: ${report}`);
 		});
+
+		this.game.on("ir_data_report", (report: string) => {});
+
 		console.log(`Got mission info!`);
 	}
 
