@@ -19,6 +19,7 @@ class HeatSeekerData {
 	public parentRot: IVector3;
 	public fov: number;
 	public gimbleFov: number;
+	public id: number;
 
 	public build(reader: Reader) {
 		this.position = reader.readVector3();
@@ -26,6 +27,7 @@ class HeatSeekerData {
 		this.parentRot = reader.readVector3();
 		this.fov = reader.readF32();
 		this.gimbleFov = reader.readF32();
+		this.id = reader.readI16();
 	}
 }
 

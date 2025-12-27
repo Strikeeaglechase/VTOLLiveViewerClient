@@ -40,6 +40,7 @@ import { ReplayController } from "./replay/replayController";
 import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
+import { IRDataVisualizer } from "./sensorVis/irDataVisulizer.js";
 
 export const rad = (deg: number): number => (deg * Math.PI) / 180;
 export const deg = (rad: number): number => (rad * 180) / Math.PI;
@@ -120,7 +121,8 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 	public flareManager: FlareManager;
 	public controlInputsRenderer: Renderer;
 	private componentManager: ComponentManager;
-	public radarDataVisualizer: RadarDataVisualizer = new RadarDataVisualizer(this);
+	public radarDataVisualizer: RadarDataVisualizer; // = new RadarDataVisualizer(this);
+	public irDataVisualizer: IRDataVisualizer; // = new IRDataVisualizer(this);
 
 	public isReplay = false;
 	public get timeDirection(): number {
@@ -262,6 +264,9 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 
 		// }
 		this.updateStateViaPath();
+
+		this.radarDataVisualizer = new RadarDataVisualizer(this);
+		this.irDataVisualizer = new IRDataVisualizer(this);
 
 		// if (window.location.pathname.startsWith("/wallpaper")) this.startWallpaperMode();
 		// const user = getLoggedInUser();
@@ -738,6 +743,7 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.bulletManager.update(dt);
 		this.flareManager.update(dt);
 		this.radarDataVisualizer.update(dt);
+		this.irDataVisualizer.update(dt);
 		this.runTimeouts();
 
 		this.sceneManager.run();
@@ -1094,6 +1100,10 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.game.on("radar_data_report", (report: string) => {
 			this.radarDataVisualizer.handleRadarDataReport(report);
 			// console.log(`Radar Data Report: ${report}`);
+		});
+
+		this.game.on("ir_data_report", (report: string) => {
+			this.irDataVisualizer.handleIrDataReport(report);
 		});
 
 		this.game.on("ir_data_report", (report: string) => {});

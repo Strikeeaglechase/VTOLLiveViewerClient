@@ -28,8 +28,6 @@ class RadarData {
 	public sweepFov: number;
 	public rotationRange: number;
 
-	public txStrength: number;
-	public rxSensitivity: number;
 	public enabled: boolean;
 
 	public detectedActors: number[] = [];
@@ -48,8 +46,6 @@ class RadarData {
 		this.angle = reader.readF32();
 		this.sweepFov = reader.readF32();
 		this.rotationRange = reader.readF32();
-		this.txStrength = reader.readF32();
-		this.rxSensitivity = reader.readF32();
 
 		const numDetectedActors = reader.readByte();
 		this.detectedActors = new Array(numDetectedActors);
@@ -79,6 +75,8 @@ class LockData {
 	public position: IVector3;
 	public velocity: IVector3;
 	public lockedChaff: boolean;
+	public realPosition: IVector3;
+	public realVelocity: IVector3;
 
 	public build(reader: Reader) {
 		this.locked = reader.readByte() > 0;
@@ -86,6 +84,8 @@ class LockData {
 		this.position = reader.readVector3();
 		this.velocity = reader.readVector3();
 		this.lockedChaff = reader.readByte() > 0;
+		this.realPosition = reader.readVector3();
+		this.realVelocity = reader.readVector3();
 	}
 }
 
@@ -159,16 +159,12 @@ class InternalECMInfo {
 class LockingRadarData {
 	public parentNetId: number;
 	public position: IVector3;
-	public txStrength: number;
-	public rxSensitivity: number;
 	public lockData?: LockData;
 	public ecmInfo?: InternalECMInfo;
 
 	public build(reader: Reader) {
 		this.parentNetId = reader.readI16();
 		this.position = reader.readVector3();
-		this.txStrength = reader.readF32();
-		this.rxSensitivity = reader.readF32();
 
 		const hasLdEcm = reader.readByte() > 0;
 		if (hasLdEcm) {
@@ -190,7 +186,7 @@ class RadarDataReport {
 		const lobbyId = reader.readU64();
 
 		const version = reader.readByte();
-		if (version != 1) throw new Error(`Unsupported RadarDataReport version: ${version}`);
+		if (version != 2) throw new Error(`Unsupported RadarDataReport version: ${version}`);
 
 		this.steamId = reader.readU64().toString();
 

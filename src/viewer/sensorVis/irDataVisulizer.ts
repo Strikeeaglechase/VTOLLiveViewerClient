@@ -6,6 +6,7 @@ import { ManagedObject } from "./managedObject.js";
 import { HeatEmitterData, HeatSeekerData, IRDataReport } from "./irDataReport.js";
 import { Application, rad } from "../app.js";
 import { Reader } from "./reader.js";
+import { mark } from "../threeUtils.js";
 
 class HeatEmitterMarker {
 	public marker: ManagedObject;
@@ -61,9 +62,10 @@ class HeatEmitterMarker {
 
 class HeatSeekerMarker {
 	public fovLines: THREE.Line[] = [];
-	public usedThisUpdate = false;
+	// public fovLimitLines: THREE.Line[] = [];
+	public lastUpdateTime: number;
 
-	constructor() {
+	constructor(public id: number) {
 		const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff00 });
 		for (let i = 0; i < 4; i++) {
 			const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 100)]);
@@ -71,6 +73,17 @@ class HeatSeekerMarker {
 			line.frustumCulled = false;
 
 			this.fovLines.push(line);
+
+			line.name = "heatSeekerFovLine";
+			Application.instance.sceneManager.add(line);
+
+			// const limitLineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 100)]);
+			// const limitLine = new THREE.Line(limitLineGeom, lineMat);
+			// limitLine.frustumCulled = false;
+
+			// this.fovLimitLines.push(limitLine);
+			// limitLine.name = "heatSeekerFovLimitLine";
+			// Application.instance.sceneManager.add(limitLine);
 		}
 	}
 
@@ -86,27 +99,35 @@ class HeatSeekerMarker {
 		const left = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), fovRad);
 		const right = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -fovRad);
 
+		// const limLow = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), fovRad);
+		// const limHigh = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -fovRad);
+		// const limLeft = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), fovRad);
+		// const limRight = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -fovRad);
+
 		const rots = [low, high, left, right];
+		// const limRots = [limLow, limHigh, limLeft, limRight];
 		for (let i = 0; i < 4; i++) {
 			const rot = new THREE.Quaternion().copy(mainRot).multiply(rots[i]);
 			this.fovLines[i].setRotationFromQuaternion(rot);
 			this.fovLines[i].position.set(-heatSeekerData.position.x, heatSeekerData.position.y, heatSeekerData.position.z);
+			this.fovLines[i].computeLineDistances();
+
+			// const limRot = new THREE.Quaternion().copy(mainRot).multiply(limRots[i]);
+			// this.fovLimitLines[i].setRotationFromQuaternion(limRot);
+			// this.fovLimitLines[i].position.set(-heatSeekerData.position.x, heatSeekerData.position.y, heatSeekerData.position.z);
+			// this.fovLimitLines[i].computeLineDistances();
 		}
 
-		this.usedThisUpdate = true;
+		this.lastUpdateTime = Application.time;
 	}
 
 	public show() {
 		this.fovLines.forEach(line => (line.visible = true));
+		// this.fovLimitLines.forEach(line => (line.visible = true));
 	}
 
 	public hide() {
 		this.fovLines.forEach(line => (line.visible = false));
-	}
-
-	public reset() {
-		this.hide();
-		this.usedThisUpdate = false;
 	}
 }
 
@@ -139,12 +160,13 @@ class IRDataVisualizer {
 		irDataReport.heatEmitters.forEach(emitterData => {
 			const marker = this.getOrCreateHeatEmitterMarker();
 			marker.updateFromData(emitterData);
+			marker.show();
 		});
 
-		this.heatSeekerMarkers.forEach(marker => marker.reset());
 		irDataReport.heatSeekers.forEach(seekerData => {
-			const marker = this.getOrCreateHeatSeekerMarker();
+			const marker = this.getOrCreateHeatSeekerMarker(seekerData.id);
 			marker.updateFromData(seekerData);
+			marker.show();
 		});
 	}
 
@@ -158,11 +180,11 @@ class IRDataVisualizer {
 		return newMarker;
 	}
 
-	private getOrCreateHeatSeekerMarker(): HeatSeekerMarker {
-		const marker = this.heatSeekerMarkers.find(m => !m.usedThisUpdate);
+	private getOrCreateHeatSeekerMarker(seekerId: number): HeatSeekerMarker {
+		const marker = this.heatSeekerMarkers.find(m => m.id === seekerId);
 		if (marker) return marker;
 
-		const newMarker = new HeatSeekerMarker();
+		const newMarker = new HeatSeekerMarker(seekerId);
 		this.heatSeekerMarkers.push(newMarker);
 
 		return newMarker;
@@ -173,6 +195,12 @@ class IRDataVisualizer {
 		this.heatEmitterUpdateTime = Application.time;
 		this.heatEmitterMarkers.forEach(marker => {
 			if (marker.usedThisUpdate) marker.drift(heatEmitterDt);
+		});
+
+		this.heatSeekerMarkers.forEach(marker => {
+			if (Application.time - marker.lastUpdateTime > 500 || Application.time < marker.lastUpdateTime) {
+				marker.hide();
+			}
 		});
 	}
 }
