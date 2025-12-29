@@ -1,4 +1,5 @@
-import { IDisposable, ManagedObject, RadarVisualizer } from "../radarDataVisulizer.js";
+import { IDisposable, ManagedObject } from "../managedObject.js";
+import { RadarVisualizer } from "../radarDataVisulizer.js";
 import { LineDashInfo, ManagedLine } from "./line.js";
 
 abstract class LinedMarker {

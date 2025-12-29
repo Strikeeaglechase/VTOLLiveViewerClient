@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import { Application, rad } from "../../app.js";
-import { IDisposable } from "../radarDataVisulizer.js";
+import { IDisposable } from "../managedObject.js";
 
 class LockCone implements IDisposable {
 	private mesh: THREE.Mesh;

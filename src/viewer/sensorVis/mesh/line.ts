@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { IVector3 } from "vtol-live-viewer-shared/dist/vector.js";
 
 import { Application } from "../../app.js";
-import { IDisposable } from "../radarDataVisulizer.js";
+import { IDisposable } from "../managedObject.js";
 
 interface LineDashInfo {
 	dashSize: number;
