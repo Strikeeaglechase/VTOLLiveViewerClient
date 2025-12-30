@@ -1004,6 +1004,14 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 			this.addLogMessage(msg);
 		});
 
+		this.game.on("radar_data_report", (report: string) => {
+			this.radarDataVisualizer.handleRadarDataReport(report);
+		});
+
+		this.game.on("ir_data_report", (report: string) => {
+			this.irDataVisualizer.handleIrDataReport(report);
+		});
+
 		const rpcMissionInfo = await this.game.waitForMissionInfo();
 		const campaignId = rpcMissionInfo.isBuiltin ? rpcMissionInfo.campaignId : rpcMissionInfo.workshopId;
 		const fullMissionInfo = await this.getMissionInfoFromAPI(campaignId, rpcMissionInfo.id);
@@ -1105,8 +1113,6 @@ class Application extends EventEmitter<"running_state" | "replay_mode" | "client
 		this.game.on("ir_data_report", (report: string) => {
 			this.irDataVisualizer.handleIrDataReport(report);
 		});
-
-		this.game.on("ir_data_report", (report: string) => {});
 
 		console.log(`Got mission info!`);
 	}
