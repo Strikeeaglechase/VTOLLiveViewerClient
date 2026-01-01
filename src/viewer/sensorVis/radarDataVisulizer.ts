@@ -6,7 +6,17 @@ import { TextOverlay } from "../textOverlayHandler.js";
 import { LockCone } from "./mesh/cone.js";
 import { ManagedLine } from "./mesh/line.js";
 import { DashedAndSolidLinedSphereMarker, LinedBoxMarker, LinedMarker } from "./mesh/marker.js";
-import { allReturnTypes, GateState, LockingRadarData, LockReturn, RadarData, RadarDataReport, RadarDetectedTarget, ReturnTypes } from "./radarDataReport.js";
+import {
+	allReturnTypes,
+	GateState,
+	HOJData,
+	LockingRadarData,
+	LockReturn,
+	RadarData,
+	RadarDataReport,
+	RadarDetectedTarget,
+	ReturnTypes
+} from "./radarDataReport.js";
 import { Reader } from "./reader.js";
 import { IDisposable, ManagedObject } from "./managedObject.js";
 
@@ -18,10 +28,11 @@ const LR_SIZE = 2;
 const LR_VERTS = 2;
 const TWS_SIZE = 6;
 const LR_COLORS: Record<ReturnTypes, number> = {
-	[ReturnTypes.Actual]: 0x00ffff, // Cyan
+	[ReturnTypes.Actual]: 0x00ffa7, // Cyan
 	[ReturnTypes.Chaff]: 0xff00ff, // Magenta
 	[ReturnTypes.Jammer]: 0xffff00 // Yellow
 };
+const HOJ_COLOR = 0xff69b4; // Hot Pink
 
 interface LRIndicator {
 	marker: DashedAndSolidLinedSphereMarker;
@@ -35,13 +46,14 @@ class RadarVisualizer {
 		return this._visible;
 	}
 
+	private report: GroupedRadarReport = { id: -1, radar: null, lockingRadar: null, hoj: null };
 	public set visible(val: boolean) {
 		this._visible = val;
 		if (!this.visible) {
 			this.setRadarScanElementsVisibility(false, false);
 			this.hideLockingRadarElements();
 		} else {
-			this.handleReport(this.radar, this.lockingRadar);
+			this.handleReport(this.report);
 		}
 	}
 
@@ -57,6 +69,8 @@ class RadarVisualizer {
 	private sweepLine: ManagedLine;
 	private limitLineLeft: ManagedLine;
 	private limitLineRight: ManagedLine;
+
+	private hojLine: ManagedLine;
 
 	private detectedActorMarkers: Map<number, { mesh: ManagedObject; updatedAt: number }> = new Map();
 	private twsTrackMarkers: LinedMarker[] = [];
@@ -86,7 +100,10 @@ class RadarVisualizer {
 		this.sweepLine = new ManagedLine(this.app, 0xffff00);
 		this.limitLineLeft = new ManagedLine(this.app, 0xffff00);
 		this.limitLineRight = new ManagedLine(this.app, 0xffff00);
-		this.ownedObjects.push(this.sweepLine, this.limitLineLeft, this.limitLineRight);
+
+		this.hojLine = new ManagedLine(this.app, HOJ_COLOR);
+		this.hojLine.scaleEffected = false;
+		this.ownedObjects.push(this.sweepLine, this.limitLineLeft, this.limitLineRight, this.hojLine);
 
 		for (let i = 0; i < 4; i++) this.twsTrackMarkers.push(new LinedBoxMarker(this, TWS_COLOR, TWS_SIZE));
 		for (let i = 0; i < 10; i++) this.fakeTrackMarkers.push(new LinedBoxMarker(this, FAKE_COLOR, TWS_SIZE, { dashSize: 50, gapSize: 50 }));
@@ -104,7 +121,10 @@ class RadarVisualizer {
 		});
 	}
 
-	public handleReport(radar: RadarData, lockingRadar: LockingRadarData) {
+	public handleReport(report: GroupedRadarReport) {
+		this.report = report;
+		const { radar, lockingRadar, hoj } = report;
+
 		this.ticksNoReport = 0;
 		this.radar = radar;
 		this.lockingRadar = lockingRadar;
@@ -116,7 +136,19 @@ class RadarVisualizer {
 			this.setRadarScanElementsVisibility(false, false);
 			this.radarStatus = "";
 		}
+
 		if (lockingRadar) this.handleLockingRadarReport(lockingRadar);
+
+		if (hoj) this.handleHojReport(hoj);
+		else this.hojLine.threeLine.visible = false;
+	}
+
+	private handleHojReport(hoj: HOJData) {
+		this.hojLine.threeLine.visible = true;
+
+		const len = 100_000;
+		const end = new THREE.Vector3(this.pos.x + -hoj.direction.x * len, this.pos.y + hoj.direction.y * len, this.pos.z + hoj.direction.z * len);
+		this.hojLine.setBetweenPoints(this.pos, end);
 	}
 
 	public interpolateElements() {
@@ -416,6 +448,13 @@ class RadarVisualizer {
 	}
 }
 
+interface GroupedRadarReport {
+	radar: RadarData;
+	lockingRadar: LockingRadarData;
+	hoj: HOJData;
+	id: number;
+}
+
 class RadarDataVisualizer {
 	private radars: RadarVisualizer[] = [];
 	private radarVisVisibilityCache: Record<number, boolean> = {};
@@ -433,35 +472,32 @@ class RadarDataVisualizer {
 		const radarData = new RadarDataReport();
 		radarData.build(reader);
 
-		const radarPairs: { radar: RadarData; lockingRadar: LockingRadarData; id: number }[] = [];
-		const radarPool = radarData.radars;
-		const lockingRadarPool = radarData.lockingRadars;
-		while (radarPool.length > 0 || lockingRadarPool.length > 0) {
-			if (radarPool.length > 0) {
-				const radar = radarPool.shift();
-				const lockingRadar = lockingRadarPool.find(lr => lr.parentNetId == radar.parentNetId);
-				if (lockingRadar) lockingRadarPool.splice(lockingRadarPool.indexOf(lockingRadar), 1);
-				radarPairs.push({ radar, lockingRadar, id: radar.parentNetId });
-			} else {
-				const lockingRadar = lockingRadarPool.shift();
-				const radar = radarPool.find(r => r.parentNetId == lockingRadar.parentNetId);
-				if (radar) radarPool.splice(radarPool.indexOf(radar), 1);
-				radarPairs.push({ radar, lockingRadar, id: lockingRadar.parentNetId });
-			}
-		}
+		const allIds: Set<number> = new Set();
+		radarData.radars.forEach(radar => allIds.add(radar.parentNetId));
+		radarData.lockingRadars.forEach(lr => allIds.add(lr.parentNetId));
+		radarData.hojAntennas.forEach(hoj => allIds.add(hoj.parentNetId));
 
-		radarPairs.forEach(radarPair => {
-			if (radarPair.id == -1 || !radarPair.id) return;
+		const groupedRadarData: GroupedRadarReport[] = Array.from(allIds).map(id => {
+			return {
+				id,
+				radar: radarData.radars.find(r => r.parentNetId == id),
+				lockingRadar: radarData.lockingRadars.find(lr => lr.parentNetId == id),
+				hoj: radarData.hojAntennas.find(h => h.parentNetId == id)
+			};
+		});
 
-			let visualizer = this.radars.find(r => r.parentId == radarPair.id);
+		groupedRadarData.forEach(groupedRadarReport => {
+			if (groupedRadarReport.id == -1 || !groupedRadarReport.id) return;
+
+			let visualizer = this.radars.find(r => r.parentId == groupedRadarReport.id);
 			if (!visualizer) {
 				visualizer = new RadarVisualizer(this.app);
-				visualizer.parentId = radarPair.id;
-				visualizer.visible = this.radarVisVisibilityCache[radarPair.id] ?? true;
+				visualizer.parentId = groupedRadarReport.id;
+				visualizer.visible = this.radarVisVisibilityCache[groupedRadarReport.id] ?? true;
 				this.radars.push(visualizer);
 			}
 
-			visualizer.handleReport(radarPair.radar, radarPair.lockingRadar);
+			visualizer.handleReport(groupedRadarReport);
 		});
 
 		this.radars = this.radars.filter(r => {

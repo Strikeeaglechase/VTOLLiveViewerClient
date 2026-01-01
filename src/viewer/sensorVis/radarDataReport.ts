@@ -176,9 +176,26 @@ class LockingRadarData {
 	}
 }
 
+class HOJData {
+	public parentNetId: number;
+	public active: boolean;
+	public direction: IVector3;
+	public signal: number;
+
+	public build(reader: Reader) {
+		this.parentNetId = reader.readI16();
+		this.active = reader.readByte() > 0;
+		if (!this.active) return;
+
+		this.direction = reader.readVector3();
+		this.signal = reader.readF32();
+	}
+}
+
 class RadarDataReport {
 	public radars: RadarData[] = [];
 	public lockingRadars: LockingRadarData[] = [];
+	public hojAntennas: HOJData[] = [];
 	public steamId: string;
 
 	public build(reader: Reader) {
@@ -186,7 +203,7 @@ class RadarDataReport {
 		const lobbyId = reader.readU64();
 
 		const version = reader.readByte();
-		if (version != 2) throw new Error(`Unsupported RadarDataReport version: ${version}`);
+		if (version < 2) throw new Error(`Unsupported RadarDataReport version: ${version}`);
 
 		this.steamId = reader.readU64().toString();
 
@@ -205,6 +222,16 @@ class RadarDataReport {
 			newLockingRadar.build(reader);
 			this.lockingRadars[i] = newLockingRadar;
 		}
+
+		if (version > 2) {
+			const hojAntennaCount = reader.readByte();
+			this.hojAntennas = new Array(hojAntennaCount);
+			for (let i = 0; i < hojAntennaCount; i++) {
+				const newHojAntenna = new HOJData();
+				newHojAntenna.build(reader);
+				this.hojAntennas[i] = newHojAntenna;
+			}
+		}
 	}
 }
 
@@ -213,6 +240,7 @@ export {
 	LockingRadarData,
 	InternalECMInfo,
 	LockReturn,
+	HOJData,
 	GateState,
 	ReturnTypes,
 	PulseParams,
