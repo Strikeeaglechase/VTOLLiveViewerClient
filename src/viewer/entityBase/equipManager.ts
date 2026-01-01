@@ -45,7 +45,13 @@ const displayEquips: Record<string, string> = {
 	"h70-x7ld-under": "Hydra 70 x7",
 	"h70-4x4": "Hydra 70 x16",
 	"h70-x19": "Hydra 70 x19",
-	"h70-x57": "Hydra 70 x57"
+	"h70-x57": "Hydra 70 x57",
+
+	// Jammers:
+	"ef24_jammerSuper": "Jammer",
+	"fa26_jammer": "Jammer",
+	"t55_jammer": "Jammer",
+	"asf30_jammer": "Jammer"
 };
 
 function getDisplayEquipName(equipPath: string) {

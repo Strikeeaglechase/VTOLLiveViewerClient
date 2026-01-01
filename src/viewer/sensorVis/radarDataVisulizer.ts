@@ -279,7 +279,7 @@ class RadarVisualizer {
 		});
 
 		this.detectedActorMarkers.forEach((marker, id) => {
-			if (marker.mesh.obj.visible && (Application.time - marker.updatedAt > 500 || Application.time < marker.updatedAt)) {
+			if (Application.time - marker.updatedAt > 250 || Application.time < marker.updatedAt) {
 				marker.mesh.obj.visible = false;
 			}
 		});
