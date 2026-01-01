@@ -80,6 +80,7 @@
 	margin-right: 10px;
 	padding: 5px 5px 5px 7px;
 	margin-top: 7px;
+	text-align: center;
 
 	border-width: 1px;
 	border-style: solid;
@@ -89,11 +90,17 @@
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%239C92AC' fill-opacity='0.4' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
 }
 
+
 .entity:hover {
 	background-color: #434c53;
 	-webkit-box-shadow: inset 0px 0px 6px 5px rgb(0 0 0 / 30%);
 	box-shadow: inset 0px 0px 6px 5px rgb(0 0 0 / 30%);
 	transition: color 0.25s;
+}
+
+.entity-subtext {
+	font-size: 12px;
+
 }
 
 .team-a {

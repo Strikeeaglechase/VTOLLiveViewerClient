@@ -47,6 +47,12 @@ class RadarVisualizer {
 
 	public parentId: number;
 	public ticksNoReport: number = 0;
+	private lockingRadarStatus = "";
+	private radarStatus = "";
+
+	public get status() {
+		return `${this.radarStatus} ${this.lockingRadarStatus}`.trim();
+	}
 
 	private sweepLine: ManagedLine;
 	private limitLineLeft: ManagedLine;
@@ -106,7 +112,10 @@ class RadarVisualizer {
 		if (!this.visible) return;
 
 		if (radar) this.handleRadarReport(radar);
-		else this.setRadarScanElementsVisibility(false, false);
+		else {
+			this.setRadarScanElementsVisibility(false, false);
+			this.radarStatus = "";
+		}
 		if (lockingRadar) this.handleLockingRadarReport(lockingRadar);
 	}
 
@@ -168,6 +177,7 @@ class RadarVisualizer {
 	}
 
 	private hideLockingRadarElements() {
+		this.lockingRadarStatus = "";
 		allReturnTypes.forEach(rt => {
 			this.lrMarkers[rt].forEach(marker => {
 				marker.marker.setVisible(false);
@@ -188,7 +198,6 @@ class RadarVisualizer {
 		this.lockingRadarDataUpdateTime = Application.time;
 		this.pos = new THREE.Vector3(-lockingRadar.position.x, lockingRadar.position.y, lockingRadar.position.z);
 		this.hideLockingRadarElements();
-
 		if (!lockingRadar.ecmInfo) return;
 
 		lockingRadar.ecmInfo.lockReturns.forEach(lr => this.updateLrMarker(lr));
@@ -246,6 +255,7 @@ class RadarVisualizer {
 
 			// Selected box shows solid line
 			marker.setSolidLineEnabled(true);
+			this.lockingRadarStatus = `Locked ${ReturnTypes[lr.type]}`;
 		} else if (lr.gateState == GateState.InGate) {
 			// Non-selected box shows dashed line
 			marker.setDashedLineEnabled(true);
@@ -262,6 +272,11 @@ class RadarVisualizer {
 
 		this.setRadarScanElementsVisibility(true, this.lockingRadar == null || !this.lockingRadar.lockData?.locked);
 		this.drawScanAndLimits();
+		this.radarStatus = "";
+
+		if (this.lockingRadar == null || !this.lockingRadar.lockData?.locked) {
+			this.radarStatus += "Scanning";
+		}
 
 		radar.detectedActors.forEach(da => {
 			if (!this.detectedActorMarkers.has(da)) {
@@ -286,6 +301,11 @@ class RadarVisualizer {
 
 		this.updateTrackMarkers(radar.twsTracks, this.twsTrackMarkers);
 		this.updateTrackMarkers(radar.fakeTargets, this.fakeTrackMarkers);
+
+		const twsLength = radar.twsTracks.filter(t => t.entityId > 0).length;
+		const fakeLength = radar.fakeTargets.filter(t => t.entityId > 0).length;
+		if (twsLength > 0) this.radarStatus += ` TWS x${twsLength}`;
+		if (fakeLength > 0) this.radarStatus += ` Fake x${fakeLength}`;
 	}
 
 	private getOrCreateLrMarker(returnType: ReturnTypes): LRIndicator {

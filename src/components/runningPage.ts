@@ -114,7 +114,7 @@ class RunningPage extends Page {
 		sidebar.style.display = "block";
 
 		// Avoid rebuilding the list if nothing relevant changed (ids or visibility)
-		const newKey = radarVisualizers.map(r => `${r.parentId}-${r.visible}-${this.app.getEntityById(r.parentId)?.isFocus}`).join(",");
+		const newKey = radarVisualizers.map(r => `${r.parentId}-${r.visible}-${r.status}-${this.app.getEntityById(r.parentId)?.isFocus}`).join(",");
 		if (newKey === this.previousRadarSidebarKey) return;
 		this.previousRadarSidebarKey = newKey;
 
@@ -132,6 +132,13 @@ class RunningPage extends Page {
 			if (parentEntity) label.innerText = `${parentEntity.owner.pilotName} (${parentEntity.displayName})`;
 			else label.innerText = `Unit ${radarVis.parentId}`;
 			container.appendChild(label);
+
+			container.appendChild(document.createElement("br"));
+
+			const statusLabel = document.createElement("p");
+			statusLabel.innerText = radarVis.status;
+			statusLabel.classList.add("entity-subtext");
+			container.appendChild(statusLabel);
 
 			container.onclick = () => {
 				radarVis.visible = !radarVis.visible;
