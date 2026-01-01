@@ -144,6 +144,10 @@ class RadarVisualizer {
 	}
 
 	private handleHojReport(hoj: HOJData) {
+		if (!hoj.active || !hoj.direction) {
+			this.hojLine.threeLine.visible = false;
+			return;
+		}
 		this.hojLine.threeLine.visible = true;
 
 		const len = 100_000;
