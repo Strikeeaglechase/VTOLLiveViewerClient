@@ -35,12 +35,12 @@ import { MapLoader } from "./map/mapLoader";
 import { MeshLoader } from "./meshLoader/meshLoader";
 import { MessageHandler } from "./messageHandler.js";
 import { nuclearOptionEntities } from "./nuclearOptionGuids";
-import { RadarDataVisualizer } from "./sensorVis/radarDataVisulizer.js";
 import { ReplayController } from "./replay/replayController";
+import { IRDataVisualizer } from "./sensorVis/irDataVisulizer.js";
+import { RadarDataVisualizer } from "./sensorVis/radarDataVisulizer.js";
 import { Settings } from "./settings.js";
 import { Marker, MarkerType } from "./sprite/marker";
 import { mark } from "./threeUtils";
-import { IRDataVisualizer } from "./sensorVis/irDataVisulizer.js";
 
 export const rad = (deg: number): number => (deg * Math.PI) / 180;
 export const deg = (rad: number): number => (rad * 180) / Math.PI;

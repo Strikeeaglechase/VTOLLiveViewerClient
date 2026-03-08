@@ -48,6 +48,20 @@ export const entityMeshs: EntityMeshConfig[] = [
 		loadScale: 0.0069
 	},
 	{
+		key: ["Vehicles/F-16", "F-16"],
+		path: "./assets/objects/FixedWing.F-16.obj",
+		position: new Vector(0, 0, 0),
+		rotation: new Vector(0, Math.PI, 0),
+		loadScale: 0.6
+	},
+	{
+		key: ["Vehicles/F-22A", "F-22A"],
+		path: "./assets/objects/FixedWing.F-22.obj",
+		position: new Vector(0, 0, 0),
+		rotation: new Vector(0, Math.PI, 0),
+		loadScale: 0.6
+	},
+	{
 		key: ["Units/Allied/AlliedCarrier"],
 		path: "./assets/objects/output/vtolvr_AlliedCarrier.gltf",
 		scaleDamper: 0.1,
