@@ -98,6 +98,15 @@ class Client extends EventEmitter<"replay_header" | "replay_lobby_info"> {
 
 		this.setUser(token);
 	}
+
+	@RPC("out")
+	requestAutoJoinTokenFor(steamId: string) {}
+
+	@RPC("in")
+	autoJoinTokenFor(steamId: string, token: string) {
+		console.log(`Received auto-join token for ${steamId}`);
+		console.log({ token });
+	}
 }
 
 export { Client };
