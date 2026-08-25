@@ -4,27 +4,43 @@
 		"module": "esnext",
 		"strictPropertyInitialization": false,
 		"allowJs": true,
-		"moduleResolution": "node",
 		"experimentalDecorators": true,
 		"allowSyntheticDefaultImports": true,
 		"sourceMap": true,
-		"baseUrl": "src",
 		"outDir": "dist",
 		"rootDir": "src",
 		"paths": {
-			"@/*": ["src/*"],
-			"tslib": ["./node_modules/tslib/tslib.d.ts"],
-			"@common/*": ["../VTOLLiveViewerCommon/dist/*"],
+			"@/*": [
+				"./src/*"
+			],
+			"tslib": [
+				"./node_modules/tslib/tslib.d.ts"
+			],
+			"@common/*": [
+				"../VTOLLiveViewerCommon/dist/*"
+			],
 		},
 		"plugins": [
-			{ "transform": "typescript-transform-paths" },
-			{ "transform": "typescript-transform-paths",	"afterDeclarations": true }
+			{
+				"transform": "typescript-transform-paths"
+			},
+			{
+				"transform": "typescript-transform-paths",
+				"afterDeclarations": true
+			}
 		],
-		"lib": ["DOM", "DOM.Iterable", "ESNext"],
-		"skipLibCheck": true
+		"lib": [
+			"DOM",
+			"DOM.Iterable",
+			"ESNext"
+		],
+		"skipLibCheck": true,
+		"strict": false
 	},
 	"include": [
 		"src/**/*.ts",
 	],
-	"exclude": ["node_modules"],
+	"exclude": [
+		"node_modules"
+	],
 }

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { IVector3 } from "vtol-live-viewer-shared/dist/vector.js";
 
 import { EnableRPCs, RPC } from "../../../../VTOLLiveViewerCommon/dist/rpc.js";
 import { Vector3 } from "../../../../VTOLLiveViewerCommon/dist/shared.js";
@@ -6,6 +7,7 @@ import { Vector } from "../../../../VTOLLiveViewerCommon/dist/vector.js";
 import { addCommas, Application, msToKnots, mToFt } from "../app";
 import { Entity } from "../entityBase/entity";
 import { Settings } from "../settings";
+import { AIAirVehicle } from "./aiAirVehicle.js";
 
 const len = 3;
 const wid = 0.8;
@@ -38,8 +40,20 @@ class MissileEntity extends Entity {
 		"NuclearOption/SAM_Radar2"
 	];
 
+	private travelDistance = 0;
+	private lastPos: Vector = new Vector(0, 0, 0);
+	private kinematicData: { time: number; position: IVector3; g: number; airspeed: number }[] = [];
+	private targetHistory: { time: number; position: IVector3; velocity: IVector3; g: number; airspeed: number }[] = [];
+	private savedKinematicTimes: Set<number> = new Set();
+
+	private closestDist = 0;
+	private doneClosestDist = false;
+
 	constructor(app: Application) {
 		super(app, { useHostTeam: false });
+
+		// Delete our equip manager, missiles don't have equips
+		this.equipManager = null;
 	}
 
 	protected async setInactive(reason: string) {
@@ -94,6 +108,26 @@ class MissileEntity extends Entity {
 			if (labelOption == "All") text += ` [${this.owner.pilotName}]`;
 			this.textOverlay.edit(text + "\n");
 		}
+
+		// if (this.doneClosestDist || this.app.timeDirection < 0) return;
+		// this.app.entities.forEach(e => {
+		// 	if (!(e instanceof PlayerVehicle || e instanceof AIAirVehicle)) {
+		// 		return;
+		// 	}
+
+		// 	if (e.team == this.team) return;
+
+		// 	const dist = e.position.distanceTo(this.position);
+		// 	if (dist < 1000) {
+		// 		if (this.closestDist == 0 || dist < this.closestDist) {
+		// 			this.closestDist = dist;
+		// 		} else {
+		// 			this.doneClosestDist = true;
+		// 			console.log(`Missile ${this.displayName} closest distance to target: ${Math.floor(this.closestDist)}m`);
+		// 		}
+		// 		console.log({ dist, cd: this.closestDist });
+		// 	}
+		// });
 	}
 
 	protected async onFirstPos(): Promise<void> {
@@ -116,11 +150,46 @@ class MissileEntity extends Entity {
 		}
 	}
 
+	public getKinematicData() {
+		return { missile: this.kinematicData, target: this.targetHistory };
+	}
+
 	// TODO: Rename this RPC
 	@RPC("in")
 	public SyncShit(syncedPos: Vector3, syncedRot: Vector3, syncedVel: Vector3, syncedAccel: Vector3) {
 		// Call some bitches - Dinner Plate
 		this.updateMotion(syncedPos, syncedVel, syncedAccel, syncedRot);
+
+		if (!this.savedKinematicTimes.has(this.app.time) && Application.timeDirection > 0) {
+			const moveDist = this.lastPos.distanceTo(this.position);
+			this.travelDistance += moveDist;
+			this.lastPos.set(this.position);
+
+			const dataPoint = {
+				time: this.app.time,
+				position: { x: this.position.x, y: this.position.y, z: this.position.z },
+				g: this.gForce,
+				airspeed: this.velocity.length()
+			};
+			this.kinematicData.push(dataPoint);
+
+			const possibleTarget = this.app.entities.find(e => e instanceof AIAirVehicle && e.team != this.team);
+			if (possibleTarget) {
+				const targetDataPoint = {
+					time: this.app.time,
+					position: { x: possibleTarget.position.x, y: possibleTarget.position.y, z: possibleTarget.position.z },
+					velocity: { x: possibleTarget.velocity.x, y: possibleTarget.velocity.y, z: possibleTarget.velocity.z },
+					g: possibleTarget.gForce,
+					airspeed: possibleTarget.velocity.length()
+				};
+
+				this.targetHistory.push(targetDataPoint);
+			} else {
+				console.log(`Missile ${this.displayName} could not find target for kinematic data`);
+			}
+
+			this.savedKinematicTimes.add(this.app.time);
+		}
 
 		if (this.type.includes("NuclearOption")) {
 			// Face forward based off velocity

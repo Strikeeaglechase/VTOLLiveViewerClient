@@ -347,6 +347,15 @@ class RunningPage extends Page {
 		}
 	}
 
+	private hideEquips() {
+		if (!this.equipsVisible) return;
+
+		this.equipsVisible = false;
+		const equipsContainer = document.getElementById("equips-container");
+		equipsContainer.classList.remove("shown");
+		equipsContainer.classList.add("hidden");
+	}
+
 	private updateEquipsList() {
 		const equipsVisibleButton = document.getElementById("equips-popout-btn");
 		if (this.app.currentFocus == null && equipsVisibleButton.style.display != "none") {
@@ -355,6 +364,11 @@ class RunningPage extends Page {
 
 		if (this.app.currentFocus != null && equipsVisibleButton.style.display != "block") {
 			equipsVisibleButton.style.display = "block";
+		}
+
+		if (!this.app.currentFocus || this.app.currentFocus.equipManager == null) {
+			this.hideEquips();
+			return;
 		}
 
 		const missiles = this.app.currentFocus?.equipManager?.getWeapons() ?? "";
